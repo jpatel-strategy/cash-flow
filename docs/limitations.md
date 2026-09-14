@@ -27,12 +27,17 @@ implements a genuine HTTP client for environments where SEC access is open.
 
 - Only one complete fiscal year (4 quarters) is targeted for the first data
   gate — not yet the ~16 quarters the full project calls for.
-- The CIK used for Target Corporation (`0000027419`) is a candidate pending
-  verification against the SEC submissions file itself.
+- CIK `0000027419` is **verified** as Target Corporation (see
+  docs/decisions.md, 2026-09-14 entry) via the SEC submissions file.
 - XBRL tag mappings in `config/metrics.csv` are candidates from general
-  US-GAAP taxonomy knowledge, marked `candidate_unverified`. None has yet been
-  checked against Target's actual filing statements, contexts, or sign
-  conventions — required before any mapped value is treated as reconciled.
+  US-GAAP taxonomy knowledge, marked `candidate_unverified`. Company Facts
+  reconnaissance (docs/decisions.md) found real gaps a name-based guess would
+  have missed — e.g. `CashAndCashEquivalentsAtCarryingValue` has zero entries
+  for Target; the balance-sheet cash line is tagged differently, and multiple
+  candidate cash tags currently produce identical values for reasons not yet
+  confirmed from the actual statement. None of these candidates is active
+  until checked against Target's actual filing statements, contexts, and sign
+  conventions, per the project owner's explicit standing instruction.
 
 ## Not yet built
 

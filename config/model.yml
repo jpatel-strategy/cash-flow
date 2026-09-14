@@ -5,16 +5,22 @@
 
 company:
   name: "Target Corporation"
-  cik: "0000027419"          # candidate identifier; UNVERIFIED until the SEC submissions
-                              # file for this CIK echoes back company_name == "TARGET CORP"
-  status: pending_verification
+  cik: "0000027419"
+  ticker: "TGT"
+  exchange: "NYSE"
+  status: verified            # confirmed 2026-09-14 against CIK0000027419-submissions.json:
+                               # name="TARGET CORP", tickers=["TGT"], exchanges=["NYSE"],
+                               # formerNames includes "DAYTON HUDSON CORP" (Target's known
+                               # legal predecessor name). See docs/decisions.md.
+  fiscal_year_end_nominal: "0201"   # SEC's nominal MM-DD; actual period-end dates float
+                                     # (Saturday nearest Jan 31) — see docs/decisions.md
 
-information_cutoff: null      # ISO date; set once the filing inventory is confirmed and a
-                               # complete fiscal year of filings is identified as public by it
+information_cutoff: null      # ISO date; PROPOSED 2026-09-14 in docs/decisions.md, not yet
+                               # activated pending your approval of the filing matrix
 
 fiscal_year:
-  proof_year: null            # fiscal year selected for the four-quarter data-gate proof;
-                               # set once the filing inventory is available
+  proof_year: null            # PROPOSED: fiscal 2025 (period 2025-02-02 to 2026-01-31) in
+                               # docs/decisions.md, not yet activated pending your approval
 
 units:
   normalized_unit: "USD_millions"
