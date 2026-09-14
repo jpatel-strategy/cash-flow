@@ -39,8 +39,22 @@ company:
   cik: "9999999"
 information_cutoff: "2024-12-31"
 reconciliation_tolerance:
-  absolute_usd_millions: 1.0
-  relative_pct: 0.5
+  annual_vs_quarters:
+    directly_reported_flow:
+      absolute_usd_millions: 0
+      relative_pct: 0
+    derived_ytd_flow:
+      absolute_usd_millions: 1.0
+      relative_pct: 0
+  cash_rollforward:
+    absolute_usd_millions: 1.0
+    relative_pct: 0
+  derived_quarter_calculation:
+    absolute_usd_millions: 0
+    relative_pct: 0
+  excel_vs_python:
+    absolute_usd_millions: 0.01
+    relative_pct: 0
 data_source:
   mode: "manual_upload"
   user_agent_contact: "test@example.invalid"

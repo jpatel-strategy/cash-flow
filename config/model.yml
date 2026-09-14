@@ -15,26 +15,66 @@ company:
   fiscal_year_end_nominal: "0201"   # SEC's nominal MM-DD; actual period-end dates float
                                      # (Saturday nearest Jan 31) — see docs/decisions.md
 
-information_cutoff: null      # ISO date; PROPOSED 2026-09-14 in docs/decisions.md, not yet
-                               # activated pending your approval of the filing matrix
+information_cutoff: "2026-09-14"   # approved 2026-09-14 — see docs/decisions.md
 
 fiscal_year:
-  proof_year: null            # PROPOSED: fiscal 2025 (period 2025-02-02 to 2026-01-31) in
-                               # docs/decisions.md, not yet activated pending your approval
+  proof_year: 2025             # Target's internal fiscal-year label; period 2025-02-02 to
+                                # 2026-01-31. Approved 2026-09-14 — see docs/decisions.md
 
 units:
   normalized_unit: "USD_millions"
   decimal_places: 2
   arithmetic: "python.decimal.Decimal"   # never binary float for financial values
 
+# Category-specific reconciliation tolerances, approved 2026-09-14 (see docs/decisions.md),
+# replacing an earlier universal $1M / 0.5% placeholder. A single universal tolerance was
+# rejected because the four checks below test fundamentally different things: exact
+# subtraction of already-precise reported values has no reason to differ at all, while a
+# roll-forward of several distinct reported lines can accumulate the source filings' own
+# $1M rounding. None use a relative percentage — a relative tolerance scales with the
+# balance being checked, which would mask a fixed-dollar error (e.g. an omitted capex line)
+# in a large-magnitude figure, or be meaninglessly loose for a near-zero quarterly flow.
 reconciliation_tolerance:
-  absolute_usd_millions: 1.0
-  relative_pct: 0.5
-  rationale: >
-    Placeholder pending inspection of Target's actual reported rounding precision
-    (10-K/10-Q statements are typically presented in USD millions with no decimals).
-    Revisit once the first real filings are ingested and document the final choice
-    in docs/decisions.md.
+  annual_vs_quarters:
+    directly_reported_flow:
+      absolute_usd_millions: 0
+      relative_pct: 0
+      rationale: >
+        Applies to metrics Target reports as a discrete 3-month figure in every 10-Q
+        (confirmed for revenue and cost of sales — see docs/decisions.md). Summing four
+        already-precise reported values and comparing to a fifth reported value should
+        match exactly; any nonzero difference means a mapping or period error, not rounding.
+    derived_ytd_flow:
+      absolute_usd_millions: 1.0
+      relative_pct: 0
+      rationale: >
+        Applies to metrics only available as YTD figures in 10-Qs (confirmed for operating
+        cash flow and D&A), so quarters are derived by subtraction before summing. Target's
+        own statements round to the nearest $1M; chained subtraction can accumulate at most
+        a few dollars of rounding drift, never more than $1M.
+  cash_rollforward:
+    absolute_usd_millions: 1.0
+    relative_pct: 0
+    rationale: >
+      Beginning cash + CFO + CFI + CFF + FX effect vs. reported ending cash. All inputs are
+      already $1M-rounded reported figures, so the roll-forward should tie out to that same
+      unit. Tested in USD millions of cash (billions in magnitude for Target), where a
+      relative tolerance would hide real dollar-sized errors.
+  derived_quarter_calculation:
+    absolute_usd_millions: 0
+    relative_pct: 0
+    rationale: >
+      Q2 = 6mo YTD - Q1, Q3 = 9mo YTD - 6mo YTD, Q4 = annual - 9mo YTD. Pure subtraction of
+      two already-reported values in their original (pre-normalization) unit; any nonzero
+      result means a mismatched fiscal year, unit, scope, or accounting basis — exactly the
+      failure normalize.py's compatibility checks exist to catch, not tolerate.
+  excel_vs_python:
+    absolute_usd_millions: 0.01
+    relative_pct: 0
+    rationale: >
+      One unit at the 2-decimal USD_millions display precision. Excel and Python compute
+      the identical formula on identical inputs; any difference should only be binary-float
+      vs. Decimal rounding noise at the last displayed digit, never a modeling divergence.
 
 data_source:
   mode: "manual_upload"       # this Claude Code remote environment has no network egress

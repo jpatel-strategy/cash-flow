@@ -14,7 +14,6 @@ import csv
 import json
 import sqlite3
 import sys
-from decimal import Decimal
 from pathlib import Path
 
 import yaml
@@ -178,13 +177,13 @@ def cmd_validate(args: argparse.Namespace) -> int:
     conn = _connect_db(config)
     conn.row_factory = sqlite3.Row
 
-    tolerance_absolute = Decimal(str(config["reconciliation_tolerance"]["absolute_usd_millions"]))
-    tolerance_relative_pct = Decimal(str(config["reconciliation_tolerance"]["relative_pct"]))
-
-    # Annual totals for comparison must come from a directly-reported annual fact,
-    # not be inferred from the quarters being reconciled — that would be circular.
-    # That lookup, and the cash-rollforward check, populate reconciliation_results
-    # once real quarterly_facts exist; there is nothing to check against yet.
+    # The four category-specific tolerances live under config['reconciliation_tolerance']
+    # (see config/model.yml and docs/decisions.md). Each of the checks below will read the
+    # tolerance for its own category once it is wired to real quarterly_facts — there is
+    # nothing to check against yet, so no tolerance lookup happens here.
+    #
+    # Annual totals for comparison must come from a directly-reported annual fact, not be
+    # inferred from the quarters being reconciled — that would be circular.
     reconciliation_results = []
 
     derived_fact_ids = [
