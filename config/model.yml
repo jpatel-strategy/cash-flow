@@ -1,0 +1,52 @@
+# Model-wide configuration for Milestone 1 (repository setup + four-quarter data proof).
+# Every field here is either verified against a source document or explicitly marked
+# candidate/pending. Nothing here should be read as a confirmed fact until the
+# corresponding source file has been inspected.
+
+company:
+  name: "Target Corporation"
+  cik: "0000027419"          # candidate identifier; UNVERIFIED until the SEC submissions
+                              # file for this CIK echoes back company_name == "TARGET CORP"
+  status: pending_verification
+
+information_cutoff: null      # ISO date; set once the filing inventory is confirmed and a
+                               # complete fiscal year of filings is identified as public by it
+
+fiscal_year:
+  proof_year: null            # fiscal year selected for the four-quarter data-gate proof;
+                               # set once the filing inventory is available
+
+units:
+  normalized_unit: "USD_millions"
+  decimal_places: 2
+  arithmetic: "python.decimal.Decimal"   # never binary float for financial values
+
+reconciliation_tolerance:
+  absolute_usd_millions: 1.0
+  relative_pct: 0.5
+  rationale: >
+    Placeholder pending inspection of Target's actual reported rounding precision
+    (10-K/10-Q statements are typically presented in USD millions with no decimals).
+    Revisit once the first real filings are ingested and document the final choice
+    in docs/decisions.md.
+
+data_source:
+  mode: "manual_upload"       # this Claude Code remote environment has no network egress
+                               # to data.sec.gov / www.sec.gov; see docs/limitations.md
+  user_agent_contact: "jaypatelaitools@gmail.com"
+
+mapping_version: "v0-pending-verification"
+dataset_version: "0.1.0-scaffold"
+
+# All paths below are relative to the current working directory when a
+# `target-cash` command runs (i.e. the repository root). Kept explicit so the
+# CLI never hardcodes a location and can be pointed at an isolated directory
+# (e.g. in tests) without touching real project data.
+paths:
+  cache_dir: "data/raw"
+  curated_dir: "data/curated"
+  db_filename: "target_cash.db"
+  manifest_csv: "docs/sources.csv"
+  schema_sql: "sql/schema.sql"
+  views_sql: "sql/views.sql"
+  metrics_csv: "config/metrics.csv"

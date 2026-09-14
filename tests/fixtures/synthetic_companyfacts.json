@@ -1,0 +1,27 @@
+{
+    "_comment": "SYNTHETIC TEST DATA. Not a real Company Facts payload. Shape mimics SEC's documented XBRL frames API structure; all values are fabricated.",
+    "cik": 9999999,
+    "entityName": "SYNTHETIC TEST CORP",
+    "facts": {
+        "us-gaap": {
+            "NetCashProvidedByUsedInOperatingActivities": {
+                "units": {
+                    "USD": [
+                        {"start": "2019-01-01", "end": "2019-03-31", "val": 100000000, "accn": "0000000000-19-000001", "fy": 2019, "fp": "Q1", "form": "10-Q", "filed": "2019-05-01"},
+                        {"start": "2019-01-01", "end": "2019-06-30", "val": 210000000, "accn": "0000000000-19-000002", "fy": 2019, "fp": "Q2", "form": "10-Q", "filed": "2019-08-01"},
+                        {"start": "2019-01-01", "end": "2019-09-30", "val": 330000000, "accn": "0000000000-19-000003", "fy": 2019, "fp": "Q3", "form": "10-Q", "filed": "2019-11-01"},
+                        {"start": "2019-01-01", "end": "2019-12-31", "val": 460000000, "accn": "0000000000-20-000001", "fy": 2019, "fp": "FY", "form": "10-K", "filed": "2020-02-15"}
+                    ]
+                }
+            },
+            "CashAndCashEquivalentsAtCarryingValue": {
+                "units": {
+                    "USD": [
+                        {"end": "2019-03-31", "val": 500000000, "accn": "0000000000-19-000001", "fy": 2019, "fp": "Q1", "form": "10-Q", "filed": "2019-05-01"},
+                        {"end": "2019-12-31", "val": 620000000, "accn": "0000000000-20-000001", "fy": 2019, "fp": "FY", "form": "10-K", "filed": "2020-02-15"}
+                    ]
+                }
+            }
+        }
+    }
+}
