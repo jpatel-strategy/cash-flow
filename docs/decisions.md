@@ -432,6 +432,64 @@ Four corrections required before ingesting the FY2025 10-Qs:
 
 Test suite after these four changes: 104 passed, 0 failed.
 
+## 2026-09-15 — FY2025 Q1/Q2/Q3 10-Qs preserved and raw-ingested
+
+Three genuine primary 10-Q documents, verified via dei: tags before any
+action (EntityRegistrantName=TARGET CORPORATION, EntityCentralIndexKey=
+0000027419, DocumentType=10-Q, matching DocumentPeriodEndDate/FiscalYearFocus/
+FiscalPeriodFocus for each; no automated-tool block text in any of them):
+
+| Quarter | Accession | File size | SHA-256 |
+|---|---|---|---|
+| Q1 | 0000027419-25-000101 | 905,500 bytes | `311e843fc262a7581e2cfe74a50462518ee6f730ad261df3029087a126ac285a` |
+| Q2 | 0000027419-25-000118 | 1,091,380 bytes | `e7f3042830970f676c97db753117042c49559a9c0b2dfbbabf2d1302bf18b2ce` |
+| Q3 | 0000027419-25-000126 | 1,154,612 bytes | `7003df602996b3e3649b5eac3e409e2e0f9b024de9d24a3a7a57c28be9afb43d` |
+
+All three hashes independently re-verified with `sha256sum` after caching,
+matching the manifest exactly. Each registered exactly once in
+`docs/sources.csv` and the `filings` table (4 total filings now, one per
+accession, `append_source_manifest`'s and `fetch`'s duplicate guards held
+throughout with no rejections needed — no retries were required this
+round).
+
+**Raw ingestion** (`normalize`, run once for all four cached filings
+together): `raw_facts` grew from 121 to 528 (+407: 95 from Q1, 155 from Q2,
+157 from Q3; the 10-K's own re-scan found 144 facts — up from 138 now that
+`InterestExpenseNonoperating` is searched for — but inserted 0 new rows,
+correctly idempotent). **Zero ambiguous consolidated-fact groups**: querying
+every `(accession, tag, start_date, end_date)` combination among
+dimensionless raw facts found exactly one consolidated context in all 237
+groups — `select_consolidated_fact` would resolve every one of them
+cleanly. Zero-match configured concepts across all four filings:
+`GrossProfit`, `LongTermDebtNoncurrent`, `OperatingExpenses`,
+`PaymentsOfDividends` (Target does not use these exact tags — consistent
+with earlier findings; `InterestExpense` dropped off this list now that the
+tag correction above finds real matches).
+
+**Cross-filing consistency confirmed** (a genuine check made possible only
+once multiple filings covering the same point-in-time exist): every
+comparative balance repeated across filings matches exactly — cash at
+2025-02-01 ($4,762M) and at 2024-02-03 ($3,805M) agree across the 10-K and
+all three 10-Qs; accounts payable at 2025-02-01 ($13,053M) agrees across all
+four. No cross-filing discrepancy found in any of these overlaps.
+
+**Accounts-payable interim gap (finding D) — still open, and now explained
+why it can't be closed from these filings.** Searched all three 10-Qs for
+"book overdraft" (the disclosure that narrowed the 10-K's own annual gap
+from $70M to $6M) — **absent from all three**; Target discloses that
+breakdown only in the annual 10-K, not quarterly. Confirmed interim gaps
+from the now-ingested raw facts (previously estimated from Company Facts):
+Q1 FY2025 balance-sheet AP delta $11,823M − $13,053M = −$1,230M vs. reported
+`IncreaseDecreaseInAccountsPayable` −$1,344M (gap $114M); Q3 FY2025 9-month
+delta $13,792M − $13,053M = +$739M vs. reported +$658M (gap $81M). Left
+`candidate_unverified`; not attributed to the purchases proxy.
+
+**No `quarterly_facts` derivation performed** — 0 rows before and after, as
+instructed; a four-filing mapping and context-selection matrix awaits
+approval before that step begins.
+
+Test suite after ingesting all three 10-Qs: 104 passed, 0 failed.
+
 ## Pending decisions (not yet made — recorded so they aren't quietly defaulted)
 
 - **Findings A, B are activated** (`cash_and_equivalents_balance_sheet`,
