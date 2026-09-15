@@ -7,7 +7,8 @@ silently substitutes a default.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
@@ -84,6 +85,10 @@ class PeriodSpec:
     sign_as_reported: int = 1
 
 
+def _new_quarterly_fact_id() -> str:
+    return f"qf_{uuid.uuid4().hex[:12]}"
+
+
 @dataclass(frozen=True)
 class QuarterlyFact:
     metric: str
@@ -97,6 +102,7 @@ class QuarterlyFact:
     value_normalized: Decimal
     normalized_unit: str
     basis: str  # 'direct_quarterly' | 'derived_ytd_subtraction' | 'point_in_time'
+    quarterly_fact_id: str = field(default_factory=_new_quarterly_fact_id)
 
 
 def to_decimal(raw_value) -> Decimal:

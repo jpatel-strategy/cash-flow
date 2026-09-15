@@ -490,14 +490,81 @@ approval before that step begins.
 
 Test suite after ingesting all three 10-Qs: 104 passed, 0 failed.
 
+## 2026-09-15 — First quarterly_facts derivation run, for the 5 reviewed metrics
+
+New `src/target_cash/derive.py`: derives `quarterly_facts` from `raw_facts`
+for metrics whose `config/metrics.csv` row is `mapping_status == 'reviewed'`
+only. Wired into `cli.py`'s `normalize` command as its second pass (raw
+extraction first, then derivation), which now clears and regenerates a
+reviewed metric's prior `quarterly_facts`/`lineage` rows on every run
+(deterministic recompute of derived analytical data — never touches
+`raw_facts` or `filings`). 10 new unit tests (`tests/unit/test_derive.py`)
+plus one true end-to-end integration test through the actual CLI
+(`test_normalize_derives_quarterly_facts_for_a_reviewed_point_in_time_metric`).
+
+**Run against the real database** (all 4 filings, 528 raw_facts): produced
+**20 quarterly_facts rows and 25 lineage rows**.
+
+- **`depreciation_amortization_opex`**: Q1/Q2/Q3 direct (655/632/649M), Q4
+  derived (681M = 2617 − 1936). Independent validation: Q2 and Q3 both
+  **validated** (YTD-subtraction cross-check ties out exactly against the
+  independently-filed discrete fact); Q4 **unavailable** (no discrete Q4
+  ever filed), all correctly labeled, never a silent pass.
+- **`net_other_income`**: Q1/Q2/Q3 direct (26/17/26M), Q4 derived (27M = 95
+  − 68). Q2 **validated** exactly; **Q3 validated within the rounding
+  bound** (derived 25M vs. direct 26M, $1M residual against the $1.5M bound
+  — the propagated-rounding-bound methodology doing exactly the job it was
+  built for, on real data); Q4 unavailable.
+- **`depreciation_amortization_cfo_addback`**: Q1 direct (787M), Q2/Q3/Q4 all
+  derived (771/773/803M) — no discrete quarter is ever filed for this
+  cash-flow-statement tag, so all three are correctly labeled
+  **unavailable**, never treated as validated.
+- **`cash_and_equivalents_balance_sheet` / `cash_and_equivalents_rollforward`**:
+  4 of 5 target instants succeeded (Q1–Q4 FY2025 quarter-end balances, each
+  uniquely "current" in exactly one filing). **The 5th instant — the FY2024
+  year-end / FY2025 opening balance (2025-02-01) — failed as genuinely
+  ambiguous**: this exact date is independently reported as a comparative
+  balance in *four* different filings (the 10-K and all three 10-Qs), each
+  a distinct raw fact with its own `fact_id`, all agreeing in value
+  ($4,762M) but with no encoded rule for which one is "the" source.
+  `select_consolidated_fact` correctly refused to pick one silently — see
+  the pending decision below.
+
+**`validate` does not yet reflect any of this.** It still reports
+`checks_run: 0` / `gate_passed: false`, because the independent-validation
+results computed during derivation are returned in `normalize`'s output
+only, not yet persisted anywhere `validate` reads from. This is an honest
+gap, not a hidden one: `validate`'s lineage-completeness check does confirm
+every derived fact has its lineage rows (`facts_missing_lineage: []`), but
+the richer per-quarter validation results shown above are not yet wired
+into the gate. Flagged as follow-up work, not silently left implying more
+than it does.
+
+Test suite after this run: 115 passed, 0 failed.
+
 ## Pending decisions (not yet made — recorded so they aren't quietly defaulted)
 
-- **Findings A, B are activated** (`cash_and_equivalents_balance_sheet`,
-  `cash_and_equivalents_rollforward`, `depreciation_amortization_opex`,
-  `depreciation_amortization_cfo_addback` all `reviewed` — see "FY2025 10-K
-  preserved, hashed, registered, and raw-ingested" above). **Finding C
-  (net-other-income) stays `candidate_unverified`** — evidence gathered and
-  recorded, but the project owner has not yet confirmed it for review.
+- **Opening-balance (2025-02-01) source-filing priority for point-in-time
+  metrics — needs a decision.** `cash_and_equivalents_balance_sheet` and
+  `cash_and_equivalents_rollforward` each derived their four FY2025
+  quarter-end balances (Q1–Q4) successfully, but the fifth target instant —
+  the FY2024 year-end / FY2025 opening balance — is legitimately reported
+  as an agreeing ($4,762M) comparative in *four* different filings (the
+  10-K and all three 10-Qs), each a distinct raw fact. `select_consolidated_fact`
+  correctly refused to pick one, per the explicit "fail as ambiguous... even
+  where their values agree" rule. Resolving this needs an explicit,
+  documented priority rule (e.g. "prefer the annual 10-K's comparative over
+  a 10-Q's" or "ingest the actual FY2024 10-K rather than relying on any
+  comparative") — not a silent default in code. See the 2026-09-15
+  derivation-run entry above for the full error detail.
+- **All 5 reviewed metrics have now been derived** into `quarterly_facts`
+  (20 rows, 25 lineage rows) — see the derivation-run entry above for full
+  per-quarter results, including two genuine independent-validation passes
+  on real data (one exact, one within the propagated-rounding bound).
+- **`validate` does not yet reflect the derivation results** — the
+  independent-quarter-validation outcomes computed during derivation are
+  not yet persisted anywhere the `validate` command reads from. Follow-up
+  work, not yet done.
 - **Accounts payable — explicitly NOT approved for review.** The annual
   FY2025 gap is substantially (not fully) explained by disclosed book
   overdrafts embedded in the Accounts Payable balance (residual narrowed

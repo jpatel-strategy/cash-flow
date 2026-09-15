@@ -239,3 +239,57 @@ def test_fetch_manual_refuses_duplicate_accession_even_with_same_hash(isolated_p
     with open(tmp_path / "docs" / "sources.csv", newline="") as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 1
+
+
+def test_normalize_derives_quarterly_facts_for_a_reviewed_point_in_time_metric(isolated_project, capsys, tmp_path):
+    """End-to-end: a reviewed metric's raw facts, once ingested from real HTML,
+    get derived into quarterly_facts through the actual CLI command -- not just
+    the unit-tested derive.py functions in isolation.
+    """
+    # Override the fixture's metrics.csv with one reviewed point-in-time metric.
+    (tmp_path / "config" / "metrics.csv").write_text(
+        "metric,statement,category,candidate_xbrl_taxonomy,candidate_xbrl_tag,unit,sign_convention,mapping_status,notes\n"
+        "cash_and_equivalents_balance_sheet,balance_sheet,point_in_time,us-gaap,"
+        "CashCashEquivalentsAndShortTermInvestments,USD,stock,reviewed,\n"
+    )
+
+    synthetic_html = """
+    <xbrli:context id="c-6">
+      <xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">9999999</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:instant>2025-05-03</xbrli:instant></xbrli:period>
+    </xbrli:context>
+    <span><ix:nonFraction unitRef="usd" contextRef="c-6" name="us-gaap:CashCashEquivalentsAndShortTermInvestments" scale="6" id="f-1">2,887</ix:nonFraction></span>
+    """
+    source_file = tmp_path / "uploaded_synthetic.htm"
+    source_file.write_text(synthetic_html)
+    descriptor = {
+        "source_path": str(source_file),
+        "dest_filename": "synthetic-10q.htm",
+        "accession_number": "0000000000-25-000101",
+        "cik": "9999999",
+        "company_name": "SYNTHETIC TEST CORP",
+        "form_type": "10-Q",
+        "filed_at": "2025-05-30",
+        "period_of_report": "2025-05-03",
+    }
+    descriptor_path = tmp_path / "descriptor.json"
+    descriptor_path.write_text(json.dumps(descriptor))
+
+    main(["fetch", "--config", "config/model.yml", "--mode", "manual", "--descriptor", str(descriptor_path)])
+    capsys.readouterr()
+
+    exit_code = main(["normalize", "--config", "config/model.yml"])
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output["quarterly_facts_derived"] == 1
+    metric_summary = output["derivation_by_metric"]["cash_and_equivalents_balance_sheet"]
+    assert metric_summary["quarterly_facts_written"] == 1
+    # The other four FY2025 instants are absent from this synthetic single-fact filing,
+    # so they're reported as errors, not silently skipped.
+    assert len(metric_summary["errors"]) == 4
+
+    # Re-running normalize must not duplicate the quarterly_facts row (recompute, not accumulate).
+    exit_code_2 = main(["normalize", "--config", "config/model.yml"])
+    output_2 = json.loads(capsys.readouterr().out)
+    assert exit_code_2 == 0
+    assert output_2["quarterly_facts_derived"] == 1

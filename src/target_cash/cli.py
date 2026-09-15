@@ -164,14 +164,19 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 
 def cmd_normalize(args: argparse.Namespace) -> int:
-    """Extract candidate raw facts from cached HTML/inline-XBRL filings.
+    """Extract candidate raw facts, then derive analytical quarters for reviewed metrics.
 
-    Populates only `raw_facts` — the broad, unreviewed candidate layer. Never
-    derives or writes `quarterly_facts` (the analytical layer): that
-    requires a human-reviewed mapping plus, for any period derived by YTD
-    subtraction, more than one filing (this command runs against whatever
-    is cached, which may be a single annual filing with no quarters to
-    derive at all).
+    Two passes, both idempotent:
+    1. Extracts every candidate concept named in config/metrics.csv from
+       every cached filing into `raw_facts` (broad, unreviewed — every
+       competing candidate and dimensional context is kept).
+    2. For metrics whose config/metrics.csv row is `mapping_status ==
+       'reviewed'`, derives quarterly_facts via target_cash.derive
+       (select_consolidated_fact + YTD-subtraction where needed, gated by
+       reconcile.check_source_compatibility and cross-checked with
+       reconcile.check_independent_quarter_validation). A reviewed metric's
+       prior quarterly_facts/lineage rows are cleared and regenerated fresh
+       each run. Metrics still `candidate_unverified` are never derived.
     """
     from target_cash.xbrl import parse_inline_xbrl_facts
 
@@ -236,6 +241,29 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         })
 
     raw_facts_count = conn.execute("SELECT COUNT(*) FROM raw_facts").fetchone()[0]
+
+    # Analytical derivation: only for metrics marked 'reviewed'. Each reviewed metric's
+    # prior quarterly_facts/lineage rows are cleared and regenerated fresh on every run --
+    # this is a deterministic recompute of derived analytical data, not a destructive
+    # operation on source data (raw_facts and filings are never touched here).
+    from target_cash.derive import derive_reviewed_metrics, persist_outcome
+
+    derivation_outcomes = derive_reviewed_metrics(conn, metrics)
+    derivation_summary = {}
+    for metric, outcome in derivation_outcomes.items():
+        with conn:
+            conn.execute(
+                "DELETE FROM lineage WHERE derived_fact_id IN (SELECT quarterly_fact_id FROM quarterly_facts WHERE metric = ?)",
+                (metric,),
+            )
+            conn.execute("DELETE FROM quarterly_facts WHERE metric = ?", (metric,))
+        persist_outcome(conn, outcome)
+        derivation_summary[metric] = {
+            "quarterly_facts_written": len(outcome.quarterly_facts),
+            "errors": outcome.errors,
+            "independent_validations": [v.to_dict() for v in outcome.independent_validations],
+        }
+
     quarterly_facts_count = conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0]
     conn.close()
 
@@ -250,12 +278,12 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         "raw_facts_newly_inserted": facts_inserted,
         "raw_facts_stored": raw_facts_count,
         "quarterly_facts_derived": quarterly_facts_count,
+        "derivation_by_metric": derivation_summary,
         "metrics_reviewed": reviewed,
         "metrics_pending_review": pending,
         "detail": (
-            "quarterly_facts is intentionally untouched by this command: deriving analytical "
-            "quarters requires a human-reviewed mapping plus, for YTD-subtraction metrics, more "
-            "than one filing's worth of raw_facts. Raw extraction never selects or derives on its own."
+            "quarterly_facts is derived only for metrics marked 'reviewed' in config/metrics.csv. "
+            "See derivation_by_metric for per-metric errors and independent-validation results."
         ),
     }
     print(json.dumps(summary))
