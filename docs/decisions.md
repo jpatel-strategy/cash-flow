@@ -1380,10 +1380,22 @@ was written):
 - 2 point-in-time metrics × 5 FY2025 instants = 10 `instant_facts` rows, 18
   `instant_fact_observations` rows, via `persist_instant_facts`:
   `cash_and_equivalents_balance_sheet`, `cash_and_equivalents_rollforward`.
-  The 2025-02-01 opening instant for each carries 1 `selected` + 3
-  `corroborating` observations (the FY2024 10-K plus the three agreeing
-  FY2025 filings); every other instant carries 1 `selected` observation
-  only (no cross-filing repetition at those dates).
+  The 2025-02-01 opening instant for each carries 1 `selected` + 4
+  `corroborating` observations (the FY2024 10-K plus all four FY2025
+  filings that independently repeat the same value: the three interim
+  10-Qs and the FY2025 10-K's own prior-year comparative); every other
+  instant carries 1 `selected` observation only (no cross-filing
+  repetition at those dates). **Correction, same day**: an earlier
+  entry below and this session's own report to the project owner said
+  "3 corroborating," undercounting by one — the FY2025 10-K's own
+  2025-02-01 comparative was omitted from that count. The persisted
+  database was always correct (verified directly:
+  `cash_and_equivalents_balance_sheet`/`cash_and_equivalents_rollforward`
+  at 2025-02-01 each have exactly 1 selected + 4 corroborating
+  observations, 5 total, reconciling exactly against 10 `instant_facts`
+  × (1 selected each, plus 4 extra corroborating at the one opening
+  instant per metric) = 10 + 8 = 18 `instant_fact_observations`); only
+  the prose undercounted. No database record was changed.
 
 **Excluded, as required**: no `candidate_unverified` metric (`revenue`,
 `net_income`, `accounts_payable`, and 14 others all remain unmapped/

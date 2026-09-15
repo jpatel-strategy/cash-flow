@@ -245,9 +245,14 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     # Analytical derivation: only for metrics marked 'reviewed'. Defaults to
     # DRY RUN -- computed and reported, never written -- unless the caller
     # passes --persist-derived. Persistence, when requested, happens as one
-    # atomic transaction across every reviewed metric (see
-    # derive.persist_all_outcomes): raw_facts and filings are never touched.
-    from target_cash.derive import derive_reviewed_metrics, persist_all_outcomes
+    # atomic transaction per table family: flow metrics' outcomes go through
+    # derive.persist_all_outcomes (quarterly_facts/lineage), point-in-time
+    # metrics' outcomes go through derive.persist_instant_facts (instant_facts/
+    # instant_fact_observations) -- never mixed, since a point-in-time balance
+    # persisted under a fiscal_quarter label is exactly the mislabeling
+    # docs/decisions.md's instant-fact design exists to prevent. raw_facts and
+    # filings are never touched by either.
+    from target_cash.derive import derive_reviewed_metrics, persist_all_outcomes, persist_instant_facts
 
     derivation_outcomes = derive_reviewed_metrics(conn, metrics)
     derivation_summary = {
@@ -259,11 +264,23 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         for metric, outcome in derivation_outcomes.items()
     }
 
+    category_by_metric = {m["metric"]: m.get("category") for m in metrics}
+    flow_outcomes = {
+        metric: outcome for metric, outcome in derivation_outcomes.items()
+        if category_by_metric.get(metric) != "point_in_time"
+    }
+    point_in_time_outcomes = {
+        metric: outcome for metric, outcome in derivation_outcomes.items()
+        if category_by_metric.get(metric) == "point_in_time"
+    }
+
     persisted = bool(getattr(args, "persist_derived", False))
     if persisted:
-        persist_all_outcomes(conn, derivation_outcomes)
+        persist_all_outcomes(conn, flow_outcomes)
+        persist_instant_facts(conn, point_in_time_outcomes)
 
     quarterly_facts_in_db = conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0]
+    instant_facts_in_db = conn.execute("SELECT COUNT(*) FROM instant_facts").fetchone()[0]
     conn.close()
 
     quarterly_facts_computed = sum(v["quarterly_facts_written"] for v in derivation_summary.values())
@@ -281,6 +298,7 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         "raw_facts_stored": raw_facts_count,
         "quarterly_facts_computed_this_run": quarterly_facts_computed,
         "quarterly_facts_in_db": quarterly_facts_in_db,
+        "instant_facts_in_db": instant_facts_in_db,
         "derivation_by_metric": derivation_summary,
         "metrics_reviewed": reviewed,
         "metrics_pending_review": pending,

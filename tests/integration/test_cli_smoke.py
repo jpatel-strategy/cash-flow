@@ -293,19 +293,22 @@ def test_normalize_derives_quarterly_facts_for_a_reviewed_point_in_time_metric(i
     # so they're reported as errors, not silently skipped.
     assert len(metric_summary["errors"]) == 4
 
-    # With --persist-derived, the same computed rows are actually written.
+    # With --persist-derived, the same computed row is actually written -- into
+    # instant_facts, since this is a point-in-time metric, never quarterly_facts
+    # (which would mislabel a balance under a fiscal_quarter it doesn't belong to).
     exit_code_p = main(["normalize", "--config", "config/model.yml", "--persist-derived"])
     output_p = json.loads(capsys.readouterr().out)
     assert exit_code_p == 0
     assert output_p["derivation_persisted"] is True
-    assert output_p["quarterly_facts_in_db"] == 1
+    assert output_p["instant_facts_in_db"] == 1
+    assert output_p["quarterly_facts_in_db"] == 0
 
-    # Re-running with --persist-derived must not duplicate the quarterly_facts row
+    # Re-running with --persist-derived must not duplicate the instant_facts row
     # (recompute-and-replace, not accumulate).
     exit_code_2 = main(["normalize", "--config", "config/model.yml", "--persist-derived"])
     output_2 = json.loads(capsys.readouterr().out)
     assert exit_code_2 == 0
-    assert output_2["quarterly_facts_in_db"] == 1
+    assert output_2["instant_facts_in_db"] == 1
 
 
 def test_validate_wires_real_checks_for_a_reviewed_flow_metric(isolated_project, capsys, tmp_path):
