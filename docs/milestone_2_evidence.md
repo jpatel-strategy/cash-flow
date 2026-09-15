@@ -167,14 +167,37 @@ FY2023 is the 53-week year (period_end 2024-02-03, 53 weeks) -- confirmed by `fi
 ## 9. Persistence Counts
 
 - **annual_facts:** 488 (300 direct + 188 derived)
-- **annual_fact_observations:** 300 (all `selected`)
+- **annual_fact_observations:** 686, by relationship: selected=300, corroborating=368, restated=9, original_historical=9, conflicting=0
 - **annual_lineage:** 384
 
-Exact match with the preflight plan produced by `target_cash.annual_persistence.compute_persistence_preflight` before any write occurred -- see `docs/decisions.md`, 2026-09-16 entries, for the preflight/post-persistence count reconciliation and the finance_lease_liabilities gap this round self-caught and fixed (478 -> 488 total facts).
+Exact match with the preflight plan produced by `target_cash.annual_persistence.compute_persistence_preflight` before any write occurred -- see `docs/decisions.md`, 2026-09-16 entries, for the preflight/post-persistence count reconciliation, the finance_lease_liabilities gap self-caught and fixed (478 -> 488 total facts), and the observation-completeness enrichment (300 -> 686 observations) with its own reconciliation.
+
+### Reclassification evidence rows (restated / original_historical observations)
+
+| Metric | Fiscal Year | View (anchor) | Relationship | Accession | Value | Diff from selected |
+|---|---:|---|---|---|---:|---:|
+| cost_of_sales | 2022 | as_originally_filed | restated | 0000027419-25-000018 | 82,306.0 | 77.0 |
+| cost_of_sales | 2022 | latest_restated | original_historical | 0000027419-23-000015 | 82,229.0 | -77.0 |
+| cost_of_sales | 2022 | latest_restated | original_historical | 0000027419-24-000032 | 82,229.0 | -77.0 |
+| cost_of_sales | 2023 | as_originally_filed | restated | 0000027419-25-000018 | 77,828.0 | 92.0 |
+| cost_of_sales | 2023 | as_originally_filed | restated | 0000027419-26-000016 | 77,828.0 | 92.0 |
+| cost_of_sales | 2023 | latest_restated | original_historical | 0000027419-24-000032 | 77,736.0 | -92.0 |
+| operating_expenses | 2022 | as_originally_filed | restated | 0000027419-25-000018 | 20,581.0 | -77.0 |
+| operating_expenses | 2022 | latest_restated | original_historical | 0000027419-23-000015 | 20,658.0 | 77.0 |
+| operating_expenses | 2022 | latest_restated | original_historical | 0000027419-24-000032 | 20,658.0 | 77.0 |
+| operating_expenses | 2023 | as_originally_filed | restated | 0000027419-25-000018 | 21,462.0 | -92.0 |
+| operating_expenses | 2023 | as_originally_filed | restated | 0000027419-26-000016 | 21,462.0 | -92.0 |
+| operating_expenses | 2023 | latest_restated | original_historical | 0000027419-24-000032 | 21,554.0 | 92.0 |
+| share_repurchases | 2021 | as_originally_filed | restated | 0000027419-24-000032 | 7,188.0 | -168.0 |
+| share_repurchases | 2021 | latest_restated | original_historical | 0000027419-22-000007 | 7,356.0 | 168.0 |
+| share_repurchases | 2021 | latest_restated | original_historical | 0000027419-23-000015 | 7,356.0 | 168.0 |
+| share_repurchases | 2022 | as_originally_filed | restated | 0000027419-24-000032 | 2,646.0 | -180.0 |
+| share_repurchases | 2022 | as_originally_filed | restated | 0000027419-25-000018 | 2,646.0 | -180.0 |
+| share_repurchases | 2022 | latest_restated | original_historical | 0000027419-23-000015 | 2,826.0 | 180.0 |
 
 ## 10. Lineage Integrity
 
-Post-persistence integrity report (`target_cash.annual_persistence.verify_persistence_integrity`, an independent read-only re-check against the database, never the in-memory preflight plan):
+Post-persistence integrity report (`target_cash.annual_persistence.verify_persistence_integrity`, an independent read-only re-check against the database, never the in-memory preflight plan). Every check name and result below is read live from that function's own current output, never a hand-copied list:
 
 | Check | Result |
 |---|---|
@@ -192,8 +215,12 @@ Post-persistence integrity report (`target_cash.annual_persistence.verify_persis
 | capex_remains_distinct_from_cfi | PASS |
 | no_unavailable_metric_persisted | PASS |
 | target_defined_net_debt_never_persisted | PASS |
+| every_direct_fact_has_exactly_one_selected_observation | PASS |
+| zero_duplicate_observation_keys | PASS |
+| every_reclassification_has_original_and_later_evidence | PASS |
+| conflicting_observations_reported_explicitly | PASS |
 
-All 14 checks pass. See `docs/decisions.md` and this session's transcript for the exact command output.
+All 18 checks pass (`all_passed`: True). Conflicting-observation detail: 0 conflicting observation(s): []
 
 ## 11. Validation Results
 
@@ -212,7 +239,7 @@ Full rebuild from the 8 registered source filings alone (fetch -> normalize -> v
 
 ```
 Read 8 registered sources from /home/user/cash-flow/docs/sources.csv
-Clean-room directory: /tmp/target_cash_clean_room_q15bsxjn
+Clean-room directory: /tmp/target_cash_clean_room_b1n03is9
 All 8 source documents present and hash-verified against the manifest.
 
 === Clean-room result ===
@@ -222,7 +249,7 @@ quarterly_facts (persisted): 28
 instant_facts (persisted): 10
 fiscal_calendar_rows_total: 11
 concept_equivalence_rules_total: 2
-persist_annual.written: {'annual_facts': 488, 'annual_fact_observations': 300, 'annual_lineage': 384}
+persist_annual.written: {'annual_facts': 488, 'annual_fact_observations': 686, 'annual_lineage': 384}
 persist_annual.integrity.all_passed: True
 validate.milestone_1_validation.gate_passed: True
 validate.milestone_1_validation.checks_run: 79
@@ -238,7 +265,7 @@ validate.mapping_evidence_gate.passed_count: 49
 validate.mapping_evidence_gate.blocked_count: 0
 validate.mapping_evidence_gate.gate_passed: True
 validate.overall_gate_passed: True
-database: /tmp/target_cash_clean_room_q15bsxjn/data/curated/target_cash.db
+database: /tmp/target_cash_clean_room_b1n03is9/data/curated/target_cash.db
 
 === Comparing clean-room database against the active database ===
 export                        a_rows  b_rows  match  sha256
@@ -247,7 +274,7 @@ lineage                           45      45  YES    7813dbae698b64ada3719bcbdbd
 instant_facts                     10      10  YES    399c7bffdf1f0f81f83800fcbbc06e75ce7c7c3983a8347249e5589c52e5861d
 instant_fact_observations         18      18  YES    12c83c77e22af78c27334f1ba3373c423a20d33b8718338f10776f29bc2dd76f
 annual_facts                     488     488  YES    234c7997b58b3e7f9eeb510a4945d0831b8d0335a0b3f71d82884bb360e6d49a
-annual_fact_observations         300     300  YES    a326e884530cd38a21e8f0e2414e9c77e2f118dab49fb57539c4348ed096aab9
+annual_fact_observations         686     686  YES    68bd42d25504874550a6e6f8d96e5c30fa99d3defb91d9ac4edf5635bcad411d
 annual_lineage                   384     384  YES    b6f73358be34fb21f6675b153bdee1af3c1cf9148b0856222dbd9e7965a0ee3f
 period_facts_unified             526     526  YES    41ff487191d5849dd075ed8f143f7dd25c63827fd46fb633cb71d5c8a6123ed3
 validation_results                            YES    feb15103d10bd4c62084ff8b66e4620982b45ed43baceb499b41b8721e86be47
