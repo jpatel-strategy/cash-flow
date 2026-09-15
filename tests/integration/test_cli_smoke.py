@@ -104,7 +104,8 @@ def test_fetch_manual_then_normalize_then_validate(isolated_project, capsys, tmp
     normalize_output = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert normalize_output["filings_cached"] == 1
-    assert normalize_output["quarterly_facts_derived"] == 0  # no reviewed mappings yet — correctly does no derivation
+    assert normalize_output["quarterly_facts_computed_this_run"] == 0  # no reviewed mappings yet — correctly does no derivation
+    assert normalize_output["quarterly_facts_in_db"] == 0
 
     exit_code = main(["validate", "--config", "config/model.yml"])
     validate_output = json.loads(capsys.readouterr().out)
@@ -278,18 +279,100 @@ def test_normalize_derives_quarterly_facts_for_a_reviewed_point_in_time_metric(i
     main(["fetch", "--config", "config/model.yml", "--mode", "manual", "--descriptor", str(descriptor_path)])
     capsys.readouterr()
 
+    # Default (no --persist-derived) is dry-run: derivation is computed and reported,
+    # but nothing is written to quarterly_facts/lineage.
     exit_code = main(["normalize", "--config", "config/model.yml"])
     output = json.loads(capsys.readouterr().out)
     assert exit_code == 0
-    assert output["quarterly_facts_derived"] == 1
+    assert output["derivation_persisted"] is False
+    assert output["quarterly_facts_computed_this_run"] == 1
+    assert output["quarterly_facts_in_db"] == 0
     metric_summary = output["derivation_by_metric"]["cash_and_equivalents_balance_sheet"]
     assert metric_summary["quarterly_facts_written"] == 1
     # The other four FY2025 instants are absent from this synthetic single-fact filing,
     # so they're reported as errors, not silently skipped.
     assert len(metric_summary["errors"]) == 4
 
-    # Re-running normalize must not duplicate the quarterly_facts row (recompute, not accumulate).
-    exit_code_2 = main(["normalize", "--config", "config/model.yml"])
+    # With --persist-derived, the same computed rows are actually written.
+    exit_code_p = main(["normalize", "--config", "config/model.yml", "--persist-derived"])
+    output_p = json.loads(capsys.readouterr().out)
+    assert exit_code_p == 0
+    assert output_p["derivation_persisted"] is True
+    assert output_p["quarterly_facts_in_db"] == 1
+
+    # Re-running with --persist-derived must not duplicate the quarterly_facts row
+    # (recompute-and-replace, not accumulate).
+    exit_code_2 = main(["normalize", "--config", "config/model.yml", "--persist-derived"])
     output_2 = json.loads(capsys.readouterr().out)
     assert exit_code_2 == 0
-    assert output_2["quarterly_facts_derived"] == 1
+    assert output_2["quarterly_facts_in_db"] == 1
+
+
+def test_validate_wires_real_checks_for_a_reviewed_flow_metric(isolated_project, capsys, tmp_path):
+    """`validate` must actually compute checks from real raw_facts for reviewed
+    metrics -- not report checks_run == 0 whenever nothing has been persisted.
+    Uses a YTD-only flow metric (Q1 direct + six-month YTD direct, no direct
+    Q2) so every derived quarter's independent validation is guaranteed
+    'unavailable', with the exact required wording -- never silently a pass.
+    """
+    (tmp_path / "config" / "metrics.csv").write_text(
+        "metric,statement,category,candidate_xbrl_taxonomy,candidate_xbrl_tag,unit,sign_convention,mapping_status,notes\n"
+        "da_addback,cash_flow_statement,flow,us-gaap,DepreciationDepletionAndAmortization,USD,"
+        "positive_noncash_addback,reviewed,\n"
+    )
+
+    synthetic_html = """
+    <xbrli:context id="c-1">
+      <xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">9999999</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:startDate>2025-02-02</xbrli:startDate><xbrli:endDate>2025-05-03</xbrli:endDate></xbrli:period>
+    </xbrli:context>
+    <xbrli:context id="c-2">
+      <xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">9999999</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:startDate>2025-02-02</xbrli:startDate><xbrli:endDate>2025-08-02</xbrli:endDate></xbrli:period>
+    </xbrli:context>
+    <span><ix:nonFraction unitRef="usd" contextRef="c-1" name="us-gaap:DepreciationDepletionAndAmortization" scale="6" id="f-1">787</ix:nonFraction></span>
+    <span><ix:nonFraction unitRef="usd" contextRef="c-2" name="us-gaap:DepreciationDepletionAndAmortization" scale="6" id="f-2">1,558</ix:nonFraction></span>
+    """
+    source_file = tmp_path / "uploaded_synthetic.htm"
+    source_file.write_text(synthetic_html)
+    descriptor = {
+        "source_path": str(source_file),
+        "dest_filename": "synthetic-10q.htm",
+        "accession_number": "0000000000-25-000101",
+        "cik": "9999999",
+        "company_name": "SYNTHETIC TEST CORP",
+        "form_type": "10-Q",
+        "filed_at": "2025-05-30",
+        "period_of_report": "2025-05-03",
+    }
+    descriptor_path = tmp_path / "descriptor.json"
+    descriptor_path.write_text(json.dumps(descriptor))
+
+    main(["fetch", "--config", "config/model.yml", "--mode", "manual", "--descriptor", str(descriptor_path)])
+    capsys.readouterr()
+    main(["normalize", "--config", "config/model.yml"])  # dry-run; derivation is recomputed fresh by validate anyway
+    capsys.readouterr()
+
+    exit_code = main(["validate", "--config", "config/model.yml"])
+    output = json.loads(capsys.readouterr().out)
+
+    # A real check ran -- this must never read 0 just because nothing was persisted.
+    assert output["checks_run"] > 0
+    assert len(output["source_compatibility_checks"]) == 1
+    assert output["source_compatibility_checks"][0]["passed"] is True
+    assert len(output["arithmetic_invariant_checks"]) == 1
+    assert output["arithmetic_invariant_checks"][0]["holds"] is True
+
+    q2_validation = next(
+        v for v in output["independent_quarter_validations"] if v["check_name"].endswith(":Q2")
+    )
+    assert q2_validation["status"] == "unavailable"
+    assert q2_validation["detail"] == "arithmetic invariant passed; independent quarter validation unavailable"
+
+    # No quarterly_facts/lineage were ever persisted, so the database's own
+    # lineage-completeness check (which reads real DB state) trivially holds,
+    # and validate must not have written anything either.
+    assert output["facts_missing_lineage"] == []
+    exit_code_normalize_check = main(["normalize", "--config", "config/model.yml"])
+    still_dry = json.loads(capsys.readouterr().out)
+    assert still_dry["quarterly_facts_in_db"] == 0

@@ -242,48 +242,54 @@ def cmd_normalize(args: argparse.Namespace) -> int:
 
     raw_facts_count = conn.execute("SELECT COUNT(*) FROM raw_facts").fetchone()[0]
 
-    # Analytical derivation: only for metrics marked 'reviewed'. Each reviewed metric's
-    # prior quarterly_facts/lineage rows are cleared and regenerated fresh on every run --
-    # this is a deterministic recompute of derived analytical data, not a destructive
-    # operation on source data (raw_facts and filings are never touched here).
-    from target_cash.derive import derive_reviewed_metrics, persist_outcome
+    # Analytical derivation: only for metrics marked 'reviewed'. Defaults to
+    # DRY RUN -- computed and reported, never written -- unless the caller
+    # passes --persist-derived. Persistence, when requested, happens as one
+    # atomic transaction across every reviewed metric (see
+    # derive.persist_all_outcomes): raw_facts and filings are never touched.
+    from target_cash.derive import derive_reviewed_metrics, persist_all_outcomes
 
     derivation_outcomes = derive_reviewed_metrics(conn, metrics)
-    derivation_summary = {}
-    for metric, outcome in derivation_outcomes.items():
-        with conn:
-            conn.execute(
-                "DELETE FROM lineage WHERE derived_fact_id IN (SELECT quarterly_fact_id FROM quarterly_facts WHERE metric = ?)",
-                (metric,),
-            )
-            conn.execute("DELETE FROM quarterly_facts WHERE metric = ?", (metric,))
-        persist_outcome(conn, outcome)
-        derivation_summary[metric] = {
+    derivation_summary = {
+        metric: {
             "quarterly_facts_written": len(outcome.quarterly_facts),
             "errors": outcome.errors,
             "independent_validations": [v.to_dict() for v in outcome.independent_validations],
         }
+        for metric, outcome in derivation_outcomes.items()
+    }
 
-    quarterly_facts_count = conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0]
+    persisted = bool(getattr(args, "persist_derived", False))
+    if persisted:
+        persist_all_outcomes(conn, derivation_outcomes)
+
+    quarterly_facts_in_db = conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0]
     conn.close()
+
+    quarterly_facts_computed = sum(v["quarterly_facts_written"] for v in derivation_summary.values())
 
     summary = {
         "command": "normalize",
         "status": "ok",
         "mapping_version": config.get("mapping_version"),
+        "derivation_persisted": persisted,
         "filings_cached": filings_count,
         "filings_processed": filings_processed,
         "concepts_searched": concepts,
         "raw_facts_extracted_by_concept": facts_extracted_by_concept,
         "raw_facts_newly_inserted": facts_inserted,
         "raw_facts_stored": raw_facts_count,
-        "quarterly_facts_derived": quarterly_facts_count,
+        "quarterly_facts_computed_this_run": quarterly_facts_computed,
+        "quarterly_facts_in_db": quarterly_facts_in_db,
         "derivation_by_metric": derivation_summary,
         "metrics_reviewed": reviewed,
         "metrics_pending_review": pending,
         "detail": (
             "quarterly_facts is derived only for metrics marked 'reviewed' in config/metrics.csv. "
-            "See derivation_by_metric for per-metric errors and independent-validation results."
+            "Derivation defaults to dry-run: quarterly_facts_computed_this_run reflects what "
+            "derivation produced in memory, quarterly_facts_in_db reflects what is actually "
+            "persisted. Pass --persist-derived to write. See derivation_by_metric for per-metric "
+            "errors and independent-validation results."
         ),
     }
     print(json.dumps(summary))
@@ -291,15 +297,88 @@ def cmd_normalize(args: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
+    """Run every applicable validation-check category and fail loudly when
+    none apply (see ValidationSummary.passed: checks_run == 0 is never a
+    silent pass). Never writes to the database.
+
+    Compatibility/arithmetic-invariant/independent-quarter/YTD-consistency
+    checks are recomputed fresh, in memory, from derive.derive_reviewed_metrics
+    -- the same dry-run derivation `normalize` reports -- so `validate`
+    always reflects the current raw_facts and config/metrics.csv mapping
+    state, not a possibly-stale persisted snapshot. Cash roll-forward and
+    balance-sheet-vs-roll-forward checks are computed here directly from
+    those same in-memory outcomes. Lineage completeness is the one category
+    checked against what is ACTUALLY PERSISTED in the database, since its
+    purpose is catching a partial or corrupted write.
+    """
+    from target_cash.derive import derive_reviewed_metrics
+    from target_cash.lineage import LineageLink
+    from target_cash.reconcile import check_balance_sheet_cash_agreement, check_cash_rollforward, compute_rounding_bound
+
     config = load_config(Path(args.config))
+    metrics_path = _resolve_path(config, "metrics_csv")
+    with open(metrics_path, newline="") as f:
+        metrics = list(csv.DictReader(f))
+
     conn = _connect_db(config)
     conn.row_factory = sqlite3.Row
 
-    # The tolerance methodology (source compatibility / arithmetic invariant / independent
-    # quarter validation / cash-rollforward rounding bound / Excel-vs-Python) lives under
-    # config['reconciliation_tolerance'] (see config/model.yml and docs/decisions.md).
-    # Each check category is populated once real quarterly_facts and their source raw_facts
-    # exist — there is nothing to check yet, so every category below is empty.
+    outcomes = derive_reviewed_metrics(conn, metrics)
+
+    compatibility_results = []
+    arithmetic_invariant_results = []
+    independent_validation_results = []
+    ytd_consistency_results = []
+    for outcome in outcomes.values():
+        compatibility_results.extend(outcome.compatibility_results)
+        arithmetic_invariant_results.extend(outcome.arithmetic_invariant_results)
+        independent_validation_results.extend(outcome.independent_validations)
+        ytd_consistency_results.extend(outcome.ytd_consistency_results)
+
+    # Cash roll-forward + balance-sheet-vs-roll-forward agreement: computed
+    # directly from the in-memory point-in-time outcomes for the two reviewed
+    # cash metrics. CFO/CFI/CFF are not yet reviewed metrics, so the
+    # roll-forward check will correctly report "missing values" rather than
+    # a false pass -- this is real wiring, not a stub, and will start
+    # actually validating once those flow metrics are reviewed.
+    def _quarterly_facts_by_quarter(metric_name: str) -> dict:
+        outcome = outcomes.get(metric_name)
+        return {qf.fiscal_quarter: qf for qf in outcome.quarterly_facts} if outcome else {}
+
+    cash_rollforward_results = []
+    bs_cash = _quarterly_facts_by_quarter("cash_and_equivalents_balance_sheet")
+    rf_cash = _quarterly_facts_by_quarter("cash_and_equivalents_rollforward")
+
+    # Only attempted when cash_and_equivalents_rollforward is itself a reviewed
+    # metric this run -- otherwise there is nothing configured to roll forward,
+    # and fabricating "missing values" checks out of an unconfigured metric
+    # would inflate checks_run without meaning anything.
+    for fiscal_quarter in (1, 2, 3, 4) if "cash_and_equivalents_rollforward" in outcomes else ():
+        beginning_qf = rf_cash.get(fiscal_quarter - 1) if fiscal_quarter > 1 else None  # Q1's beginning (FY2024 Q4) is the open opening-balance ambiguity
+        ending_qf = rf_cash.get(fiscal_quarter)
+        cash_rollforward_results.append(
+            check_cash_rollforward(
+                fiscal_year=2025, fiscal_quarter=fiscal_quarter,
+                beginning_cash=(beginning_qf.value_normalized if beginning_qf else None),
+                cfo=None, cfi=None, cff=None, fx_effect=None,
+                ending_cash=(ending_qf.value_normalized if ending_qf else None),
+                rounding_bound=compute_rounding_bound(num_directly_reported_components=2, num_ytd_derived_components=0),
+            )
+        )
+        bs_qf = bs_cash.get(fiscal_quarter)
+        cash_rollforward_results.append(
+            check_balance_sheet_cash_agreement(
+                fiscal_year=2025, fiscal_quarter=fiscal_quarter,
+                balance_sheet_cash=(bs_qf.value_normalized if bs_qf else None),
+                balance_sheet_source=(bs_qf.quarterly_fact_id if bs_qf else "unavailable"),
+                rollforward_cash=(ending_qf.value_normalized if ending_qf else None),
+                rollforward_source=(ending_qf.quarterly_fact_id if ending_qf else "unavailable"),
+                tolerance_absolute=compute_rounding_bound(num_directly_reported_components=2, num_ytd_derived_components=0),
+            )
+        )
+
+    # Lineage completeness reflects the database's ACTUAL persisted state, not
+    # the outcomes just recomputed above (which are never written here).
     derived_fact_ids = [
         r["quarterly_fact_id"]
         for r in conn.execute(
@@ -307,18 +386,25 @@ def cmd_validate(args: argparse.Namespace) -> int:
         ).fetchall()
     ]
     lineage_rows = conn.execute("SELECT derived_fact_id, input_fact_id, operation FROM lineage").fetchall()
-    from target_cash.lineage import LineageLink
-
     lineage_links = [LineageLink(r["derived_fact_id"], r["input_fact_id"], r["operation"]) for r in lineage_rows]
     conn.close()
 
-    summary = run_validation(derived_fact_ids, lineage_links)
+    summary = run_validation(
+        derived_fact_ids, lineage_links,
+        compatibility_results=compatibility_results,
+        arithmetic_invariant_results=arithmetic_invariant_results,
+        independent_validation_results=independent_validation_results,
+        ytd_consistency_results=ytd_consistency_results,
+        cash_rollforward_results=cash_rollforward_results,
+    )
     output = summary.to_dict()
     output["command"] = "validate"
+    output["derivation_errors_by_metric"] = {metric: outcome.errors for metric, outcome in outcomes.items()}
     if output["checks_run"] == 0:
         output["detail"] = (
-            "No quarterly facts have been ingested yet, so the first data gate cannot pass. "
-            "This is the correct state until real filing data is normalized — see docs/limitations.md."
+            "No applicable validation checks were computable from the current raw_facts and "
+            "config/metrics.csv reviewed-mapping state, so the first data gate cannot pass. "
+            "See derivation_errors_by_metric for why."
         )
     print(json.dumps(output, default=str))
     return 0 if summary.passed else 1
@@ -337,6 +423,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     normalize_parser = subparsers.add_parser("normalize", help="Report normalization state (raw facts, derived quarters, pending mappings).")
     normalize_parser.add_argument("--config", required=True)
+    normalize_parser.add_argument(
+        "--persist-derived",
+        action="store_true",
+        default=False,
+        help="Persist derived quarterly_facts/lineage to the database. Default is dry-run: "
+             "derivation is computed and reported but nothing is written.",
+    )
     normalize_parser.set_defaults(func=cmd_normalize)
 
     validate_parser = subparsers.add_parser("validate", help="Run the reconciliation / lineage validation gate.")

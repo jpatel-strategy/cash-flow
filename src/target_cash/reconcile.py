@@ -414,6 +414,53 @@ def check_ytd_consistency(
     )
 
 
+def check_balance_sheet_cash_agreement(
+    fiscal_year: int,
+    fiscal_quarter: int,
+    balance_sheet_cash: Optional[Decimal],
+    balance_sheet_source: str,
+    rollforward_cash: Optional[Decimal],
+    rollforward_source: str,
+    tolerance_absolute: Decimal,
+) -> ReconciliationResult:
+    """Compare the balance-sheet cash instant against the cash-flow-statement
+    roll-forward cash instant for the same date.
+
+    These are two distinct source concepts (the balance sheet excludes
+    restricted cash; the roll-forward line includes it, per ASC 230/ASU
+    2016-18) kept as separate metrics/rows on purpose -- see
+    docs/decisions.md, 2026-09-15. They are expected to agree only because
+    Target discloses zero restricted cash in the periods examined so far; a
+    disagreement here is a reason to check restricted-cash disclosures, not
+    necessarily a data error, and is reported as such rather than treated
+    like an arithmetic mistake.
+    """
+    check_name = f"balance_sheet_vs_rollforward_cash:{fiscal_year}:Q{fiscal_quarter}"
+    if balance_sheet_cash is None or rollforward_cash is None:
+        return ReconciliationResult(
+            check_name=check_name, passed=False,
+            expected=balance_sheet_cash, actual=rollforward_cash, difference=None,
+            tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
+            detail="Missing values, cannot compare balance-sheet cash to roll-forward cash. Missing is not zero.",
+        )
+    difference = balance_sheet_cash - rollforward_cash
+    passed = abs(difference) <= tolerance_absolute
+    return ReconciliationResult(
+        check_name=check_name, passed=passed,
+        expected=balance_sheet_cash, actual=rollforward_cash, difference=difference,
+        tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
+        detail=(
+            f"Balance-sheet cash ({balance_sheet_source}) agrees with roll-forward cash "
+            f"({rollforward_source}) within tolerance -- consistent with zero disclosed restricted cash."
+            if passed else
+            f"Balance-sheet cash ({balance_sheet_source}) disagrees with roll-forward cash "
+            f"({rollforward_source}) beyond tolerance -- these are different source concepts "
+            "(restricted cash may differ), so investigate the restricted-cash disclosure before "
+            "treating this as an error."
+        ),
+    )
+
+
 def compute_rounding_bound(
     num_directly_reported_components: int,
     num_ytd_derived_components: int,

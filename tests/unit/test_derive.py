@@ -1,10 +1,20 @@
+import sqlite3
 from decimal import Decimal
+from pathlib import Path
+
+import pytest
 
 from target_cash.derive import (
+    DerivationOutcome,
     RawFactRow,
     derive_flow_metric,
     derive_point_in_time_metric,
+    derive_reviewed_metrics,
+    persist_all_outcomes,
 )
+from target_cash.normalize import QuarterlyFact
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def make_fact(fact_id, start, end, value, dim=None, concept="us-gaap:TestConcept", accession="acc-1"):
@@ -13,6 +23,27 @@ def make_fact(fact_id, start, end, value, dim=None, concept="us-gaap:TestConcept
         start_date=start, end_date=end, dimensional_context=dim, value=Decimal(value),
         scale=6, sign_as_reported=1, is_superseded=False, concept=concept,
     )
+
+
+def make_quarterly_fact(metric, fiscal_quarter, basis="direct_quarterly", value=Decimal("100.00")):
+    return QuarterlyFact(
+        metric=metric, fiscal_year=2025, fiscal_quarter=fiscal_quarter,
+        period_start="2025-02-02", period_end="2025-05-03", days_in_period=90,
+        value_original=value, original_unit="USD_millions",
+        value_normalized=value, normalized_unit="USD_millions", basis=basis,
+    )
+
+
+@pytest.fixture
+def db_conn():
+    """A real in-memory database built from the project's actual sql/schema.sql,
+    so persist_all_outcomes is tested against real constraints (PRIMARY KEY,
+    CHECK, FOREIGN KEY) -- not a hand-rolled stand-in schema.
+    """
+    conn = sqlite3.connect(":memory:")
+    conn.executescript((REPO_ROOT / "sql" / "schema.sql").read_text())
+    yield conn
+    conn.close()
 
 
 # --- Point-in-time metrics -----------------------------------------------------
@@ -165,3 +196,86 @@ def test_derive_flow_metric_missing_q1_anchor_is_a_fatal_error_for_that_metric()
     outcome = derive_flow_metric("depreciation_amortization_cfo_addback", facts)
     assert outcome.quarterly_facts == []
     assert any("Q1 anchor" in e for e in outcome.errors)
+
+
+# --- Dry-run / persistence control (item 3, 2026-09-15 corrective action) ---------
+
+
+def test_a_deriving_without_persisting_writes_zero_rows(db_conn):
+    """derive_reviewed_metrics computes outcomes in memory only. Nothing in this
+    module writes to quarterly_facts/lineage unless persist_all_outcomes is
+    separately, explicitly invoked -- this is the entire mechanism behind the
+    CLI's default dry-run behavior (normalize with no --persist-derived).
+    """
+    db_conn.execute(
+        "INSERT INTO filings (accession_number, cik, company_name, form_type, filed_at, "
+        "period_of_report, primary_document_url, ingestion_method) VALUES "
+        "('acc-1', '0000027419', 'Target Corporation', '10-Q', '2025-05-30', '2025-05-03', "
+        "'https://example.invalid/acc-1', 'manual_upload')"
+    )
+    db_conn.execute(
+        "INSERT INTO raw_facts (fact_id, accession_number, taxonomy, tag, unit, start_date, "
+        "end_date, value, scale, sign_as_reported, is_superseded, retrieved_at) VALUES "
+        "('rf_q1', 'acc-1', 'us-gaap', 'TestConcept', 'USD', NULL, '2025-05-03', "
+        "'2887000000', 6, 1, 0, '2025-05-30T00:00:00Z')"
+    )
+    db_conn.commit()
+
+    metrics_rows = [{
+        "metric": "cash_and_equivalents_balance_sheet", "category": "point_in_time",
+        "candidate_xbrl_tag": "TestConcept", "mapping_status": "reviewed",
+    }]
+    outcomes = derive_reviewed_metrics(db_conn, metrics_rows)
+    assert len(outcomes["cash_and_equivalents_balance_sheet"].quarterly_facts) == 1  # computed...
+
+    # ...but never written, because persist_all_outcomes was never called.
+    assert db_conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0] == 0
+    assert db_conn.execute("SELECT COUNT(*) FROM lineage").fetchone()[0] == 0
+
+
+def test_b_persist_all_outcomes_writes_the_expected_rows(db_conn):
+    outcome = DerivationOutcome("metric_a")
+    outcome.quarterly_facts.append(make_quarterly_fact("metric_a", fiscal_quarter=1))
+    outcome.quarterly_facts.append(make_quarterly_fact("metric_a", fiscal_quarter=2))
+
+    written = persist_all_outcomes(db_conn, {"metric_a": outcome})
+
+    assert written == {"metric_a": 2}
+    assert db_conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0] == 2
+    rows = db_conn.execute("SELECT fiscal_quarter, basis FROM quarterly_facts ORDER BY fiscal_quarter").fetchall()
+    assert rows == [(1, "direct_quarterly"), (2, "direct_quarterly")]
+
+
+def test_c_persist_all_outcomes_rolls_back_the_entire_batch_on_failure(db_conn):
+    """One metric's write violates a real schema constraint (CHECK on `basis`).
+    Even though an earlier metric in the same call would have succeeded on its
+    own, persist_all_outcomes wraps the whole batch in one transaction, so
+    that earlier metric's insert must not survive either.
+    """
+    good = DerivationOutcome("metric_good")
+    good.quarterly_facts.append(make_quarterly_fact("metric_good", fiscal_quarter=1))
+
+    bad = DerivationOutcome("metric_bad")
+    bad.quarterly_facts.append(make_quarterly_fact("metric_bad", fiscal_quarter=1, basis="not_a_real_basis"))
+
+    with pytest.raises(sqlite3.IntegrityError):
+        persist_all_outcomes(db_conn, {"metric_good": good, "metric_bad": bad})
+
+    # Neither metric's row survived -- the successful insert was rolled back
+    # along with the failed one, not left half-committed.
+    assert db_conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0] == 0
+
+
+def test_d_persist_all_outcomes_is_idempotent_on_repeated_calls(db_conn):
+    """Re-running persistence with the same computed outcome must not accumulate
+    duplicate rows: each metric's prior quarterly_facts/lineage are cleared and
+    rewritten fresh every call.
+    """
+    outcome = DerivationOutcome("metric_a")
+    outcome.quarterly_facts.append(make_quarterly_fact("metric_a", fiscal_quarter=1))
+
+    persist_all_outcomes(db_conn, {"metric_a": outcome})
+    persist_all_outcomes(db_conn, {"metric_a": outcome})
+    persist_all_outcomes(db_conn, {"metric_a": outcome})
+
+    assert db_conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0] == 1

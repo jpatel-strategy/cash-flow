@@ -43,8 +43,15 @@ from target_cash.normalize import (
     select_consolidated_fact,
 )
 from target_cash.reconcile import (
+    ArithmeticInvariantResult,
+    CompatibilityCheckResult,
     IndependentQuarterValidationResult,
+    ReconciliationResult,
+    check_arithmetic_invariant,
     check_independent_quarter_validation,
+    check_source_compatibility,
+    check_ytd_consistency,
+    compute_rounding_bound,
 )
 
 ACCOUNTING_BASIS = "US-GAAP-FY2025-Workiva"  # uniform across all facts ingested so far; no restatement observed
@@ -93,6 +100,9 @@ class DerivationOutcome:
     quarterly_facts: list[QuarterlyFact] = field(default_factory=list)
     lineage_links: list[LineageLink] = field(default_factory=list)
     independent_validations: list[IndependentQuarterValidationResult] = field(default_factory=list)
+    compatibility_results: list[CompatibilityCheckResult] = field(default_factory=list)
+    arithmetic_invariant_results: list[ArithmeticInvariantResult] = field(default_factory=list)
+    ytd_consistency_results: list[ReconciliationResult] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 
@@ -215,6 +225,34 @@ def derive_flow_metric(metric: str, facts: list[RawFactRow]) -> DerivationOutcom
         subtrahend=ytd9, subtrahend_scope="nine_month_YTD", derive_fn=derive_q4,
         derivation_label="annual minus nine_month_YTD",
     )
+
+    # YTD consistency: only meaningful when EVERY input is itself a directly-filed
+    # fact (never a derived one) -- comparing a directly-reported YTD figure
+    # against the sum of directly-reported discrete quarters. Deliberately never
+    # attempted at the annual level: annual == Q1+Q2+Q3+Q4 is tautological once
+    # Q4 is defined as annual-minus-nine_month_YTD (see reconcile.py docstring).
+    if direct_q2 is not None:
+        outcome.ytd_consistency_results.append(
+            check_ytd_consistency(
+                metric=metric, fiscal_year=2025, ytd_label="six_month_YTD",
+                directly_reported_ytd=(ytd6.value if ytd6 is not None else None),
+                sum_of_directly_reported_quarters=direct_q1.value + direct_q2.value,
+                tolerance_absolute=compute_rounding_bound(num_directly_reported_components=3, num_ytd_derived_components=0),
+                ytd_fact_ids=frozenset({ytd6.fact_id}) if ytd6 is not None else frozenset(),
+                quarter_fact_ids=frozenset({direct_q1.fact_id, direct_q2.fact_id}),
+            )
+        )
+    if direct_q2 is not None and direct_q3 is not None:
+        outcome.ytd_consistency_results.append(
+            check_ytd_consistency(
+                metric=metric, fiscal_year=2025, ytd_label="nine_month_YTD",
+                directly_reported_ytd=(ytd9.value if ytd9 is not None else None),
+                sum_of_directly_reported_quarters=direct_q1.value + direct_q2.value + direct_q3.value,
+                tolerance_absolute=compute_rounding_bound(num_directly_reported_components=4, num_ytd_derived_components=0),
+                ytd_fact_ids=frozenset({ytd9.fact_id}) if ytd9 is not None else frozenset(),
+                quarter_fact_ids=frozenset({direct_q1.fact_id, direct_q2.fact_id, direct_q3.fact_id}),
+            )
+        )
     return outcome
 
 
@@ -226,41 +264,51 @@ def _try_select(outcome: DerivationOutcome, metric: str, facts: list[RawFactRow]
         return None
 
 
-def persist_outcome(conn, outcome: DerivationOutcome) -> int:
-    """Write a DerivationOutcome's quarterly_facts and lineage into the database.
+def persist_all_outcomes(conn, outcomes: dict[str, DerivationOutcome]) -> dict[str, int]:
+    """Atomically clear and rewrite quarterly_facts/lineage for every metric in
+    `outcomes`, in ONE transaction covering the whole batch.
 
-    Idempotent per quarterly_fact_id (each QuarterlyFact gets a fresh id per
-    Python-process run, so re-running this against an already-populated
-    database intentionally raises on the primary-key collision from a
-    *different* fact_id representing the same metric/period, rather than
-    silently duplicating analytical rows -- callers should clear the prior
-    run's rows for a metric before re-deriving it, not double-insert.)
+    Derivation defaults to dry-run everywhere in this module and in the CLI;
+    this is the only function that writes analytical rows, and only when a
+    caller explicitly invokes it (e.g. `normalize --persist-derived`). If
+    anything raises partway through, the entire transaction rolls back --
+    no metric is left partially written, and no earlier metric's successful
+    write in this same call survives a later one's failure. Never touches
+    `raw_facts` or `filings`. Idempotent: re-running with the same inputs
+    clears each metric's prior rows first, so row counts never accumulate.
     """
-    inserted = 0
+    written: dict[str, int] = {}
     with conn:
-        for qf in outcome.quarterly_facts:
+        for metric, outcome in outcomes.items():
             conn.execute(
-                """
-                INSERT INTO quarterly_facts
-                    (quarterly_fact_id, metric, fiscal_year, fiscal_quarter, period_start, period_end,
-                     days_in_period, value_original, original_unit, value_normalized, normalized_unit,
-                     basis, as_of_date, mapping_version, is_current_view)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-                """,
-                (
-                    qf.quarterly_fact_id, qf.metric, qf.fiscal_year, qf.fiscal_quarter,
-                    qf.period_start, qf.period_end, qf.days_in_period,
-                    str(qf.value_original), qf.original_unit, str(qf.value_normalized), qf.normalized_unit,
-                    qf.basis, _today_iso(), "v0-pending-verification",
-                ),
+                "DELETE FROM lineage WHERE derived_fact_id IN "
+                "(SELECT quarterly_fact_id FROM quarterly_facts WHERE metric = ?)",
+                (metric,),
             )
-            inserted += 1
-        for link in outcome.lineage_links:
-            conn.execute(
-                "INSERT INTO lineage (lineage_id, derived_fact_id, input_fact_id, operation) VALUES (?, ?, ?, ?)",
-                (f"lin_{link.derived_fact_id}_{link.input_fact_id}", link.derived_fact_id, link.input_fact_id, link.operation),
-            )
-    return inserted
+            conn.execute("DELETE FROM quarterly_facts WHERE metric = ?", (metric,))
+            for qf in outcome.quarterly_facts:
+                conn.execute(
+                    """
+                    INSERT INTO quarterly_facts
+                        (quarterly_fact_id, metric, fiscal_year, fiscal_quarter, period_start, period_end,
+                         days_in_period, value_original, original_unit, value_normalized, normalized_unit,
+                         basis, as_of_date, mapping_version, is_current_view)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    """,
+                    (
+                        qf.quarterly_fact_id, qf.metric, qf.fiscal_year, qf.fiscal_quarter,
+                        qf.period_start, qf.period_end, qf.days_in_period,
+                        str(qf.value_original), qf.original_unit, str(qf.value_normalized), qf.normalized_unit,
+                        qf.basis, _today_iso(), "v0-pending-verification",
+                    ),
+                )
+            for link in outcome.lineage_links:
+                conn.execute(
+                    "INSERT INTO lineage (lineage_id, derived_fact_id, input_fact_id, operation) VALUES (?, ?, ?, ?)",
+                    (f"lin_{link.derived_fact_id}_{link.input_fact_id}", link.derived_fact_id, link.input_fact_id, link.operation),
+                )
+            written[metric] = len(outcome.quarterly_facts)
+    return written
 
 
 def _today_iso() -> str:
@@ -282,6 +330,29 @@ def _derive_quarter(
     """
     derived_value = None
     if minuend is not None and subtrahend is not None:
+        check_name = f"{metric}:Q{fiscal_quarter}:{derivation_label}"
+        # Recompute the same source-compatibility precondition derive_fn enforces
+        # internally (it raises rather than returning a result object), purely to
+        # capture a real CompatibilityCheckResult for the validation report --
+        # this is the same deterministic check, not a second source of truth.
+        outcome.compatibility_results.append(
+            check_source_compatibility(
+                f"source_compatibility:{check_name}",
+                cik_a=minuend.cik, cik_b=subtrahend.cik,
+                fiscal_year_a=2025, fiscal_year_b=2025,
+                concept_a=minuend.concept, concept_b=subtrahend.concept,
+                unit_a=minuend.unit, unit_b=subtrahend.unit,
+                scale_a=minuend.scale, scale_b=subtrahend.scale,
+                accounting_basis_a=ACCOUNTING_BASIS, accounting_basis_b=ACCOUNTING_BASIS,
+                dimensional_context_a=minuend.dimensional_context, dimensional_context_b=subtrahend.dimensional_context,
+                start_date_a=minuend.start_date, start_date_b=subtrahend.start_date,
+                end_date_a=minuend.end_date, end_date_b=subtrahend.end_date,
+                scope_a=minuend_scope, scope_b=subtrahend_scope,
+                accession_a=minuend.accession_number, accession_b=subtrahend.accession_number,
+                is_superseded_a=minuend.is_superseded, is_superseded_b=subtrahend.is_superseded,
+                sign_as_reported_a=minuend.sign_as_reported, sign_as_reported_b=subtrahend.sign_as_reported,
+            )
+        )
         try:
             derived_value = derive_fn(
                 _period_spec(minuend, 2025, minuend_scope),
@@ -289,6 +360,16 @@ def _derive_quarter(
             )
         except NormalizationError as exc:
             outcome.errors.append(f"{metric}: Q{fiscal_quarter} derivation ({derivation_label}) failed: {exc}")
+        else:
+            # Code-correctness check only (see reconcile.check_arithmetic_invariant):
+            # holds by construction whenever derive_fn's own subtraction is correct.
+            outcome.arithmetic_invariant_results.append(
+                check_arithmetic_invariant(
+                    f"arithmetic_invariant:{check_name}",
+                    stored_value=derived_value,
+                    recomputed_value=(minuend.value - subtrahend.value),
+                )
+            )
 
     if direct_fact is not None:
         qf = _make_quarterly_fact(metric, 2025, fiscal_quarter, *dates, direct_fact.value, direct_fact.unit, "direct_quarterly")
@@ -331,7 +412,7 @@ def derive_reviewed_metrics(conn, metrics_rows: list[dict]) -> dict[str, Derivat
     `metrics_rows` is the parsed CSV (list of row dicts with at least
     `metric`, `category`, `candidate_xbrl_tag`, `mapping_status`). Returns
     one DerivationOutcome per reviewed metric; callers decide whether/how to
-    persist each (see `persist_outcome`) after inspecting `errors` and
+    persist them (see `persist_all_outcomes`) after inspecting `errors` and
     `independent_validations`.
     """
     outcomes: dict[str, DerivationOutcome] = {}
