@@ -52,6 +52,9 @@ from typing import Optional
 class ReconciliationResult:
     check_name: str
     passed: bool
+    status: str  # "passed" | "failed" | "blocked" -- "blocked" means the check never
+    # executed because a required input was unavailable; it must never be reported
+    # or counted the same way as a computed, out-of-tolerance "failed" result.
     expected: Optional[Decimal]
     actual: Optional[Decimal]
     difference: Optional[Decimal]
@@ -63,6 +66,7 @@ class ReconciliationResult:
         return {
             "check_name": self.check_name,
             "passed": self.passed,
+            "status": self.status,
             "expected": str(self.expected) if self.expected is not None else None,
             "actual": str(self.actual) if self.actual is not None else None,
             "difference": str(self.difference) if self.difference is not None else None,
@@ -380,6 +384,7 @@ def check_ytd_consistency(
         return ReconciliationResult(
             check_name=check_name,
             passed=False,
+            status="failed",
             expected=directly_reported_ytd,
             actual=sum_of_directly_reported_quarters,
             difference=None,
@@ -391,18 +396,20 @@ def check_ytd_consistency(
         return ReconciliationResult(
             check_name=check_name,
             passed=False,
+            status="blocked",
             expected=directly_reported_ytd,
             actual=sum_of_directly_reported_quarters,
             difference=None,
             tolerance_absolute=tolerance_absolute,
             tolerance_relative_pct=Decimal("0"),
-            detail="Missing values, cannot check YTD consistency. Missing is not zero.",
+            detail="REQUIRED_INPUTS_UNAVAILABLE: cannot compute YTD consistency. Missing is not zero.",
         )
     difference = directly_reported_ytd - sum_of_directly_reported_quarters
     passed = abs(difference) <= tolerance_absolute
     return ReconciliationResult(
         check_name=check_name,
         passed=passed,
+        status=("passed" if passed else "failed"),
         expected=directly_reported_ytd,
         actual=sum_of_directly_reported_quarters,
         difference=difference,
@@ -438,15 +445,15 @@ def check_balance_sheet_cash_agreement(
     check_name = f"balance_sheet_vs_rollforward_cash:{fiscal_year}:Q{fiscal_quarter}"
     if balance_sheet_cash is None or rollforward_cash is None:
         return ReconciliationResult(
-            check_name=check_name, passed=False,
+            check_name=check_name, passed=False, status="blocked",
             expected=balance_sheet_cash, actual=rollforward_cash, difference=None,
             tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
-            detail="Missing values, cannot compare balance-sheet cash to roll-forward cash. Missing is not zero.",
+            detail="REQUIRED_INPUTS_UNAVAILABLE: cannot compare balance-sheet cash to roll-forward cash.",
         )
     difference = balance_sheet_cash - rollforward_cash
     passed = abs(difference) <= tolerance_absolute
     return ReconciliationResult(
-        check_name=check_name, passed=passed,
+        check_name=check_name, passed=passed, status=("passed" if passed else "failed"),
         expected=balance_sheet_cash, actual=rollforward_cash, difference=difference,
         tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
         detail=(
@@ -521,12 +528,14 @@ def check_cash_rollforward(
         return ReconciliationResult(
             check_name=check_name,
             passed=False,
+            status="blocked",
             expected=ending_cash,
             actual=None,
             difference=None,
             tolerance_absolute=rounding_bound,
             tolerance_relative_pct=Decimal("0"),
-            detail=f"Missing values, cannot roll forward: {missing}. Missing is not zero.",
+            detail=f"REQUIRED_INPUTS_UNAVAILABLE: cannot roll forward, missing {missing}. "
+            "This check did not execute -- it is not a numerical failure of Target's cash roll-forward.",
         )
 
     computed_ending_cash = beginning_cash + cfo + cfi + cff + fx_effect
@@ -535,6 +544,7 @@ def check_cash_rollforward(
     return ReconciliationResult(
         check_name=check_name,
         passed=passed,
+        status=("passed" if passed else "failed"),
         expected=ending_cash,
         actual=computed_ending_cash,
         difference=residual,

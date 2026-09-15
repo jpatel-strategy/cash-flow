@@ -33,41 +33,69 @@ class ValidationSummary:
     cash_rollforward_results: list[ReconciliationResult] = field(default_factory=list)
     facts_missing_lineage: list[str] = field(default_factory=list)
 
+    def _counts(self) -> dict[str, int]:
+        """Five mutually-exclusive buckets, per the 2026-09-15 status-classification
+        correction: a check that never executed because a required input was
+        unavailable is BLOCKED, never FAILED -- only a check that actually
+        computed an out-of-tolerance result is FAILED. `checks_run` is the sum
+        of all five and is the only backward-compatible aggregate kept.
+        """
+        passed = failed = blocked = unavailable = not_applicable = 0
+
+        for r in self.compatibility_results:
+            passed, failed = (passed + 1, failed) if r.passed else (passed, failed + 1)
+        for r in self.arithmetic_invariant_results:
+            passed, failed = (passed + 1, failed) if r.holds else (passed, failed + 1)
+        for r in self.independent_validation_results:
+            if r.status == "validated":
+                passed += 1
+            elif r.status == "unavailable":
+                unavailable += 1
+            elif r.status in ("failed", "not_independent"):
+                failed += 1
+            else:
+                not_applicable += 1  # defensive: a status this module doesn't yet know about
+        for r in self.ytd_consistency_results:
+            if r.status == "passed":
+                passed += 1
+            elif r.status == "blocked":
+                blocked += 1
+            else:
+                failed += 1
+        for r in self.cash_rollforward_results:
+            if r.status == "passed":
+                passed += 1
+            elif r.status == "blocked":
+                blocked += 1
+            else:
+                failed += 1
+
+        return {
+            "checks_run": passed + failed + blocked + unavailable + not_applicable,
+            "checks_passed": passed,
+            "checks_failed": failed,
+            "checks_blocked": blocked,
+            "checks_unavailable": unavailable,
+            "checks_not_applicable": not_applicable,
+        }
+
     @property
     def passed(self) -> bool:
-        checks_run = (
-            len(self.compatibility_results)
-            + len(self.arithmetic_invariant_results)
-            + len(self.independent_validation_results)
-            + len(self.ytd_consistency_results)
-            + len(self.cash_rollforward_results)
-        )
-        if checks_run == 0:
+        counts = self._counts()
+        if counts["checks_run"] == 0:
             return False  # an empty validation run must never report success by default
+        # A BLOCKED check is not a numerical failure, but the gate still cannot pass
+        # while a required check never ran -- "blocked" and "failed" both hold the
+        # gate open; only "unavailable" (structurally no independent evidence can
+        # exist, e.g. Q4) and "not_applicable" are non-blocking.
         return (
-            all(r.passed for r in self.compatibility_results)
-            and all(r.holds for r in self.arithmetic_invariant_results)
-            and all(r.status not in ("failed", "not_independent") for r in self.independent_validation_results)
-            and all(r.passed for r in self.ytd_consistency_results)
-            and all(r.passed for r in self.cash_rollforward_results)
+            counts["checks_failed"] == 0
+            and counts["checks_blocked"] == 0
             and len(self.facts_missing_lineage) == 0
         )
 
     def to_dict(self) -> dict:
-        checks_run = (
-            len(self.compatibility_results)
-            + len(self.arithmetic_invariant_results)
-            + len(self.independent_validation_results)
-            + len(self.ytd_consistency_results)
-            + len(self.cash_rollforward_results)
-        )
-        checks_failed = (
-            sum(1 for r in self.compatibility_results if not r.passed)
-            + sum(1 for r in self.arithmetic_invariant_results if not r.holds)
-            + sum(1 for r in self.independent_validation_results if r.status in ("failed", "not_independent"))
-            + sum(1 for r in self.ytd_consistency_results if not r.passed)
-            + sum(1 for r in self.cash_rollforward_results if not r.passed)
-        )
+        counts = self._counts()
         return {
             "gate_passed": self.passed,
             "source_compatibility_checks": [r.to_dict() for r in self.compatibility_results],
@@ -76,11 +104,7 @@ class ValidationSummary:
             "ytd_consistency_checks": [r.to_dict() for r in self.ytd_consistency_results],
             "cash_rollforward_checks": [r.to_dict() for r in self.cash_rollforward_results],
             "facts_missing_lineage": self.facts_missing_lineage,
-            "checks_run": checks_run,
-            "checks_failed": checks_failed,
-            "independent_validations_unavailable": sum(
-                1 for r in self.independent_validation_results if r.status == "unavailable"
-            ),
+            **counts,
         }
 
 

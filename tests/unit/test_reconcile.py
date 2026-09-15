@@ -330,7 +330,10 @@ def test_cash_rollforward_fails_when_capex_omitted():
     assert not result.passed
 
 
-def test_cash_rollforward_missing_value_fails_visibly():
+def test_cash_rollforward_missing_value_is_blocked_not_failed():
+    """A missing required input means the check never executed -- this must be
+    reported as BLOCKED, not as a numerical FAIL of Target's cash roll-forward.
+    """
     bound = compute_rounding_bound(6, 0)
     result = check_cash_rollforward(
         fiscal_year=2025, fiscal_quarter=0,
@@ -339,4 +342,5 @@ def test_cash_rollforward_missing_value_fails_visibly():
         rounding_bound=bound,
     )
     assert not result.passed
-    assert "Missing" in result.detail
+    assert result.status == "blocked"
+    assert "REQUIRED_INPUTS_UNAVAILABLE" in result.detail
