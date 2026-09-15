@@ -216,8 +216,9 @@ keys and wall-clock insertion timestamps — documented in the script's own
 docstring) and SHA-256-hashes the result — never a raw SQLite file hash,
 since file-level byte layout is not a property of analytical content.
 
-Both databases produced byte-identical exports (active and clean-room hash
-is the same value in every row — printed once):
+Deterministic canonical exports are hash-identical after documented
+exclusion of nondeterministic identifiers and timestamps (active and
+clean-room hash is the same value in every row — printed once):
 
 | Export | SHA-256 (active == clean-room) |
 |---|---|
