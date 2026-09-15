@@ -344,15 +344,21 @@ class GateAuthorization:
     backup_sha256: str
     verified_backup_sha256: str
     working_tree_clean: bool
-    # Defaults match today's real, current-state expectations (item 4: "mapping
-    # gate = 48 PASS, 0 FAIL/BLOCKED", "persistence preflight contains exactly
-    # 478 annual facts") -- kept as fields, not hardcoded literals in failures()
-    # below, so this object stays meaningfully testable at any scale (e.g. a
-    # small fixture) and so a legitimate future change to the approved metric
-    # set (which would change both numbers together) updates one call site,
-    # not a magic number buried in this class.
-    expected_mapping_pass_count: int = 48
-    expected_preflight_fact_count: int = 478
+    # Defaults match today's real, current-state expectations -- kept as
+    # fields, not hardcoded literals in failures() below, so this object
+    # stays meaningfully testable at any scale (e.g. a small fixture) and so
+    # a legitimate future change to the approved metric set (which changes
+    # both numbers together) updates one call site, not a magic number
+    # buried in this class. Updated 2026-09-16 from 48/478 to 49/488 after a
+    # self-caught gap: finance_lease_liabilities is referenced as a lineage
+    # input by total_debt_gaap and adjusted_net_debt_including_finance_leases
+    # but had no metric_definitions.csv row of its own -- discovered by a
+    # real sqlite3.IntegrityError (FOREIGN KEY constraint failed) when
+    # persist_annual_facts actually attempted the write; the transaction
+    # rolled back completely and cleanly. See docs/decisions.md, 2026-09-16
+    # "Self-caught gap: finance_lease_liabilities had no definition row".
+    expected_mapping_pass_count: int = 49
+    expected_preflight_fact_count: int = 488
 
     def failures(self) -> list[str]:
         problems = []

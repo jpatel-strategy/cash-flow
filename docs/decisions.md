@@ -2035,3 +2035,54 @@ instruction, no annual facts were persisted. `annual_facts`,
 database (confirmed via `target_cash seed-reference-data`'s reported
 counts). `scripts/clean_room_rebuild.py`'s annual-persistence step remains
 a documented TODO.
+
+---
+
+## 2026-09-16 — Self-caught gap: finance_lease_liabilities had no definition row
+
+While running the actual, real `persist-annual` command for the first time
+against the production database (after the overall-gate-enforcement fix and
+full conditional-authorization chain were committed), the write failed with
+`sqlite3.IntegrityError: FOREIGN KEY constraint failed` -- not a synthetic
+test catching this, but the real transactional writer refusing a real bad
+write. `total_debt_gaap` and `adjusted_net_debt_including_finance_leases`
+both reference `finance_lease_liabilities` as a lineage input (via their
+`denominator_metrics` field in `config/metric_definitions.csv`), but
+`finance_lease_liabilities` had no `metric_definitions.csv` row of its own
+-- it is genuinely computed by `target_cash.annual.derive()`
+(`set_derived("finance_lease_liabilities", ...)`), but was never itself
+approved for persistence, so it was never planned as its own `annual_facts`
+row, so the lineage edge pointing at it violated `annual_lineage`'s own
+`input_annual_fact_id REFERENCES annual_facts(annual_fact_id)` foreign key.
+
+**The transaction rolled back completely and cleanly** -- confirmed by
+byte-for-byte comparison of the database file before and after the failed
+attempt. No partial write reached the database. This is exactly the
+guarantee item 3 of the 2026-09-16 approval round required, demonstrated
+under a real failure, not only a synthetic one.
+
+**Fixed** by adding `def_finance_lease_liabilities_v1` to
+`config/metric_definitions.csv`: `finance_lease_liability_current +
+finance_lease_liability_noncurrent`, `reviewed` (a trivial exact sum of two
+already-reviewed direct components, the same pattern already used for
+`long_term_debt_gaap_carrying_value`). A follow-up sweep confirmed no other
+`metric_definitions.csv` row references an input that is neither a
+canonical direct metric nor another row's own `metric` -- this was the only
+gap of this kind remaining.
+
+**Expected counts changed as a direct, correct consequence**, not a
+loosened requirement: mapping_evidence_gate now reports **49 PASS / 0
+BLOCKED** (was 48/0), and the persistence preflight now plans **488**
+annual_facts (300 direct + **188** derived, was 178) -- `finance_lease_liabilities`
+itself adds 10 rows (5 fiscal years x 2 views, no exclusions), and
+`annual_lineage` grows from 364 to **384** (two formulas' lineage edges to
+this metric, now valid). `docs/milestone_2_mapping_approval_matrix.md` was
+regenerated (`scripts/build_mapping_approval_matrix.py`) to reflect these
+corrected counts. `GateAuthorization`'s defaults
+(`expected_mapping_pass_count`, `expected_preflight_fact_count`) were
+updated from 48/478 to 49/488 accordingly. `docs/milestone_2_proposal.md`
+and `docs/milestone_2_schema_and_dry_run.md` are left as historical records
+of earlier rounds' figures, per this project's standing practice of never
+retroactively editing prior documentation -- only the live, regenerated
+`docs/milestone_2_mapping_approval_matrix.md` and this entry carry the
+corrected numbers going forward.

@@ -2,7 +2,7 @@
 
 Generated 2026-09-15 from config/metrics.csv, config/metric_definitions.csv, and the live curated database (data/curated/target_cash.db), using target_cash.annual's own resolve_tag/duration_value/instant_value functions -- the exact code path the annual model itself reads. Every accession number, context ID, and value below is queried live, never hand-typed. Regeneration: `.venv/bin/python scripts/build_mapping_approval_matrix.py`.
 
-This document satisfies items 3 and 5 of the 2026-09-15 approval round: item 3's complete mapping-approval matrix for every direct annual metric, and item 5's persistence manifest with expected counts. Item 2's two distinct gates (mapping_evidence_gate, analytical_validation_gate) are kept structurally separate throughout -- a metric's row here records its MAPPING evidence; arithmetic/derivation validation is reported separately by `target_cash validate` (annual_validation section) and is NOT restated here.
+This document satisfies items 3 and 5 of the 2026-09-15 approval round: item 3's complete mapping-approval matrix for every direct annual metric, and item 5's persistence manifest with expected counts. Item 2's two distinct gates (mapping_evidence_gate, analytical_validation_gate) are kept structurally separate throughout -- a metric's row here records its MAPPING evidence; arithmetic/derivation validation is reported separately by `target_cash validate` (annual_analytical_validation section) and is NOT restated here.
 
 ## A. Mapping-Approval Matrix -- Direct Annual Metrics (item 3)
 
@@ -520,7 +520,7 @@ This document satisfies items 3 and 5 of the 2026-09-15 approval round: item 3's
 
 ## B. Derived Metric Definitions (item 4)
 
-18 definitions from config/metric_definitions.csv, each cross-checked against a real computed FY2025 value from target_cash.annual.derive() (as_filed view) to confirm the definition is not just documented but actually implemented and produces a value.
+19 definitions from config/metric_definitions.csv, each cross-checked against a real computed FY2025 value from target_cash.annual.derive() (as_filed view) to confirm the definition is not just documented but actually implemented and produces a value.
 
 ### `gross_profit` (def_gross_profit_v1, v1)
 
@@ -720,6 +720,17 @@ This document satisfies items 3 and 5 of the 2026-09-15 approval round: item 3's
 - **FY2025 as-filed computed value:** status=DERIVED, value=16456.0
 - **Limitation:** Trivial exact sum with zero additional judgment beyond its two components, both independently reviewed (see mapping-approval matrix rows for long_term_debt_gaap_carrying_value_noncurrent and _current). Reconciliation proven in tests/unit/test_annual_dry_run.py's debt-bridge tests, which depend on this exact sum being correct in all 5 fiscal years.
 
+### `finance_lease_liabilities` (def_finance_lease_liabilities_v1, v1)
+
+- **Formula:** finance_lease_liability_current + finance_lease_liability_noncurrent
+- **Unit / sign policy:** USD_millions / positive magnitude in every observed year
+- **Zero-denominator policy:** N/A (not a ratio)
+- **Negative-denominator policy:** N/A (not a ratio)
+- **Valid analytical views:** as_originally_filed;latest_restated
+- **review_status:** `reviewed`
+- **FY2025 as-filed computed value:** status=DERIVED, value=2113.0
+- **Limitation:** Trivial exact sum with zero additional judgment beyond its two components, both independently reviewed (see mapping-approval matrix rows for finance_lease_liability_current and finance_lease_liability_noncurrent). Reconciliation proven in tests/unit/test_annual_dry_run.py's debt-bridge tests, which depend on this exact sum being correct in all 5 fiscal years.
+
 ## C. Persistence Manifest -- Expected Counts (item 5)
 
 Materialized dual-view design: every approved metric x 5 fiscal years x both analytical views (AS_ORIGINALLY_FILED, LATEST_RESTATED) -- never a sparse override. An unchanged value between views still gets two distinct annual_facts rows (the table's UNIQUE(metric, fiscal_year, analytical_view) constraint requires it), but those two rows share the same underlying evidence (the same raw_fact_id in annual_fact_observations); a changed (reclassified) value gets two rows with genuinely different values and, where applicable, different lineage. Counts below are computed live from target_cash.annual.compute_all_years() against the real database -- not estimated.
@@ -728,17 +739,17 @@ Materialized dual-view design: every approved metric x 5 fiscal years x both ana
 
 | View | Direct annual_facts rows | Derived annual_facts rows | Total |
 |---|---:|---:|---:|
-| AS_ORIGINALLY_FILED | 150 | 89 | 239 |
-| LATEST_RESTATED | 150 | 89 | 239 |
-| **Total (both views)** | **300** | **178** | **478** |
+| AS_ORIGINALLY_FILED | 150 | 94 | 244 |
+| LATEST_RESTATED | 150 | 94 | 244 |
+| **Total (both views)** | **300** | **188** | **488** |
 
 ### By direct vs. derived, and overall table-row expectations
 
 - **Direct annual_facts rows expected:** 300 of 300 possible slots (30 metrics x 5 fiscal years x 2 views). 0 non-persistable slots.
-- **Derived annual_facts rows expected:** 178 of 180 possible slots (18 metrics x 5 fiscal years x 2 views). 2 non-persistable slots (the FY2022 shareholder_distributions_to_fcf NOT_APPLICABLE cells under both views -- the hard requirement from item 4, confirmed here as an actual exclusion, not just documentation).
-- **Total annual_facts rows expected: 478**
+- **Derived annual_facts rows expected:** 188 of 190 possible slots (19 metrics x 5 fiscal years x 2 views). 2 non-persistable slots (the FY2022 shareholder_distributions_to_fcf NOT_APPLICABLE cells under both views -- the hard requirement from item 4, confirmed here as an actual exclusion, not just documentation).
+- **Total annual_facts rows expected: 488**
 - **annual_fact_observations rows expected (minimum):** 300 -- one 'selected' observation per persisted DIRECT annual_facts row (the direct metrics' own raw_facts evidence). This is a floor, not a ceiling: a metric with a genuinely corroborating discrete fact (as already modeled for quarterly_facts) would add further 'corroborating' rows; none are counted here since annual-grain corroboration has not yet been catalogued metric-by-metric.
-- **annual_lineage rows expected:** 364 -- one row per (derived annual_facts row) x (input metric it depends on), computed from config/metric_definitions.csv's own numerator_metrics/denominator_metrics fields, restricted to the persistable derived slots above.
+- **annual_lineage rows expected:** 384 -- one row per (derived annual_facts row) x (input metric it depends on), computed from config/metric_definitions.csv's own numerator_metrics/denominator_metrics fields, restricted to the persistable derived slots above.
 
 ### By metric (non-persistable exceptions only; all other metric x FY x view slots are persistable)
 
@@ -757,18 +768,18 @@ Every other metric's two view-rows carry identical values, sharing the same unde
 
 | Fiscal year | Direct rows (both views) | Derived rows (both views) |
 |---|---:|---:|
-| 2021 | 60 | 36 |
-| 2022 | 60 | 34 |
-| 2023 | 60 | 36 |
-| 2024 | 60 | 36 |
-| 2025 | 60 | 36 |
+| 2021 | 60 | 38 |
+| 2022 | 60 | 36 |
+| 2023 | 60 | 38 |
+| 2024 | 60 | 38 |
+| 2025 | 60 | 38 |
 
 ### Observation and lineage type summary
 
 - **selected:** the one annual_fact_observations row establishing a direct annual_facts row's own evidence -- exactly 1 per persisted direct row, as counted above.
 - **corroborating / restated / conflicting:** not yet catalogued at annual grain; none assumed present or absent by this manifest -- a future persistence implementation must enumerate these explicitly per metric rather than default to zero.
 - **source lineage (annual_lineage.input_raw_fact_id):** used when a derived fact's input is itself a raw XBRL fact rather than another annual_facts row -- not used by any of the 18 approved derived definitions today (every one lineages to other annual_facts rows via input_annual_fact_id), so 0 expected.
-- **derivation lineage (annual_lineage.input_annual_fact_id):** 364 rows, as counted above.
+- **derivation lineage (annual_lineage.input_annual_fact_id):** 384 rows, as counted above.
 
 ---
 

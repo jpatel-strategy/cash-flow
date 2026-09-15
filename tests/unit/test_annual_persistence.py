@@ -120,7 +120,12 @@ def _full_authorization(preflight_fact_count=8):
     """
     return GateAuthorization(
         milestone_1_gate_passed=True, mapping_gate_passed=True,
-        mapping_gate_pass_count=48, mapping_gate_blocked_count=0,
+        # 42 is an arbitrary fixture-scale number, deliberately unrelated to
+        # the real project's own mapping-gate pass count (whatever it
+        # currently is) -- paired with a matching expected_mapping_pass_count
+        # override so this helper never silently breaks when the real
+        # project's own count changes (as it did 2026-09-16, 48 -> 49).
+        mapping_gate_pass_count=42, expected_mapping_pass_count=42, mapping_gate_blocked_count=0,
         annual_gate_passed=True, overall_gate_passed=True,
         capex_regression_tests_passed=True, debt_bridge_tests_passed=True,
         preflight_fact_count=preflight_fact_count, expected_preflight_fact_count=preflight_fact_count,
@@ -277,7 +282,7 @@ def test_persist_refuses_when_preflight_count_does_not_match_authorization():
         conn, {"revenue", "cost_of_sales", "gross_profit"}, GROSS_PROFIT_DEF, "v0-test", "2026-09-16",
     )
     assert preflight.total_annual_facts == 12
-    stale_auth = _full_authorization(preflight_fact_count=478)  # the real-project count, not this fixture's 12
+    stale_auth = _full_authorization(preflight_fact_count=488)  # the real-project count, not this fixture's 12
     with pytest.raises(PersistenceNotAuthorizedError):
         persist_annual_facts(conn, preflight, stale_auth)
 
