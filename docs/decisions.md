@@ -2180,3 +2180,111 @@ persisted observation content) and was not regenerated.
 `docs/milestone_2_evidence.md` was regenerated to reflect the enriched
 686-observation state, the reclassification-evidence table, and the full
 18-check integrity report.
+
+## 2026-09-16 — Milestone 3 opened: Forecast and Investment Capacity Engine (dry run, not persisted)
+
+Milestone 2 was declared approved and frozen at its current committed
+state; any future change to the accepted historical facts, mappings,
+observations, or lineage now requires a separately documented defect
+correction, not an ordinary edit.
+
+**Scope this round: a pure in-memory FY2026-FY2030 forecast engine
+(`src/target_cash/forecast.py`) — Base/Upside/Downside scenarios, a full
+driver-based operating and cash-flow model, an investment-capacity
+formula chain, an 18-check validation suite, and dry-run sensitivity
+tables. No database write of any kind occurred: no `forecast_*` table
+exists, `src/target_cash/migrations.py` is unchanged, and
+`data/curated/target_cash.db` is byte-identical to its state before this
+round.** No DCF, Excel, Power BI, or website work has begun.
+
+**Forecast information cutoff is a distinct concept from `config/model.yml`'s
+project-wide `information_cutoff`.** `FORECAST_INFORMATION_CUTOFF =
+"2026-03-11"` is the FY2025 10-K's own filed date (accession
+`0000027419-26-000016`) — the latest of the 8 registered sources — and
+every assumption's `information_cutoff` field is validated to never
+exceed it. The project-wide field instead records when this review
+session performed its own analysis (2026-09-14) and has no bearing on
+what evidence a forecast assumption may cite.
+
+**No arbitrary spreads.** Every Base/Upside/Downside assumption traces to
+a specific FY2021-FY2025 historical minimum, median, or maximum (computed
+live from the frozen `HISTORICAL` reference dict), or to an explicitly
+documented policy choice (e.g. the minimum cash buffer, the buyback
+payout ratio) — never a naive "base ± N%" construction. Upside CapEx
+intentionally exceeds Base CapEx (funding the stronger growth scenario),
+which is why the `scenario_ordering` validation check excludes
+CapEx/FCF/repurchases from its monotonic-ordering expectations, per the
+reviewer's own instruction that ordering applies "only where economically
+appropriate."
+
+**Two distinct D&A concepts, never summed or substituted.**
+`depreciation_amortization_opex` (the SG&A-adjacent line already present
+in `annual_facts`, used in the operating-income bridge) and
+`depreciation_amortization_cfo_addback` (`us-gaap:DepreciationDepletionAndAmortization`,
+the full cash-flow-statement addback, includes COGS-embedded D&A such as
+distribution-center depreciation) are modeled as two independent
+assumption tracks. The addback figure is not in `annual_facts` — Milestone
+2 only approved the opex line at annual grain — so it is sourced directly
+from `raw_facts` and frozen as a literal in `forecast.HISTORICAL`, with an
+explicit code comment recording why.
+
+**Non-plug modeling discipline enforced structurally, not just
+documented.** Share repurchases are a fixed target payout ratio of
+post-dividend FCF (floored at zero, never negative); debt proceeds/
+repayments are a fixed, pre-set schedule identical across every forecast
+year within a scenario (confirmed by
+`test_debt_schedule_is_fixed_not_a_deficit_plug`). Neither is solved
+backward from any cash or capacity target. A shortfall instead surfaces
+as an explicit `minimum_cash_compliance` validation warning
+(`funding_warning = True`), never a silently-enlarged debt draw.
+
+**CapEx uses `PaymentsToAcquirePropertyPlantAndEquipment` exclusively.**
+FY2025 reference figures (CFO $6,562M, CapEx $3,727M, CFI -$3,649M, FCF
+$2,835M) are asserted by a dedicated test
+(`test_capex_fy2025_reference_figures_match_historical`). `FCF = CFO -
+CapEx` always; total investing cash flow is never substituted. Because no
+disclosed driver exists for Target's non-CapEx investing items,
+`investing_cash_flow` is approximated as exactly `-CapEx` for the cash
+roll-forward only — documented as a limitation, never used in the FCF
+formula itself.
+
+**Investment capacity is presented with its own caveats, never as a bare
+number.** `GROSS_FCF_CAPACITY → POST_DIVIDEND_CAPACITY →
+PRE_DISCRETIONARY_ENDING_CASH → DEPLOYABLE_CAPACITY` (floored at zero).
+The schema proposal (`docs/milestone_3_forecast_schema_proposal.md`)
+makes `investment_capacity_results.methodology_note` a mandatory
+(`NOT NULL`, no default) column specifically so the figure cannot be
+inserted without its accompanying liquidity-buffer/seasonality/covenant/
+discretion explanation.
+
+**Minimum cash buffer policy: 3.0% of forecast revenue, recommended after
+comparing four options** (fixed-dollar historical minimum, %-of-revenue,
+%-of-opex, downside-liquidity-requirement) — see
+`docs/milestone_3_forecast_engine_proposal.md` §10. Chosen because it
+sits above the historical minimum ratio (2.04%, FY2022) and below recent
+actual ratios (4.47%-5.24%, FY2024-FY2025), scaling with the business
+rather than staying fixed in dollar terms.
+
+**Self-caught correction before this document was written.** An earlier
+draft of the minimum-cash-buffer rationale cited "recent actual ratios
+(4.47%-5.58%)" — but 5.58% is the FY2021 ratio (the oldest year in the
+window, not "recent"). Corrected to "(FY2024-FY2025) actual ratios
+(4.47%-5.24%)" in `forecast.py` before this round's deliverable document
+was generated, so the published document was never wrong.
+
+**Deliverables produced, all reviewer-facing:**
+`src/target_cash/forecast.py` (engine), `tests/unit/test_forecast.py` (36
+tests, including 3 regression tests that corrupt a computed value and
+confirm the corresponding validation check actually fails — not merely
+unreachable), `docs/milestone_3_forecast_schema_proposal.md` (proposed,
+unimplemented DDL for 6 additive tables), `docs/milestone_3_forecast_engine_proposal.md`
+(the full assumption dictionary, historical-range analysis, FY2026-FY2030
+dry run for all 3 scenarios, cash roll-forward, investment-capacity
+calculation, 6 sensitivity tables, 18-check validation results, and
+expected persistence manifest), and
+`scripts/build_milestone_3_proposal.py` (the document's live generator,
+mirroring `scripts/build_milestone_2_evidence.py`'s pattern). Full test
+suite: 298 passed (262 pre-existing + 36 new), 0 failures.
+
+**Stopped for reviewer approval per explicit instruction.** No forecast
+fact is persisted; no DCF, Excel, Power BI, or website work has begun.
