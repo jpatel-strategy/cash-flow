@@ -202,7 +202,7 @@ def _select(
     return next(f for f in matching if f.fact_id == selected.fact_id)
 
 
-def _period_spec(fact: RawFactRow, fiscal_year: int, scope: str) -> PeriodSpec:
+def _period_spec(fact: RawFactRow, fiscal_year: int, scope: str, concept_directionality: str) -> PeriodSpec:
     return PeriodSpec(
         fiscal_year=fiscal_year,
         scope=scope,
@@ -218,6 +218,7 @@ def _period_spec(fact: RawFactRow, fiscal_year: int, scope: str) -> PeriodSpec:
         accession_number=fact.accession_number,
         is_superseded=fact.is_superseded,
         sign_as_reported=fact.sign_as_reported,
+        concept_directionality=concept_directionality,
     )
 
 
@@ -272,7 +273,7 @@ def derive_point_in_time_metric(
     return outcome
 
 
-def derive_flow_metric(metric: str, facts: list[RawFactRow]) -> DerivationOutcome:
+def derive_flow_metric(metric: str, facts: list[RawFactRow], concept_directionality: str = "custom_reviewed") -> DerivationOutcome:
     outcome = DerivationOutcome(metric)
 
     direct_q1 = _try_select(outcome, metric, facts, *Q1_DATES)
@@ -293,20 +294,20 @@ def derive_flow_metric(metric: str, facts: list[RawFactRow]) -> DerivationOutcom
         outcome, metric, fiscal_quarter=2, dates=Q2_DATES,
         direct_fact=direct_q2, minuend=ytd6, minuend_scope="six_month_YTD",
         subtrahend=direct_q1, subtrahend_scope="Q1", derive_fn=derive_q2,
-        derivation_label="six_month_YTD minus Q1",
+        derivation_label="six_month_YTD minus Q1", concept_directionality=concept_directionality,
     )
     _derive_quarter(
         outcome, metric, fiscal_quarter=3, dates=Q3_DATES,
         direct_fact=direct_q3, minuend=ytd9, minuend_scope="nine_month_YTD",
         subtrahend=ytd6, subtrahend_scope="six_month_YTD", derive_fn=derive_q3,
-        derivation_label="nine_month_YTD minus six_month_YTD",
+        derivation_label="nine_month_YTD minus six_month_YTD", concept_directionality=concept_directionality,
     )
     _derive_quarter(
         outcome, metric, fiscal_quarter=4, dates=Q4_DATES,
         direct_fact=None,  # Target never files a discrete Q4 statement
         minuend=annual, minuend_scope="annual",
         subtrahend=ytd9, subtrahend_scope="nine_month_YTD", derive_fn=derive_q4,
-        derivation_label="annual minus nine_month_YTD",
+        derivation_label="annual minus nine_month_YTD", concept_directionality=concept_directionality,
     )
 
     # YTD consistency: only meaningful when EVERY input is itself a directly-filed
@@ -405,6 +406,117 @@ def persist_all_outcomes(conn, outcomes: dict[str, DerivationOutcome]) -> dict[s
     return written
 
 
+def persist_instant_facts(
+    conn, point_in_time_outcomes: dict[str, DerivationOutcome], mapping_version: str = "v0-pending-verification",
+) -> dict[str, int]:
+    """Persist point-in-time DerivationOutcomes into `instant_facts` +
+    `instant_fact_observations` (migration 0005_instant_facts).
+
+    Mirrors `persist_all_outcomes`' pattern exactly: clears and rewrites each
+    metric's own rows fresh, the whole batch in ONE transaction, so a failure
+    partway through rolls back every metric's write in that call. Never
+    touches `quarterly_facts`/`lineage` (flow metrics stay on
+    `persist_all_outcomes`) or `raw_facts`/`filings`. Only ever authorized to
+    run explicitly -- like `persist_all_outcomes`, nothing else in this
+    module calls it.
+
+    For each instant successfully derived (i.e. present in
+    `outcome.quarterly_facts` -- a blocked or ambiguous instant never reaches
+    this function, since it never made it into that list), the lineage
+    link recorded with `operation='direct'` becomes the `selected`
+    observation and `operation='corroborating'` links become `corroborating`
+    observations, agreeing exactly with the selected value by construction
+    (`derive.select_authoritative_fact` already raises rather than reaching
+    this point on disagreement) -- `difference_from_selected` is therefore
+    always `0` for a corroborating row, never left to imply otherwise.
+    """
+    written: dict[str, int] = {}
+    with conn:
+        for metric, outcome in point_in_time_outcomes.items():
+            conn.execute(
+                "DELETE FROM instant_fact_observations WHERE instant_fact_id IN "
+                "(SELECT instant_fact_id FROM instant_facts WHERE metric = ?)",
+                (metric,),
+            )
+            conn.execute("DELETE FROM instant_facts WHERE metric = ?", (metric,))
+
+            links_by_qf: dict[str, list[LineageLink]] = {}
+            for link in outcome.lineage_links:
+                links_by_qf.setdefault(link.derived_fact_id, []).append(link)
+
+            for qf in outcome.quarterly_facts:
+                links = links_by_qf.get(qf.quarterly_fact_id, [])
+                selected_link = next((l for l in links if l.operation == "direct"), None)
+                corroborating_links = [l for l in links if l.operation == "corroborating"]
+                if selected_link is None:
+                    continue  # defensive; every persisted instant has a direct selection
+
+                selected_raw = conn.execute(
+                    "SELECT rf.fact_id, rf.value, rf.unit, rf.scale, rf.accession_number, f.filed_at "
+                    "FROM raw_facts rf JOIN filings f ON f.accession_number = rf.accession_number "
+                    "WHERE rf.fact_id = ?",
+                    (selected_link.input_fact_id,),
+                ).fetchone()
+                if selected_raw is None:
+                    raise ValueError(
+                        f"{metric}: lineage references raw fact {selected_link.input_fact_id!r}, "
+                        "which does not exist in raw_facts/filings -- refusing to persist an instant "
+                        "fact with no real source backing it."
+                    )
+
+                instant_fact_id = f"if_{qf.quarterly_fact_id}"
+                selection_status = "corroborated" if corroborating_links else "safe"
+                authoritative_source_reason = (
+                    "own primary reporting period, corroborated by other filings' repeated observations"
+                    if corroborating_links
+                    else "sole consolidated candidate for this period"
+                )
+                conn.execute(
+                    """
+                    INSERT INTO instant_facts
+                        (instant_fact_id, metric, as_of_date, accounting_basis, consolidated_scope,
+                         analytical_view, selected_raw_fact_id, authoritative_source_reason,
+                         value_original, original_unit, scale, value_normalized, normalized_unit,
+                         accession_number, filed_at, restatement_status, mapping_version,
+                         selection_status, information_cutoff, is_current_view)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    """,
+                    (
+                        instant_fact_id, metric, qf.period_end, ACCOUNTING_BASIS, "consolidated",
+                        "as_originally_filed", selected_raw[0], authoritative_source_reason,
+                        selected_raw[1], selected_raw[2], selected_raw[3], str(qf.value_normalized), qf.normalized_unit,
+                        selected_raw[4], selected_raw[5], "as_originally_filed", mapping_version,
+                        selection_status, _today_iso(),
+                    ),
+                )
+                conn.execute(
+                    """
+                    INSERT INTO instant_fact_observations
+                        (observation_id, instant_fact_id, raw_fact_id, accession_number, filed_at,
+                         relationship, value_original, difference_from_selected, note)
+                    VALUES (?, ?, ?, ?, ?, 'selected', ?, NULL, NULL)
+                    """,
+                    (f"obs_{instant_fact_id}_selected", instant_fact_id, selected_raw[0], selected_raw[4], selected_raw[5], selected_raw[1]),
+                )
+                for link in corroborating_links:
+                    corr_raw = conn.execute(
+                        "SELECT rf.fact_id, rf.value, rf.accession_number, f.filed_at FROM raw_facts rf "
+                        "JOIN filings f ON f.accession_number = rf.accession_number WHERE rf.fact_id = ?",
+                        (link.input_fact_id,),
+                    ).fetchone()
+                    conn.execute(
+                        """
+                        INSERT INTO instant_fact_observations
+                            (observation_id, instant_fact_id, raw_fact_id, accession_number, filed_at,
+                             relationship, value_original, difference_from_selected, note)
+                        VALUES (?, ?, ?, ?, ?, 'corroborating', ?, 0, NULL)
+                        """,
+                        (f"obs_{instant_fact_id}_{link.input_fact_id}", instant_fact_id, corr_raw[0], corr_raw[2], corr_raw[3], corr_raw[1]),
+                    )
+            written[metric] = len(outcome.quarterly_facts)
+    return written
+
+
 def _today_iso() -> str:
     import time
 
@@ -416,7 +528,7 @@ def _derive_quarter(
     direct_fact: Optional[RawFactRow],
     minuend: Optional[RawFactRow], minuend_scope: str,
     subtrahend: Optional[RawFactRow], subtrahend_scope: str,
-    derive_fn, derivation_label: str,
+    derive_fn, derivation_label: str, concept_directionality: str = "custom_reviewed",
 ) -> None:
     """Prefer a direct fact when one exists; always also attempt the YTD-subtraction
     derivation so it can be cross-checked against the direct fact (or, when no direct
@@ -444,13 +556,13 @@ def _derive_quarter(
                 scope_a=minuend_scope, scope_b=subtrahend_scope,
                 accession_a=minuend.accession_number, accession_b=subtrahend.accession_number,
                 is_superseded_a=minuend.is_superseded, is_superseded_b=subtrahend.is_superseded,
-                sign_as_reported_a=minuend.sign_as_reported, sign_as_reported_b=subtrahend.sign_as_reported,
+                concept_directionality_a=concept_directionality, concept_directionality_b=concept_directionality,
             )
         )
         try:
             derived_value = derive_fn(
-                _period_spec(minuend, 2025, minuend_scope),
-                _period_spec(subtrahend, 2025, subtrahend_scope),
+                _period_spec(minuend, 2025, minuend_scope, concept_directionality),
+                _period_spec(subtrahend, 2025, subtrahend_scope, concept_directionality),
             )
         except NormalizationError as exc:
             outcome.errors.append(f"{metric}: Q{fiscal_quarter} derivation ({derivation_label}) failed: {exc}")
@@ -514,9 +626,12 @@ def derive_reviewed_metrics(conn, metrics_rows: list[dict]) -> dict[str, Derivat
     """Derive every metric marked `reviewed` in config/metrics.csv.
 
     `metrics_rows` is the parsed CSV (list of row dicts with at least
-    `metric`, `category`, `candidate_xbrl_tag`, `mapping_status`). Returns
-    one DerivationOutcome per reviewed metric; callers decide whether/how to
-    persist them (see `persist_all_outcomes`) after inspecting `errors` and
+    `metric`, `category`, `candidate_xbrl_tag`, `mapping_status`, and
+    `sign_convention` -- the metric's concept_directionality, one of
+    `reconcile.CONCEPT_DIRECTIONALITIES`, e.g. 'signed_bidirectional' for
+    net_change_in_cash/CFO/CFI/CFF). Returns one DerivationOutcome per
+    reviewed metric; callers decide whether/how to persist them (see
+    `persist_all_outcomes`) after inspecting `errors` and
     `independent_validations`.
     """
     filing_period_ends = load_filing_period_ends(conn)
@@ -530,5 +645,6 @@ def derive_reviewed_metrics(conn, metrics_rows: list[dict]) -> dict[str, Derivat
         if row.get("category") == "point_in_time":
             outcomes[metric] = derive_point_in_time_metric(metric, facts, filing_period_ends)
         else:
-            outcomes[metric] = derive_flow_metric(metric, facts)
+            concept_directionality = row.get("sign_convention") or "custom_reviewed"
+            outcomes[metric] = derive_flow_metric(metric, facts, concept_directionality)
     return outcomes

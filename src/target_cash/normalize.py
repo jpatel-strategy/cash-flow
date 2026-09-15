@@ -82,7 +82,8 @@ class PeriodSpec:
     dimensional_context: Optional[str] = None  # None = consolidated; anything else = segment/member scope
     accession_number: str = ""
     is_superseded: bool = False
-    sign_as_reported: int = 1
+    sign_as_reported: int = 1  # raw lexical ix:nonFraction sign attribute -- metadata only, not used for compatibility (see concept_directionality)
+    concept_directionality: str = "custom_reviewed"  # one of reconcile.CONCEPT_DIRECTIONALITIES; drives the normalization_policy compatibility dimension
 
 
 def _new_quarterly_fact_id() -> str:
@@ -144,7 +145,7 @@ def _assert_compatible(a: PeriodSpec, b: PeriodSpec) -> None:
         scope_a=a.scope, scope_b=b.scope,
         accession_a=a.accession_number, accession_b=b.accession_number,
         is_superseded_a=a.is_superseded, is_superseded_b=b.is_superseded,
-        sign_as_reported_a=a.sign_as_reported, sign_as_reported_b=b.sign_as_reported,
+        concept_directionality_a=a.concept_directionality, concept_directionality_b=b.concept_directionality,
     )
     if not result.passed:
         raise NormalizationError(

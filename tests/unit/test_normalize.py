@@ -20,7 +20,7 @@ from target_cash.normalize import (
 def make_period(
     scope, value, start="2024-02-01", end=None, fiscal_year=2024, unit="USD", basis="US-GAAP-2024",
     cik="0000027419", dimensional_context=None, accession="0000027419-24-000001",
-    is_superseded=False, sign_as_reported=1,
+    is_superseded=False, sign_as_reported=1, concept_directionality="custom_reviewed",
 ):
     return PeriodSpec(
         fiscal_year=fiscal_year,
@@ -35,6 +35,7 @@ def make_period(
         accession_number=accession,
         is_superseded=is_superseded,
         sign_as_reported=sign_as_reported,
+        concept_directionality=concept_directionality,
     )
 
 
@@ -126,11 +127,32 @@ def test_derive_q2_rejects_superseded_input_mixed_with_current():
         derive_q2(ytd6, q1)
 
 
-def test_derive_q2_rejects_mismatched_sign_convention():
-    q1 = make_period("Q1", "100", sign_as_reported=1)
-    ytd6 = make_period("six_month_YTD", "210", sign_as_reported=-1)
-    with pytest.raises(NormalizationError, match="sign_convention"):
+def test_derive_q2_rejects_mismatched_normalization_policy():
+    """Two facts mapped under a DIFFERENT concept-directionality policy must
+    not be combined -- but this must never trigger merely because their raw
+    signs happen to differ (2026-09-15 correction: see
+    test_derive_q2_accepts_same_directionality_with_opposite_raw_signs)."""
+    q1 = make_period("Q1", "100", concept_directionality="positive_magnitude_expense")
+    ytd6 = make_period("six_month_YTD", "210", concept_directionality="signed_bidirectional")
+    with pytest.raises(NormalizationError, match="normalization_policy"):
         derive_q2(ytd6, q1)
+
+
+def test_derive_q2_accepts_same_directionality_with_opposite_raw_signs():
+    """A signed_bidirectional concept (e.g. net_change_in_cash, CFO, CFI, CFF)
+    may legitimately have a positive value in one period and a negative value
+    in another -- this must combine without error as long as both facts share
+    the same normalization policy, per the 2026-09-15 sign-policy correction.
+    """
+    nine_month = make_period(
+        "nine_month_YTD", "-940", start="2025-02-02", end="2025-11-01",
+        sign_as_reported=-1, concept_directionality="signed_bidirectional",
+    )
+    annual = make_period(
+        "annual", "726", start="2025-02-02", end="2026-01-31",
+        sign_as_reported=1, concept_directionality="signed_bidirectional",
+    )
+    assert derive_q4(annual, nine_month) == to_decimal("1666")
 
 
 def test_derive_q2_reports_every_failed_dimension_at_once():

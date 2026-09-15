@@ -168,6 +168,33 @@ def _duration_days(start_date: str, end_date: str) -> int:
     return (date.fromisoformat(end_date) - date.fromisoformat(start_date)).days + 1
 
 
+# A metric's concept_directionality (config/metrics.csv's sign_convention column)
+# governs how its raw signed value is interpreted -- this is a policy decision
+# about the CONCEPT, not a property of any one raw fact's tagging. Distinct from,
+# and never substituted for, several other sign-related things this project keeps
+# separate:
+#   - raw lexical sign attribute (xbrl.InlineXbrlFact.sign_as_reported): whether
+#     THIS PARTICULAR tag carried ix:nonFraction's sign="-" attribute.
+#   - parsed signed numeric value (raw_facts.value / RawFactRow.value): the true
+#     value after applying scale and sign exactly once (see xbrl.InlineXbrlFact.value).
+#   - statement presentation sign: how the value is rendered (parenthesized or
+#     not) -- captured by the same sign="-"/parentheses handling above, not a
+#     separate field.
+#   - concept directionality (this constant): the concept's own economic shape.
+#   - normalization policy: the transformation from a parsed signed value to a
+#     normalized economic value / normalized cash-impact value, determined by
+#     concept directionality (e.g. a positive_magnitude_outflow concept's cash
+#     impact is -abs(value) even though its filed value is always positive).
+CONCEPT_DIRECTIONALITIES = frozenset({
+    "signed_bidirectional",         # e.g. net_change_in_cash, CFO, CFI, CFF: filed sign IS the true economic/cash-impact sign, either direction is valid
+    "positive_magnitude_expense",   # always filed as a positive cost magnitude
+    "positive_magnitude_inflow",    # always filed as a positive inflow/addback magnitude
+    "positive_magnitude_outflow",   # always filed as a positive magnitude; cash impact is negative
+    "point_in_time_unsigned",       # balance-sheet stock: a magnitude, not a signed flow
+    "custom_reviewed",              # sign meaning not yet independently verified against the rendered statement
+})
+
+
 def check_source_compatibility(
     check_name: str,
     *,
@@ -195,8 +222,8 @@ def check_source_compatibility(
     accession_b: str,
     is_superseded_a: bool,
     is_superseded_b: bool,
-    sign_as_reported_a: int,
-    sign_as_reported_b: int,
+    concept_directionality_a: str,
+    concept_directionality_b: str,
     approved_equivalent_concepts: frozenset[tuple[str, str]] = frozenset(),
 ) -> CompatibilityCheckResult:
     """Precondition check on two raw facts before any arithmetic combines them.
@@ -236,6 +263,18 @@ def check_source_compatibility(
     more than two periods (e.g. all four quarters of a fiscal year) is a
     property of that whole chain, checked separately once quarterly facts
     exist, not of a single pairwise precondition.
+
+    `concept_directionality_a`/`_b` (one of `CONCEPT_DIRECTIONALITIES`, above)
+    replace an earlier, incorrect design that compared the two facts' raw
+    `sign_as_reported` attributes directly and failed whenever they differed
+    (2026-09-15 correction). That conflated "this period's true value happened
+    to be negative" with "these facts are unsafe to combine" -- wrong for any
+    concept that is legitimately bidirectional (net_change_in_cash, CFO, CFI,
+    CFF: a positive annual figure combined with a negative nine-month figure
+    is completely normal arithmetic, not a red flag). The corrected dimension,
+    `normalization_policy`, instead fails only when the two facts are mapped
+    under a DIFFERENT concept-directionality policy -- i.e. when they would be
+    *interpreted* differently, never merely because their raw signs differ.
     """
     failed: list[str] = []
     if cik_a != cik_b:
@@ -273,8 +312,8 @@ def check_source_compatibility(
                 failed.append("period_classification")
     if is_superseded_a or is_superseded_b:
         failed.append("filing_version")
-    if sign_as_reported_a != sign_as_reported_b:
-        failed.append("sign_convention")
+    if concept_directionality_a != concept_directionality_b:
+        failed.append("normalization_policy")
 
     passed = len(failed) == 0
     detail = (

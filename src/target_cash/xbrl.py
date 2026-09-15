@@ -119,13 +119,28 @@ class InlineXbrlFact:
 
     @property
     def value(self) -> Decimal:
-        """The true value after applying `scale` and `sign_as_reported`.
+        """The true value after applying `scale` and sign, exactly once.
 
         E.g. raw_text="5,488", scale=6 -> Decimal("5488") * 10**6.
+
+        The sign is negative if EITHER the `sign="-"` attribute is present OR
+        the tagged text itself is accounting-style parenthesized (e.g.
+        "(217)") -- SEC inline-XBRL practice observed so far always uses the
+        `sign` attribute with plain digit text, never literal parentheses,
+        but this is handled defensively rather than assumed. The two signals
+        are combined with a single boolean OR, never applied independently
+        and multiplied together, so a fact carrying both `sign="-"` and
+        parenthesized text is still just negative once -- never double-
+        negated back to positive.
         """
-        magnitude = Decimal(self.raw_text.replace(",", "").strip() or "0")
+        text = self.raw_text.replace(",", "").strip()
+        parenthesized = text.startswith("(") and text.endswith(")")
+        if parenthesized:
+            text = text[1:-1].strip()
+        magnitude = Decimal(text or "0")
         scaled = magnitude * (Decimal(10) ** self.scale) if self.scale is not None else magnitude
-        return scaled * (Decimal(-1) if self.sign_as_reported < 0 else Decimal(1))
+        is_negative = self.sign_as_reported < 0 or parenthesized
+        return scaled * (Decimal(-1) if is_negative else Decimal(1))
 
 
 _ATTR_PATTERN = re.compile(r'(\w[\w:.-]*)="([^"]*)"')

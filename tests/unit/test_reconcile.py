@@ -23,7 +23,7 @@ def compat_kwargs(**overrides):
         start_date_a="2025-02-02", start_date_b="2025-02-02",
         accession_a="0000027419-25-000101", accession_b="0000027419-25-000101",
         is_superseded_a=False, is_superseded_b=False,
-        sign_as_reported_a=1, sign_as_reported_b=1,
+        concept_directionality_a="signed_bidirectional", concept_directionality_b="signed_bidirectional",
     )
     base.update(overrides)
     return base
@@ -55,10 +55,24 @@ def test_source_compatibility_flags_superseded_filing_version():
     assert "filing_version" in result.failed_dimensions
 
 
-def test_source_compatibility_flags_sign_convention():
-    result = check_source_compatibility("test", **compat_kwargs(sign_as_reported_b=-1))
+def test_source_compatibility_flags_normalization_policy_mismatch():
+    result = check_source_compatibility(
+        "test", **compat_kwargs(concept_directionality_b="positive_magnitude_expense")
+    )
     assert not result.passed
-    assert "sign_convention" in result.failed_dimensions
+    assert "normalization_policy" in result.failed_dimensions
+
+
+def test_source_compatibility_accepts_opposite_raw_signs_under_the_same_directionality():
+    """The 2026-09-15 fix: two signed_bidirectional facts with opposite economic
+    signs (e.g. a positive annual figure and a negative nine-month figure) are
+    compatible -- differing raw sign is never itself an incompatibility."""
+    result = check_source_compatibility(
+        "test", **compat_kwargs(
+            concept_directionality_a="signed_bidirectional", concept_directionality_b="signed_bidirectional",
+        )
+    )
+    assert result.passed
 
 
 def test_source_compatibility_flags_concept_mismatch():

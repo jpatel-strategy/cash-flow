@@ -104,3 +104,51 @@ def test_parse_inline_xbrl_facts_skips_facts_with_unresolvable_context():
     doc_with_dangling_ref = '<ix:nonFraction unitRef="usd" contextRef="c-missing" name="us-gaap:Foo" scale="6">1</ix:nonFraction>'
     facts = parse_inline_xbrl_facts(doc_with_dangling_ref, ["us-gaap:Foo"])
     assert facts == []
+
+
+# --- Sign-parsing verification (2026-09-15): the sign attribute is applied ------
+# exactly once, never double-negated, never silently converted to an absolute value.
+
+def _single_fact_doc(inner_text: str, *, sign_attr: str = "") -> str:
+    sign_part = ' sign="-"' if sign_attr == "-" else ""
+    return (
+        '<xbrli:context id="c-1"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">'
+        "0009999999</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2026-01-31"
+        "</xbrli:instant></xbrli:period></xbrli:context>"
+        f'<ix:nonFraction unitRef="usd" contextRef="c-1" name="us-gaap:Foo" scale="6"{sign_part}>{inner_text}</ix:nonFraction>'
+    )
+
+
+def test_no_sign_attribute_with_positive_text_reads_positive():
+    facts = parse_inline_xbrl_facts(_single_fact_doc("726"), ["us-gaap:Foo"])
+    assert facts[0].sign_as_reported == 1
+    assert facts[0].value == Decimal("726000000")
+
+
+def test_sign_minus_with_positive_lexical_text_reads_negative():
+    facts = parse_inline_xbrl_facts(_single_fact_doc("940", sign_attr="-"), ["us-gaap:Foo"])
+    assert facts[0].sign_as_reported == -1
+    assert facts[0].value == Decimal("-940000000")
+
+
+def test_already_parenthesized_text_with_no_sign_attribute_reads_negative():
+    """SEC inline-XBRL practice observed so far always uses sign="-" with plain
+    digit text, never literal accounting-style parentheses in the tagged text
+    -- but the parser must not crash or misparse if it ever encounters one.
+    """
+    facts = parse_inline_xbrl_facts(_single_fact_doc("(217)"), ["us-gaap:Foo"])
+    assert facts[0].sign_as_reported == 1  # no sign="-" attribute present
+    assert facts[0].value == Decimal("-217000000")  # negative from the parentheses alone
+
+
+def test_parentheses_and_sign_minus_together_do_not_double_negate():
+    facts = parse_inline_xbrl_facts(_single_fact_doc("(217)", sign_attr="-"), ["us-gaap:Foo"])
+    assert facts[0].value == Decimal("-217000000")  # still just negative, not flipped back to positive
+
+
+def test_no_silent_absolute_value_conversion():
+    """A negative fact's sign must survive unchanged through parsing -- nothing
+    in this property path may apply abs() to it."""
+    facts = parse_inline_xbrl_facts(_single_fact_doc("940", sign_attr="-"), ["us-gaap:Foo"])
+    assert facts[0].value < 0
+    assert facts[0].value != abs(facts[0].value)

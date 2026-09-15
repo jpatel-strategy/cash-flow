@@ -1245,3 +1245,93 @@ malformed `TableMigration` fails without being recorded as applied, without
 disturbing any already-applied migration, and a subsequent call (with the
 broken migration removed, as if fixed) completes cleanly. **Population is
 explicitly not authorized and did not happen in this round.**
+
+## 2026-09-15 — Sign-compatibility policy corrected (raw sign → concept directionality)
+
+`check_source_compatibility`'s `sign_convention` dimension compared the two
+facts' raw `sign_as_reported` attributes directly, failing whenever they
+differed. This was wrong for any concept that is legitimately bidirectional:
+`net_change_in_cash`'s FY2025 annual figure (+$726M) and nine-month YTD
+figure (-$940M) are both correct, independently filed, directly-reconciling
+facts — the check was flagging normal arithmetic as an incompatibility.
+CFO/CFI/CFF were unaffected only because Target happened to keep one sign
+throughout the periods examined so far, not because the check was correct.
+
+**Corrected model** — several previously-conflated sign-related concepts are
+now named and kept distinct (see `reconcile.py`'s `CONCEPT_DIRECTIONALITIES`
+comment block):
+- raw lexical sign attribute (`sign_as_reported`) — unchanged, still parsed
+  from `ix:nonFraction`'s `sign="-"` attribute.
+- parsed signed numeric value (`raw_facts.value`) — unchanged, the true
+  value after scale and sign are applied exactly once.
+- statement presentation sign — the same `sign="-"`/parentheses signal;
+  `xbrl.InlineXbrlFact.value` now also handles literal parenthesized text
+  defensively (never observed in a real SEC filing so far, always `sign="-"`
+  with plain digits, but the parser must not crash or misparse if it ever
+  occurs), combining both signals with OR rather than risking double
+  negation.
+- **concept directionality** (new): a per-metric policy,
+  `config/metrics.csv`'s `sign_convention` column, now one of
+  `signed_bidirectional`, `positive_magnitude_expense`,
+  `positive_magnitude_inflow`, `positive_magnitude_outflow`,
+  `point_in_time_unsigned`, or `custom_reviewed`. `operating_cash_flow`,
+  `investing_cash_flow`, `financing_cash_flow`, and `net_change_in_cash` are
+  all `signed_bidirectional` — sign is genuinely bidirectional and carries
+  real economic/cash-impact meaning either way. Every other metric's
+  existing convention was remapped onto this vocabulary without changing
+  its meaning (`positive_inflow`→`positive_magnitude_inflow`,
+  `positive_cost`→`positive_magnitude_expense`,
+  `positive_outflow`→`positive_magnitude_outflow`,
+  `positive_noncash_addback`→`positive_magnitude_inflow`,
+  `stock`→`point_in_time_unsigned`,
+  `sign_per_taxonomy_context`→`custom_reviewed`).
+- normalization policy — the compatibility dimension itself, renamed
+  `normalization_policy`: two facts are compatible on this dimension iff
+  they share the same concept directionality, never merely because their
+  raw signs agree. `positive_magnitude_*` → `normalized_cash_impact_value`
+  transformation (e.g. a positive-magnitude outflow's cash impact is
+  `-abs(value)`) is designed but not yet implemented for any metric that
+  would need it (`capital_expenditure`, `dividends_paid`, etc. all remain
+  `candidate_unverified`); `signed_bidirectional` concepts need no
+  transformation since the filed sign already is the cash-impact sign.
+
+**Effect on `net_change_in_cash` Q4**: now derives cleanly. Annual (+$726M)
+minus nine-month YTD (-$940M) = **+$1,666M**, exactly. Independently
+cross-checked two ways, both exact:
+- Cash-flow composition: CFO (3,077) + CFI (-859) + CFF (-552) = **1,666**.
+- Cash movement: beginning ($3,822M, Q3-end) + $1,666M = **$5,488M** =
+  reported FY2025 ending cash, exactly.
+
+**Parser verification**: 5 new tests in `test_xbrl_inline.py` prove the sign
+attribute is applied exactly once — no attribute + positive text; `sign="-"`
++ positive lexical text; already-parenthesized text with no `sign`
+attribute; parentheses and `sign="-"` together (no double negation); and
+that a negative value is never silently converted to its absolute value.
+Plus 3 new tests in `test_reconcile.py`/`test_normalize.py` proving two
+`signed_bidirectional` facts with opposite raw signs are compatible, and
+that a genuine directionality mismatch (comparing a
+`positive_magnitude_expense` fact against a `signed_bidirectional` one)
+still correctly fails.
+
+**Revised validation totals** (real database, after this correction):
+`checks_run=79, checks_passed=62, checks_failed=0, checks_blocked=0,
+checks_unavailable=17, checks_not_applicable=0, gate_passed=true`.
+
+Compared to the expected `checks_run=77, checks_passed=61,
+checks_unavailable=16` (assuming "no new checks are added"): two entirely
+new check results appear because `net_change_in_cash` Q4 now successfully
+derives for the first time — an `arithmetic_invariant` result and an
+`independent_quarter_validation` result that previously could not exist at
+all (the derivation raised before reaching either). Both are the same kind
+of result already produced for every other successfully-derived quarter of
+every other metric (a passing code-correctness check, and a correctly-
+labeled `unavailable` independent check, since Target never files a
+discrete Q4). Accounting for these two additions plus the expected
+transitions (1 failed→passed compatibility result, 2 blocked→passed cash
+checks): `checks_run` 77+2=79, `checks_passed` 58+4=62 (1 compatibility +
+2 cash-roll-forward + 1 new arithmetic invariant), `checks_failed` 1→0,
+`checks_blocked` 2→0, `checks_unavailable` 16+1=17 (the new Q4 independent-
+validation entry). Every number reconciles exactly to a specific, named
+cause — none is unexplained.
+
+148 tests passing (was 138).

@@ -11,8 +11,11 @@ from target_cash.derive import (
     derive_point_in_time_metric,
     derive_reviewed_metrics,
     persist_all_outcomes,
+    persist_instant_facts,
     select_authoritative_fact,
 )
+from target_cash.lineage import LineageLink
+from target_cash.migrations import apply_safe_migrations
 from target_cash.normalize import QuarterlyFact, SelectionError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -37,12 +40,15 @@ def make_quarterly_fact(metric, fiscal_quarter, basis="direct_quarterly", value=
 
 @pytest.fixture
 def db_conn():
-    """A real in-memory database built from the project's actual sql/schema.sql,
-    so persist_all_outcomes is tested against real constraints (PRIMARY KEY,
-    CHECK, FOREIGN KEY) -- not a hand-rolled stand-in schema.
+    """A real in-memory database built from the project's actual sql/schema.sql
+    plus every safe migration (including instant_facts), so persistence is
+    tested against real constraints (PRIMARY KEY, CHECK, FOREIGN KEY) -- not
+    a hand-rolled stand-in schema, and matching exactly what a real
+    connection via cli._connect_db has.
     """
     conn = sqlite3.connect(":memory:")
     conn.executescript((REPO_ROOT / "sql" / "schema.sql").read_text())
+    apply_safe_migrations(conn)
     yield conn
     conn.close()
 
@@ -357,3 +363,91 @@ def test_derive_point_in_time_metric_resolves_cross_filing_ambiguity_via_authori
     corroborating_links = [l for l in links if l.operation == "corroborating"]
     assert [l.input_fact_id for l in direct_links] == ["rf_fy24_10k"]
     assert {l.input_fact_id for l in corroborating_links} == {"rf_q1_10q"}
+
+
+# --- persist_instant_facts (2026-09-15, item 5/6) ---------------------------------
+
+
+def _insert_filing_and_raw_fact(conn, accession, fact_id, value, filed_at="2025-05-30"):
+    conn.execute(
+        "INSERT OR IGNORE INTO filings (accession_number, cik, company_name, form_type, filed_at, "
+        "period_of_report, primary_document_url, ingestion_method) VALUES "
+        "(?, '0000027419', 'Target Corporation', '10-Q', ?, '2025-05-03', 'https://example.invalid', 'manual_upload')",
+        (accession, filed_at),
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO raw_facts (fact_id, accession_number, taxonomy, tag, unit, start_date, "
+        "end_date, value, scale, sign_as_reported, is_superseded, retrieved_at) VALUES "
+        "(?, ?, 'us-gaap', 'TestConcept', 'USD', NULL, '2025-05-03', ?, 6, 1, 0, '2025-05-30T00:00:00Z')",
+        (fact_id, accession, value),
+    )
+
+
+def _build_instant_outcome_with_corroboration():
+    qf = make_quarterly_fact("cash_and_equivalents_balance_sheet", fiscal_quarter=1, basis="point_in_time")
+    outcome = DerivationOutcome("cash_and_equivalents_balance_sheet")
+    outcome.quarterly_facts.append(qf)
+    outcome.lineage_links.append(LineageLink(qf.quarterly_fact_id, "rf_selected", "direct"))
+    outcome.lineage_links.append(LineageLink(qf.quarterly_fact_id, "rf_corroborating", "corroborating"))
+    return outcome, qf
+
+
+def test_persist_instant_facts_writes_selected_and_corroborating_observations(db_conn):
+    _insert_filing_and_raw_fact(db_conn, "acc-selected", "rf_selected", "2887000000")
+    _insert_filing_and_raw_fact(db_conn, "acc-corroborating", "rf_corroborating", "2887000000")
+    db_conn.commit()
+    outcome, qf = _build_instant_outcome_with_corroboration()
+
+    written = persist_instant_facts(db_conn, {"cash_and_equivalents_balance_sheet": outcome})
+
+    assert written == {"cash_and_equivalents_balance_sheet": 1}
+    row = db_conn.execute(
+        "SELECT metric, as_of_date, selected_raw_fact_id, selection_status FROM instant_facts"
+    ).fetchone()
+    assert row == ("cash_and_equivalents_balance_sheet", "2025-05-03", "rf_selected", "corroborated")
+
+    obs = db_conn.execute(
+        "SELECT raw_fact_id, relationship, difference_from_selected FROM instant_fact_observations ORDER BY relationship"
+    ).fetchall()
+    assert obs == [
+        ("rf_corroborating", "corroborating", 0),
+        ("rf_selected", "selected", None),
+    ]
+
+
+def test_persist_instant_facts_is_idempotent_on_repeated_calls(db_conn):
+    _insert_filing_and_raw_fact(db_conn, "acc-selected", "rf_selected", "2887000000")
+    _insert_filing_and_raw_fact(db_conn, "acc-corroborating", "rf_corroborating", "2887000000")
+    db_conn.commit()
+    outcome, _ = _build_instant_outcome_with_corroboration()
+
+    persist_instant_facts(db_conn, {"cash_and_equivalents_balance_sheet": outcome})
+    persist_instant_facts(db_conn, {"cash_and_equivalents_balance_sheet": outcome})
+    persist_instant_facts(db_conn, {"cash_and_equivalents_balance_sheet": outcome})
+
+    assert db_conn.execute("SELECT COUNT(*) FROM instant_facts").fetchone()[0] == 1
+    assert db_conn.execute("SELECT COUNT(*) FROM instant_fact_observations").fetchone()[0] == 2
+
+
+def test_persist_instant_facts_rolls_back_entire_batch_on_failure(db_conn):
+    _insert_filing_and_raw_fact(db_conn, "acc-selected", "rf_selected", "2887000000")
+    _insert_filing_and_raw_fact(db_conn, "acc-corroborating", "rf_corroborating", "2887000000")
+    db_conn.commit()
+    good_outcome, _ = _build_instant_outcome_with_corroboration()
+
+    bad_qf = make_quarterly_fact("cash_and_equivalents_rollforward", fiscal_quarter=1, basis="point_in_time")
+    bad_outcome = DerivationOutcome("cash_and_equivalents_rollforward")
+    bad_outcome.quarterly_facts.append(bad_qf)
+    # No raw_facts row exists for "rf_missing" -- persist_instant_facts refuses
+    # to persist an instant fact with no real source fact backing it.
+    bad_outcome.lineage_links.append(LineageLink(bad_qf.quarterly_fact_id, "rf_missing", "direct"))
+
+    with pytest.raises(ValueError, match="rf_missing"):
+        persist_instant_facts(
+            db_conn,
+            {"cash_and_equivalents_balance_sheet": good_outcome, "cash_and_equivalents_rollforward": bad_outcome},
+        )
+
+    # Neither metric's row survived -- the successful insert was rolled back too.
+    assert db_conn.execute("SELECT COUNT(*) FROM instant_facts").fetchone()[0] == 0
+    assert db_conn.execute("SELECT COUNT(*) FROM instant_fact_observations").fetchone()[0] == 0
