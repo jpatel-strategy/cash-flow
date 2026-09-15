@@ -128,11 +128,75 @@ def load_raw_facts(conn, tag: str) -> list[RawFactRow]:
     ]
 
 
-def _select(facts: list[RawFactRow], start_date: Optional[str], end_date: str) -> Optional[RawFactRow]:
-    """select_consolidated_fact over the subset of facts matching this exact period. Propagates SelectionError."""
-    matching = [f for f in facts if f.start_date == start_date and f.end_date == end_date]
+@dataclass(frozen=True)
+class AuthoritativeSelection:
+    selected: RawFactRow
+    corroborating: tuple[RawFactRow, ...]
+
+
+def select_authoritative_fact(
+    facts: list[RawFactRow],
+    filing_period_ends: dict[str, str],
+) -> AuthoritativeSelection:
+    """Resolve more than one consolidated candidate for one exact period using
+    the authoritative-source-filing policy (docs/decisions.md, 2026-09-15,
+    "Authoritative-source policy"): the candidate from the filing whose own
+    primary reporting period (`filings.period_of_report`) equals this exact
+    period is authoritative. Every other agreeing candidate is a
+    corroborating observation, never a second selection. `facts` must
+    already be narrowed to one concept, one exact period, and consolidated
+    (non-dimensional, non-superseded) candidates only.
+
+    Never silently picks: if no filing claims this period as its own
+    primary period, if more than one does, or if the authoritative fact
+    disagrees with any corroborating one, this raises for human review.
+    """
+    primary = [f for f in facts if filing_period_ends.get(f.accession_number) == f.end_date]
+    if len(primary) == 0:
+        raise SelectionError(
+            f"Ambiguous: {len(facts)} consolidated candidate facts found "
+            f"({[f.fact_id for f in facts]}), but none is from a filing whose own primary "
+            "reporting period is this exact date -- cannot assign authority without human "
+            "review, even though the values may agree."
+        )
+    if len(primary) > 1:
+        raise SelectionError(
+            f"Ambiguous: {len(primary)} filings each claim this exact date as their own "
+            f"primary reporting period ({[f.fact_id for f in primary]}) -- this should not "
+            "happen under the SEC filing calendar and needs human review."
+        )
+    selected = primary[0]
+    corroborating = tuple(f for f in facts if f.fact_id != selected.fact_id)
+    disagreeing = [f for f in corroborating if f.value != selected.value]
+    if disagreeing:
+        raise SelectionError(
+            f"Authoritative fact {selected.fact_id} (value {selected.value}) disagrees with "
+            f"corroborating fact(s) {[(f.fact_id, str(f.value)) for f in disagreeing]} -- "
+            "flagged for human review, not silently overwritten either way."
+        )
+    return AuthoritativeSelection(selected=selected, corroborating=corroborating)
+
+
+def _select(
+    facts: list[RawFactRow], start_date: Optional[str], end_date: str,
+    filing_period_ends: Optional[dict[str, str]] = None,
+) -> Optional[RawFactRow]:
+    """select_consolidated_fact over the subset of facts matching this exact period,
+    excluding any superseded (restated) fact. Propagates SelectionError.
+
+    When `filing_period_ends` is given and more than one consolidated candidate
+    exists, resolves via select_authoritative_fact instead of raising outright
+    -- this is currently wired only for point-in-time metrics (see
+    derive_point_in_time_metric); flow metrics still raise on ambiguity,
+    pending a reliable statement-location detection method (docs/decisions.md,
+    2026-09-15 net-income entry).
+    """
+    matching = [f for f in facts if f.start_date == start_date and f.end_date == end_date and not f.is_superseded]
     if not matching:
         return None
+    consolidated = [f for f in matching if f.dimensional_context is None]
+    if filing_period_ends is not None and len(consolidated) > 1:
+        return select_authoritative_fact(consolidated, filing_period_ends).selected
     candidates = [RawFactCandidate(f.fact_id, f.dimensional_context, f.value) for f in matching]
     selected = select_consolidated_fact(candidates)
     return next(f for f in matching if f.fact_id == selected.fact_id)
@@ -171,11 +235,18 @@ def _make_quarterly_fact(
     )
 
 
-def derive_point_in_time_metric(metric: str, facts: list[RawFactRow]) -> DerivationOutcome:
+def derive_point_in_time_metric(
+    metric: str, facts: list[RawFactRow], filing_period_ends: dict[str, str],
+) -> DerivationOutcome:
+    """`filing_period_ends` maps accession_number -> that filing's own primary
+    reporting period end date (filings.period_of_report), and drives the
+    authoritative-source-filing policy (docs/decisions.md, 2026-09-15) when
+    more than one filing independently reports the same instant.
+    """
     outcome = DerivationOutcome(metric)
     for instant, (fiscal_year, fiscal_quarter) in INSTANT_QUARTER_MAP.items():
         try:
-            fact = _select(facts, None, instant)
+            fact = _select(facts, None, instant, filing_period_ends=filing_period_ends)
         except SelectionError as exc:
             outcome.errors.append(f"{metric} @ {instant}: {exc}")
             continue
@@ -186,6 +257,18 @@ def derive_point_in_time_metric(metric: str, facts: list[RawFactRow]) -> Derivat
         qf = _make_quarterly_fact(metric, fiscal_year, fiscal_quarter, None, instant, fact.value, fact.unit, "point_in_time")
         outcome.quarterly_facts.append(qf)
         outcome.lineage_links.append(LineageLink(qf.quarterly_fact_id, fact.fact_id, "direct"))
+
+        # Corroborating observations: other filings independently reporting the same
+        # instant, agreeing with the authoritative fact (select_authoritative_fact
+        # already raised, rather than reaching here, had any of them disagreed).
+        # Recorded as lineage so the corroboration is preserved, not silently dropped.
+        corroborating = [
+            f for f in facts
+            if f.start_date is None and f.end_date == instant and not f.is_superseded
+            and f.dimensional_context is None and f.fact_id != fact.fact_id
+        ]
+        for corroborator in corroborating:
+            outcome.lineage_links.append(LineageLink(qf.quarterly_fact_id, corroborator.fact_id, "corroborating"))
     return outcome
 
 
@@ -417,6 +500,16 @@ def _derive_quarter(
         outcome.errors.append(f"{metric}: Q{fiscal_quarter} has neither a direct fact nor the inputs to derive one.")
 
 
+def load_filing_period_ends(conn) -> dict[str, str]:
+    """accession_number -> that filing's own primary reporting period end date
+    (filings.period_of_report), used by the authoritative-source-filing policy.
+    """
+    return {
+        r[0]: r[1]
+        for r in conn.execute("SELECT accession_number, period_of_report FROM filings").fetchall()
+    }
+
+
 def derive_reviewed_metrics(conn, metrics_rows: list[dict]) -> dict[str, DerivationOutcome]:
     """Derive every metric marked `reviewed` in config/metrics.csv.
 
@@ -426,6 +519,7 @@ def derive_reviewed_metrics(conn, metrics_rows: list[dict]) -> dict[str, Derivat
     persist them (see `persist_all_outcomes`) after inspecting `errors` and
     `independent_validations`.
     """
+    filing_period_ends = load_filing_period_ends(conn)
     outcomes: dict[str, DerivationOutcome] = {}
     for row in metrics_rows:
         if row.get("mapping_status") != "reviewed":
@@ -434,7 +528,7 @@ def derive_reviewed_metrics(conn, metrics_rows: list[dict]) -> dict[str, Derivat
         tag = row["candidate_xbrl_tag"]
         facts = load_raw_facts(conn, tag)
         if row.get("category") == "point_in_time":
-            outcomes[metric] = derive_point_in_time_metric(metric, facts)
+            outcomes[metric] = derive_point_in_time_metric(metric, facts, filing_period_ends)
         else:
             outcomes[metric] = derive_flow_metric(metric, facts)
     return outcomes

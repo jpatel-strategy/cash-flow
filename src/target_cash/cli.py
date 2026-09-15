@@ -341,21 +341,25 @@ def cmd_validate(args: argparse.Namespace) -> int:
     # roll-forward check will correctly report "missing values" rather than
     # a false pass -- this is real wiring, not a stub, and will start
     # actually validating once those flow metrics are reviewed.
-    def _quarterly_facts_by_quarter(metric_name: str) -> dict:
+    def _quarterly_facts_by_year_quarter(metric_name: str) -> dict:
+        # Keyed by (fiscal_year, fiscal_quarter): the FY2024 Q4 opening instant and
+        # the FY2025 Q4 closing instant both have fiscal_quarter == 4, so keying by
+        # fiscal_quarter alone would collide the two and silently pick one.
         outcome = outcomes.get(metric_name)
-        return {qf.fiscal_quarter: qf for qf in outcome.quarterly_facts} if outcome else {}
+        return {(qf.fiscal_year, qf.fiscal_quarter): qf for qf in outcome.quarterly_facts} if outcome else {}
 
     cash_rollforward_results = []
-    bs_cash = _quarterly_facts_by_quarter("cash_and_equivalents_balance_sheet")
-    rf_cash = _quarterly_facts_by_quarter("cash_and_equivalents_rollforward")
+    bs_cash = _quarterly_facts_by_year_quarter("cash_and_equivalents_balance_sheet")
+    rf_cash = _quarterly_facts_by_year_quarter("cash_and_equivalents_rollforward")
 
     # Only attempted when cash_and_equivalents_rollforward is itself a reviewed
     # metric this run -- otherwise there is nothing configured to roll forward,
     # and fabricating "missing values" checks out of an unconfigured metric
     # would inflate checks_run without meaning anything.
     for fiscal_quarter in (1, 2, 3, 4) if "cash_and_equivalents_rollforward" in outcomes else ():
-        beginning_qf = rf_cash.get(fiscal_quarter - 1) if fiscal_quarter > 1 else None  # Q1's beginning (FY2024 Q4) is the open opening-balance ambiguity
-        ending_qf = rf_cash.get(fiscal_quarter)
+        beginning_key = (2024, 4) if fiscal_quarter == 1 else (2025, fiscal_quarter - 1)
+        beginning_qf = rf_cash.get(beginning_key)
+        ending_qf = rf_cash.get((2025, fiscal_quarter))
         cash_rollforward_results.append(
             check_cash_rollforward(
                 fiscal_year=2025, fiscal_quarter=fiscal_quarter,
@@ -365,7 +369,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
                 rounding_bound=compute_rounding_bound(num_directly_reported_components=2, num_ytd_derived_components=0),
             )
         )
-        bs_qf = bs_cash.get(fiscal_quarter)
+        bs_qf = bs_cash.get((2025, fiscal_quarter))
         cash_rollforward_results.append(
             check_balance_sheet_cash_agreement(
                 fiscal_year=2025, fiscal_quarter=fiscal_quarter,

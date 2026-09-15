@@ -11,8 +11,9 @@ from target_cash.derive import (
     derive_point_in_time_metric,
     derive_reviewed_metrics,
     persist_all_outcomes,
+    select_authoritative_fact,
 )
-from target_cash.normalize import QuarterlyFact
+from target_cash.normalize import QuarterlyFact, SelectionError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -56,7 +57,7 @@ def test_derive_point_in_time_metric_covers_all_five_instants():
         make_fact("rf_q3", None, "2025-11-01", "3822000000"),
         make_fact("rf_q4", None, "2026-01-31", "5488000000"),
     ]
-    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts)
+    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts, filing_period_ends={})
     assert outcome.errors == []
     assert len(outcome.quarterly_facts) == 5
     by_fq = {(qf.fiscal_year, qf.fiscal_quarter): qf for qf in outcome.quarterly_facts}
@@ -68,7 +69,7 @@ def test_derive_point_in_time_metric_covers_all_five_instants():
 
 def test_derive_point_in_time_metric_records_lineage_for_every_fact():
     facts = [make_fact("rf_q1", None, "2025-05-03", "2887000000")]
-    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts)
+    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts, filing_period_ends={})
     assert len(outcome.lineage_links) == 1
     link = outcome.lineage_links[0]
     assert link.input_fact_id == "rf_q1"
@@ -77,7 +78,7 @@ def test_derive_point_in_time_metric_records_lineage_for_every_fact():
 
 def test_derive_point_in_time_metric_reports_missing_instant_as_error_not_silent_gap():
     facts = [make_fact("rf_q1", None, "2025-05-03", "2887000000")]  # only Q1 present
-    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts)
+    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts, filing_period_ends={})
     assert len(outcome.quarterly_facts) == 1
     assert len(outcome.errors) == 4  # the other four instants are missing
 
@@ -87,7 +88,7 @@ def test_derive_point_in_time_metric_propagates_ambiguity_as_an_error_not_a_cras
         make_fact("rf_a", None, "2025-05-03", "100000000"),
         make_fact("rf_b", None, "2025-05-03", "105000000"),  # two consolidated candidates, same instant
     ]
-    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts)
+    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts, filing_period_ends={})
     assert len(outcome.quarterly_facts) == 0
     assert any("Ambiguous" in e for e in outcome.errors)
 
@@ -97,7 +98,7 @@ def test_derive_point_in_time_metric_excludes_dimensional_candidates():
         make_fact("rf_consolidated", None, "2025-05-03", "2887000000", dim=None),
         make_fact("rf_segment", None, "2025-05-03", "2887000000", dim="tgt:ReportableSegmentMember"),
     ]
-    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts)
+    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts, filing_period_ends={})
     assert len(outcome.quarterly_facts) == 1
     assert outcome.lineage_links[0].input_fact_id == "rf_consolidated"
 
@@ -279,3 +280,80 @@ def test_d_persist_all_outcomes_is_idempotent_on_repeated_calls(db_conn):
     persist_all_outcomes(db_conn, {"metric_a": outcome})
 
     assert db_conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0] == 1
+
+
+# --- Authoritative-source-filing policy (2026-09-15, item 2) ----------------------
+
+
+def test_select_authoritative_fact_prefers_the_filing_whose_own_period_this_is():
+    facts = [
+        make_fact("rf_fy24_10k", None, "2025-02-01", "4762000000", accession="acc-fy2024-10k"),
+        make_fact("rf_q1_10q", None, "2025-02-01", "4762000000", accession="acc-q1-10q"),
+        make_fact("rf_q2_10q", None, "2025-02-01", "4762000000", accession="acc-q2-10q"),
+    ]
+    filing_period_ends = {
+        "acc-fy2024-10k": "2025-02-01",  # this filing's OWN primary period is 2025-02-01
+        "acc-q1-10q": "2025-05-03",      # reports 2025-02-01 only as a comparative
+        "acc-q2-10q": "2025-08-02",      # reports 2025-02-01 only as a comparative
+    }
+    resolution = select_authoritative_fact(facts, filing_period_ends)
+    assert resolution.selected.fact_id == "rf_fy24_10k"
+    assert {f.fact_id for f in resolution.corroborating} == {"rf_q1_10q", "rf_q2_10q"}
+
+
+def test_select_authoritative_fact_raises_when_no_filing_claims_primary_authority():
+    facts = [
+        make_fact("rf_q1_10q", None, "2025-02-01", "4762000000", accession="acc-q1-10q"),
+        make_fact("rf_q2_10q", None, "2025-02-01", "4762000000", accession="acc-q2-10q"),
+    ]
+    filing_period_ends = {"acc-q1-10q": "2025-05-03", "acc-q2-10q": "2025-08-02"}
+    with pytest.raises(SelectionError, match="none is from a filing whose own primary reporting period"):
+        select_authoritative_fact(facts, filing_period_ends)
+
+
+def test_select_authoritative_fact_raises_on_disagreement_rather_than_overwriting():
+    facts = [
+        make_fact("rf_fy24_10k", None, "2025-02-01", "4762000000", accession="acc-fy2024-10k"),
+        make_fact("rf_q1_10q", None, "2025-02-01", "4700000000", accession="acc-q1-10q"),  # disagrees
+    ]
+    filing_period_ends = {"acc-fy2024-10k": "2025-02-01", "acc-q1-10q": "2025-05-03"}
+    with pytest.raises(SelectionError, match="disagrees with corroborating fact"):
+        select_authoritative_fact(facts, filing_period_ends)
+
+
+def test_select_authoritative_fact_raises_when_two_filings_both_claim_authority():
+    facts = [
+        make_fact("rf_a", None, "2025-02-01", "4762000000", accession="acc-a"),
+        make_fact("rf_b", None, "2025-02-01", "4762000000", accession="acc-b"),
+    ]
+    filing_period_ends = {"acc-a": "2025-02-01", "acc-b": "2025-02-01"}
+    with pytest.raises(SelectionError, match="each claim this exact date as their own primary reporting period"):
+        select_authoritative_fact(facts, filing_period_ends)
+
+
+def test_derive_point_in_time_metric_resolves_cross_filing_ambiguity_via_authority_and_records_corroboration():
+    facts = [
+        make_fact("rf_fy24_10k", None, "2025-02-01", "4762000000", accession="acc-fy2024-10k"),
+        make_fact("rf_q1_10q", None, "2025-02-01", "4762000000", accession="acc-q1-10q"),
+        make_fact("rf_q1", None, "2025-05-03", "2887000000", accession="acc-q1-10q"),
+        make_fact("rf_q2", None, "2025-08-02", "4341000000", accession="acc-q2-10q"),
+        make_fact("rf_q3", None, "2025-11-01", "3822000000", accession="acc-q3-10q"),
+        make_fact("rf_q4", None, "2026-01-31", "5488000000", accession="acc-fy2025-10k"),
+    ]
+    filing_period_ends = {
+        "acc-fy2024-10k": "2025-02-01",
+        "acc-q1-10q": "2025-05-03",
+        "acc-q2-10q": "2025-08-02",
+        "acc-q3-10q": "2025-11-01",
+        "acc-fy2025-10k": "2026-01-31",
+    }
+    outcome = derive_point_in_time_metric("cash_and_equivalents_balance_sheet", facts, filing_period_ends)
+    assert outcome.errors == []
+    assert len(outcome.quarterly_facts) == 5
+
+    opening_qf = next(qf for qf in outcome.quarterly_facts if qf.fiscal_year == 2024 and qf.fiscal_quarter == 4)
+    links = [l for l in outcome.lineage_links if l.derived_fact_id == opening_qf.quarterly_fact_id]
+    direct_links = [l for l in links if l.operation == "direct"]
+    corroborating_links = [l for l in links if l.operation == "corroborating"]
+    assert [l.input_fact_id for l in direct_links] == ["rf_fy24_10k"]
+    assert {l.input_fact_id for l in corroborating_links} == {"rf_q1_10q"}

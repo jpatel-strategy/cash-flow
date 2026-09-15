@@ -912,3 +912,196 @@ document filenames already confirmed against the SEC submissions inventory
 
 Not yet requested from the project owner as a formal upload ask in this
 entry — that request is made in this session's response, not repeated here.
+
+## 2026-09-15 — FY2024 10-K ingested (raw facts only)
+
+Project owner uploaded the primary document for accession
+`0000027419-25-000018` (`tgt-20250201.htm`). Verified before ingestion,
+directly against the document's own content (network egress to
+`data.sec.gov` remains blocked, so this could not be cross-checked against
+EDGAR itself):
+
+- `dei:EntityRegistrantName` = TARGET CORPORATION
+- `dei:EntityCentralIndexKey` = 0000027419
+- `dei:DocumentType` = 10-K
+- `dei:DocumentPeriodEndDate` = February 1, 2025 (nested
+  `dei:CurrentFiscalYearEndDate` "February 1" + ", 2025")
+- `dei:DocumentFiscalYearFocus` = 2024, `dei:DocumentFiscalPeriodFocus` = FY
+- `dei:AmendmentFlag` = FALSE
+- context c-1 period 2024-02-04..2025-02-01 (the FY2024 annual period)
+- no SEC block-page markers (title tag, "automated tool", robot/captcha
+  language all absent); 1,972 `ix:nonFraction` facts present — a real,
+  substantial filing
+- `filed_at` (2025-03-12) rests on the document's own signature-page date
+  (found 3 times near the end of the file), not on this session's earlier,
+  unverifiable recollection of the accession's filing date
+
+**SHA-256**: `d079d7c1872d9c96a3752acab6a3b41758b3238f8c4a36a1406473729d632c89`
+— computed twice, independently (`sha256sum` and Python `hashlib`), both
+agreeing.
+
+Registered as exactly one filing + one `docs/sources.csv` manifest row via
+the existing `fetch --mode manual` path (no new code). `normalize` then
+extracted raw facts idempotently: 124 newly inserted, 0 duplicated;
+re-running `normalize` a second time inserted 0 further rows. No
+`quarterly_facts`, `instant_facts`, or lineage rows were written.
+
+| Table | Before | After |
+|---|---|---|
+| filings | 4 | 5 |
+| raw_facts | 528 | 652 |
+| quarterly_facts | 0 | 0 |
+| lineage | 0 | 0 |
+
+## 2026-09-15 — Authoritative-source-filing policy implemented (item 2)
+
+Implemented generally in `derive.select_authoritative_fact` (not specific
+to cash), gated behind a new `filing_period_ends` parameter
+(`accession_number -> filings.period_of_report`) so it only activates where
+a caller explicitly opts in. Wired into `derive_point_in_time_metric` only
+— flow metrics (net income among them) still raise on ambiguity, pending
+the statement-location work below.
+
+Rule: when more than one filing independently reports a consolidated fact
+for the same exact period, the fact from the filing whose *own* primary
+reporting period equals that period is authoritative; every other agreeing
+fact is a corroborating observation (recorded as a `lineage` row with
+`operation='corroborating'`, not dropped). Raises for human review, never
+silently picks or overwrites, when: no filing claims the period as its own,
+more than one does, or the authoritative fact disagrees with a
+corroborating one. `is_superseded` facts are now also excluded from
+selection everywhere (previously not filtered at all — a latent gap; a
+no-op today since no ingested fact is superseded, but the restatement-status
+requirement is now structurally enforced rather than assumed).
+
+**Result on real data**: the 2025-02-01 opening-balance ambiguity for
+`cash_and_equivalents_balance_sheet` and `cash_and_equivalents_rollforward`
+is now resolved. Authoritative source: `0000027419-25-000018` (the FY2024
+10-K, whose own primary period is 2025-02-01) = **$4,762,000,000**.
+Corroborating (agreeing exactly, not selected): the same value independently
+reported in the three FY2025 10-Qs and the FY2025 10-K. No disagreement
+found. Both point-in-time metrics now derive all 5 FY2025 instants with
+zero errors (previously 4 of 5, with the opening instant blocked).
+
+**Bug caught and fixed in the same pass**: `cli.cmd_validate`'s cash
+roll-forward wiring keyed its per-quarter fact lookup by `fiscal_quarter`
+alone. Since the newly-resolved opening instant is `(fiscal_year=2024,
+fiscal_quarter=4)` and FY2025's own year-end instant is `(2025, 4)`, both
+would collide on key `4` — before ingestion this was latent (the opening
+instant never successfully derived, so no collision could occur yet);
+ingesting the FY2024 10-K would have made it active. Fixed by keying on
+`(fiscal_year, fiscal_quarter)` before it could produce a wrong beginning-
+or ending-cash figure in a real `cash_rollforward` check.
+
+129 tests passing (was 124): 5 new tests for `select_authoritative_fact`
+(prefers the filing whose own period this is; raises with no authority
+claimant; raises on disagreement rather than overwriting; raises when two
+filings both claim authority) plus one end-to-end
+`derive_point_in_time_metric` test proving the corroborating lineage link
+is recorded correctly.
+
+## 2026-09-15 — Cash-flow roll-forward mapping evidence (item 4)
+
+Investigated CFO/CFI/CFF/FX and the net-change-in-cash concept directly
+against the raw HTML of all 5 cached filings (these tags are not yet in
+`config/metrics.csv`, so nothing here was extracted into `raw_facts` — this
+is evidence-gathering only, read-only against the cached files).
+
+**Concepts found** (no competing tags found anywhere; none carry a
+dimensional/segment duplicate — Target does not disclose these by segment):
+
+| Concept | XBRL tag | Raw sign convention | Cash-impact sign |
+|---|---|---|---|
+| Net cash from operating activities | `us-gaap:NetCashProvidedByUsedInOperatingActivities` | no `sign` attribute (positive as tagged) | source of cash (+) |
+| Net cash used in investing activities | `us-gaap:NetCashProvidedByUsedInInvestingActivities` | `sign="-"` | use of cash (-) |
+| Net cash used in financing activities | `us-gaap:NetCashProvidedByUsedInFinancingActivities` | `sign="-"` | use of cash (-) |
+| Net change in cash (including FX) | `us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect` | no `sign` attribute; true value can be negative | net (+/-) |
+
+**No separately disclosed FX line exists anywhere in any of the 5
+filings** — confirmed by an exhaustive tag scan (`grep` for any
+`*ExchangeRate*` concept), not assumed. The concept name Target actually
+uses is the "*...IncludingExchangeRateEffect*" variant, meaning FX effect
+is definitionally part of the reported net-change figure, not a separate
+addend.
+
+**Whether FX is genuinely zero, determined by exact reconciliation, not
+assumption** — CFO + CFI + CFF vs. the reported net-change figure, every
+period examined, context c-1 (each filing's own YTD-cumulative period):
+
+| Period | Filing | CFO | CFI | CFF | Sum | Reported net change | Residual |
+|---|---|---|---|---|---|---|---|
+| Q1 FY2025 (2025-02-02→05-03) | 25-000101 | 275 | -787 | -1,363 | -1,875 | -1,875 | **0** |
+| 6mo FY2025 (→08-02) | 25-000118 | 2,358 | -1,853 | -926 | -421 | -421 | **0** |
+| 9mo FY2025 (→11-01) | 25-000126 | 3,485 | -2,790 | -1,635 | -940 | -940 | **0** |
+| FY2025 annual (→2026-01-31) | 26-000016 | 6,562 | -3,649 | -2,187 | 726 | 726 | **0** |
+| FY2024 annual (2024-02-04→2025-02-01) | 25-000018 | 7,367 | -2,860 | -3,550 | 957 | 957 | **0** |
+
+All five periods reconcile exactly, to the dollar (at $1M reporting
+precision). **Conclusion: FX effect is genuinely zero in every period
+examined** — not embedded elsewhere with a nonzero residual, and no
+substitute net-change concept is needed; the standard formula (beginning +
+CFO + CFI + CFF + FX = ending) applies with FX=0 and already reconciles
+(also cross-checked against the independently-known beginning/ending cash
+balances, e.g. Q1: $4,762M + (-$1,875M) = $2,887M, matching the already-
+derived Q1 ending balance exactly).
+
+**Statement location**: `us-gaap:NetCashProvidedByUsedIn*` facts appear
+only at context c-1 (current-year YTD) and c-4/c-5 (prior-year
+comparatives) in each 10-Q — Target's cash-flow statement, like most
+issuers', presents YTD-cumulative columns only, never a discrete 3-month
+column. This means these three concepts follow the same "YTD-only" pattern
+already used for `depreciation_amortization_cfo_addback` (Q1 direct + YTD6/
+YTD9/annual, Q2–Q4 derived by subtraction), not the "direct quarterly"
+pattern.
+
+**Not yet marked `reviewed` in `config/metrics.csv`** — this entry is
+evidence, not a review sign-off; see this session's response for the
+explicit confirmation request.
+
+## 2026-09-15 — Net-income statement-location detection: attempted, found unreliable (item 6)
+
+Before coding the Q1/Q2 net-income authoritative-selection rule, attempted
+to determine each competing `NetIncomeLoss` fact's actual statement
+location from the inline-XBRL document structure itself (heading text
+proximity), rather than continuing to rely on the inferred "equity
+rollforward vs. income statement" guess from the prior session.
+
+Method: stripped HTML tags from `tgt-20250802.htm` while preserving a
+stripped-offset → raw-offset mapping, located every "Consolidated
+Statements of ___" heading's raw byte offset, then located the raw byte
+offset of each `NetIncomeLoss` `ix:nonFraction` occurrence to bucket it
+between headings.
+
+**Result: unreliable, not merely imprecise.** The Q2-direct fact (context
+c-3, $935M) — expected on the Statement of Operations — occurs three
+separate times in the document (offsets 147650, 174641, 437069), and *none*
+of them falls inside the Statement of Operations heading range identified
+(108418–143007); the nearest is actually inside the Statement of
+Comprehensive Income's range, which independently and legitimately repeats
+net earnings as its own first line before adding OCI items. Distinguishing
+"the same fact legitimately repeated across two primary statements" from
+"the same fact repeated because a later filing's equity rollforward reuses
+it" requires actual `<table>` boundary parsing (not just nearby heading
+text) or a presentation linkbase, neither of which this session's tooling
+currently does reliably.
+
+**Decision, per the explicit fallback instruction**: statement location for
+the Q1/Q2 net-income candidates remains **manually reviewed evidence only**
+(the raw fact table delivered in this session's response), not an
+automated classification. The provisionally-approved primary-period-filing
+rule is **not implemented in code** until a reproducible, table-boundary-
+aware (or presentation-linkbase-based) location method exists. This
+limitation is structural, not a time-boxing shortcut — the experiment above
+is retained as evidence for why.
+
+## 2026-09-15 — Cash concept separation reaffirmed (item 5)
+
+No change: `cash_and_equivalents_balance_sheet` (point-in-time financial-
+position measurement) and `cash_and_equivalents_rollforward` (point-in-time
+beginning/ending balance for the cash-flow roll-forward) remain separate
+metrics, separate `config/metrics.csv` rows, separate raw-fact selections.
+Their agreement is a validation check
+(`reconcile.check_balance_sheet_cash_agreement`, wired into `cli.cmd_validate`
+since the 2026-09-15 validation-gate entry above), not a mapping decision —
+confirmed still passing at all 4 available FY2025 quarter-ends after this
+session's changes.
