@@ -47,7 +47,7 @@ class ValidationSummary:
         return (
             all(r.passed for r in self.compatibility_results)
             and all(r.holds for r in self.arithmetic_invariant_results)
-            and all(r.status != "failed" for r in self.independent_validation_results)
+            and all(r.status not in ("failed", "not_independent") for r in self.independent_validation_results)
             and all(r.passed for r in self.ytd_consistency_results)
             and all(r.passed for r in self.cash_rollforward_results)
             and len(self.facts_missing_lineage) == 0
@@ -64,7 +64,7 @@ class ValidationSummary:
         checks_failed = (
             sum(1 for r in self.compatibility_results if not r.passed)
             + sum(1 for r in self.arithmetic_invariant_results if not r.holds)
-            + sum(1 for r in self.independent_validation_results if r.status == "failed")
+            + sum(1 for r in self.independent_validation_results if r.status in ("failed", "not_independent"))
             + sum(1 for r in self.ytd_consistency_results if not r.passed)
             + sum(1 for r in self.cash_rollforward_results if not r.passed)
         )

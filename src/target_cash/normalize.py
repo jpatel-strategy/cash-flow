@@ -32,6 +32,8 @@ class PeriodSpec:
     end_date: str
     value: Decimal
     cik: str = ""
+    concept: str = ""  # exact XBRL tag, e.g. 'us-gaap:NetCashProvidedByUsedInOperatingActivities'
+    scale: int = 6  # XBRL scale attribute; 6 = values expressed in millions
     dimensional_context: Optional[str] = None  # None = consolidated; anything else = segment/member scope
     accession_number: str = ""
     is_superseded: bool = False
@@ -82,10 +84,13 @@ def _assert_compatible(a: PeriodSpec, b: PeriodSpec) -> None:
         check_name="normalize._assert_compatible",
         cik_a=a.cik, cik_b=b.cik,
         fiscal_year_a=a.fiscal_year, fiscal_year_b=b.fiscal_year,
+        concept_a=a.concept, concept_b=b.concept,
         unit_a=a.unit, unit_b=b.unit,
+        scale_a=a.scale, scale_b=b.scale,
         accounting_basis_a=a.accounting_basis, accounting_basis_b=b.accounting_basis,
         dimensional_context_a=a.dimensional_context, dimensional_context_b=b.dimensional_context,
         start_date_a=a.start_date, start_date_b=b.start_date,
+        end_date_a=a.end_date, end_date_b=b.end_date,  # by convention a=minuend (longer), b=subtrahend (shorter)
         accession_a=a.accession_number, accession_b=b.accession_number,
         is_superseded_a=a.is_superseded, is_superseded_b=b.is_superseded,
         sign_as_reported_a=a.sign_as_reported, sign_as_reported_b=b.sign_as_reported,

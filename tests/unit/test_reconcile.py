@@ -60,6 +60,60 @@ def test_source_compatibility_flags_sign_convention():
     assert "sign_convention" in result.failed_dimensions
 
 
+def test_source_compatibility_flags_concept_mismatch():
+    result = check_source_compatibility(
+        "test",
+        **compat_kwargs(
+            concept_a="us-gaap:NetCashProvidedByUsedInOperatingActivities",
+            concept_b="us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+        ),
+    )
+    assert not result.passed
+    assert "concept_identity" in result.failed_dimensions
+
+
+def test_source_compatibility_allows_approved_concept_equivalence():
+    result = check_source_compatibility(
+        "test",
+        **compat_kwargs(
+            concept_a="us-gaap:LegacyTag",
+            concept_b="us-gaap:NewTag",
+            approved_equivalent_concepts=frozenset({("us-gaap:LegacyTag", "us-gaap:NewTag")}),
+        ),
+    )
+    assert result.passed
+
+
+def test_source_compatibility_flags_scale_mismatch():
+    result = check_source_compatibility("test", **compat_kwargs(scale_a=6, scale_b=3))
+    assert not result.passed
+    assert "scale" in result.failed_dimensions
+
+
+def test_source_compatibility_period_adjacency_passes_when_b_ends_before_a():
+    result = check_source_compatibility(
+        "test", **compat_kwargs(end_date_a="2025-08-02", end_date_b="2025-05-03")
+    )
+    assert result.passed
+
+
+def test_source_compatibility_period_adjacency_fails_when_not_strictly_ordered():
+    # b (subtrahend) must end strictly before a (minuend) — equal end dates mean no real period to subtract.
+    result = check_source_compatibility(
+        "test", **compat_kwargs(end_date_a="2025-05-03", end_date_b="2025-05-03")
+    )
+    assert not result.passed
+    assert "period_adjacency" in result.failed_dimensions
+
+
+def test_source_compatibility_period_adjacency_fails_when_reversed():
+    result = check_source_compatibility(
+        "test", **compat_kwargs(end_date_a="2025-05-03", end_date_b="2025-08-02")
+    )
+    assert not result.passed
+    assert "period_adjacency" in result.failed_dimensions
+
+
 def test_source_compatibility_reports_every_failure_not_just_the_first():
     result = check_source_compatibility(
         "test", **compat_kwargs(cik_b="0000320193", unit_b="USD_millions", fiscal_year_b=2024)
@@ -114,6 +168,32 @@ def test_independent_quarter_validation_unavailable_uses_required_wording():
     assert result.detail == "arithmetic invariant passed; independent quarter validation unavailable"
 
 
+def test_independent_quarter_validation_rejects_overlapping_source_facts():
+    # The "independent" fact must not be one of the facts that produced the derived value.
+    result = check_independent_quarter_validation(
+        metric="revenue", fiscal_year=2025, fiscal_quarter=2,
+        derived_value=Decimal("25211"), derived_source="6moYTD - Q1",
+        independent_value=Decimal("25211"), independent_source="mislabeled discrete Q2 fact",
+        tolerance_absolute=Decimal("1.5"),
+        derived_input_fact_ids=frozenset({"rf_6moYTD", "rf_Q1"}),
+        independent_fact_ids=frozenset({"rf_Q1"}),  # reuses an input fact — not actually independent
+    )
+    assert result.status == "not_independent"
+    assert "rf_Q1" in result.fact_overlap
+
+
+def test_independent_quarter_validation_passes_with_disjoint_fact_ids():
+    result = check_independent_quarter_validation(
+        metric="revenue", fiscal_year=2025, fiscal_quarter=2,
+        derived_value=Decimal("25211"), derived_source="6moYTD - Q1",
+        independent_value=Decimal("25211"), independent_source="discrete Q2 fact",
+        tolerance_absolute=Decimal("1.5"),
+        derived_input_fact_ids=frozenset({"rf_6moYTD", "rf_Q1"}),
+        independent_fact_ids=frozenset({"rf_discreteQ2"}),
+    )
+    assert result.status == "validated"
+
+
 # --- YTD consistency (genuinely independent, unlike annual = sum of quarters) --
 
 def test_ytd_consistency_passes_within_bound():
@@ -145,6 +225,19 @@ def test_ytd_consistency_missing_value_fails_visibly():
     )
     assert not result.passed
     assert "Missing" in result.detail
+
+
+def test_ytd_consistency_rejects_overlapping_source_facts():
+    result = check_ytd_consistency(
+        metric="revenue", fiscal_year=2025, ytd_label="nine_month_YTD",
+        directly_reported_ytd=Decimal("74327"),
+        sum_of_directly_reported_quarters=Decimal("74327"),
+        tolerance_absolute=Decimal("2.0"),
+        ytd_fact_ids=frozenset({"rf_9moYTD"}),
+        quarter_fact_ids=frozenset({"rf_9moYTD", "rf_q3"}),  # bug: reused the YTD fact as if it were a quarter
+    )
+    assert not result.passed
+    assert "Not an independent comparison" in result.detail
 
 
 # --- Rounding bound -------------------------------------------------------------

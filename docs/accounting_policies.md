@@ -23,13 +23,18 @@ from source-compatible periods:
 - `Q4 = annual - nine_month_YTD`
 
 "Source-compatible" is a precondition checked on **every** dimension before
-the subtraction runs — same entity (CIK), same fiscal year, same unit, same
-accounting basis, same consolidated (non-dimensional) scope, same start date,
-same filing vintage (neither input superseded by a later restatement while
-the other is current), and same sign convention. See
+the subtraction runs — same entity (CIK), same fiscal year, same XBRL concept
+(or an explicitly reviewed and approved equivalence — never a silent
+substitution of a similarly-named tag), same unit and scale, same accounting
+basis, same consolidated (non-dimensional) scope, exact matching start date,
+correct end-date ordering ("period adjacency": the shorter period must end
+strictly before the longer one, given both share the same start), same
+filing vintage (neither input superseded by a later restatement while the
+other is current), and same sign convention. See
 `reconcile.check_source_compatibility` — this precondition is a gate, not a
 tolerance: any failed dimension blocks the derivation outright rather than
-producing a slightly-off number.
+producing a slightly-off number, and every failed dimension is reported at
+once rather than stopping at the first one found.
 
 Overlapping quarterly and YTD facts for the same period are never summed.
 Every derived value is stored with `basis = 'derived_ytd_subtraction'` and a
@@ -128,6 +133,13 @@ fact that was **not used to produce it**:
   filed by the company (neither derived from the other), so this is a
   genuine check — unlike summing quarters to an annual total when one
   quarter was defined as the residual.
+
+Both functions require the two sides' raw-fact identifiers to be disjoint,
+and check this explicitly. **A comparison is never labeled independent
+merely because it produced two different-looking function calls** — if the
+"independent" side secretly draws on a fact that also fed the derived value,
+the result is `"not_independent"` (a gate failure), never `"validated"`,
+regardless of whether the values happen to agree.
 
 ### Rounding-bound tolerances (not an arbitrary flat figure)
 

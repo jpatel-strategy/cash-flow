@@ -5,11 +5,14 @@ docs/decisions.md (2026-09-15). They are never conflated:
 
 1. **Source compatibility** (`check_source_compatibility`): a precondition on
    the raw facts feeding a derivation, checked *before* any arithmetic —
-   same entity, fiscal year, unit, consolidated (non-dimensional) scope,
-   compatible start/end dates, same filing vintage (no superseded input
-   mixed with a current one), same sign convention. Failing this means the
-   derivation must not be attempted, not that it produced a slightly-off
-   number.
+   same entity, fiscal year, same concept (XBRL tag) or an explicitly
+   approved equivalence, same unit and scale, consolidated (non-dimensional)
+   scope, exact start dates, proper end-date ordering ("period adjacency" —
+   the shorter period's end must fall strictly before the longer period's
+   end, with no gap implied by the shared start date), same filing vintage
+   (no superseded input mixed with a current one), same sign convention.
+   Failing this means the derivation must not be attempted, not that it
+   produced a slightly-off number.
 
 2. **Arithmetic invariant** (`check_arithmetic_invariant`): confirms a
    derivation formula was applied correctly by recomputing it. This holds by
@@ -109,7 +112,7 @@ class ArithmeticInvariantResult:
 @dataclass(frozen=True)
 class IndependentQuarterValidationResult:
     check_name: str
-    status: str  # "validated" | "failed" | "unavailable"
+    status: str  # "validated" | "failed" | "unavailable" | "not_independent"
     derived_value: Optional[Decimal]
     derived_source: str
     independent_value: Optional[Decimal]
@@ -117,6 +120,7 @@ class IndependentQuarterValidationResult:
     difference: Optional[Decimal]
     tolerance_absolute: Optional[Decimal]
     detail: str
+    fact_overlap: tuple[str, ...] = ()
 
     def to_dict(self) -> dict:
         return {
@@ -129,6 +133,7 @@ class IndependentQuarterValidationResult:
             "difference": str(self.difference) if self.difference is not None else None,
             "tolerance_absolute": str(self.tolerance_absolute) if self.tolerance_absolute is not None else None,
             "detail": self.detail,
+            "fact_overlap": list(self.fact_overlap),
         }
 
 
@@ -139,40 +144,74 @@ def check_source_compatibility(
     cik_b: str,
     fiscal_year_a: int,
     fiscal_year_b: int,
+    concept_a: str = "",
+    concept_b: str = "",
     unit_a: str,
     unit_b: str,
+    scale_a: int = 6,
+    scale_b: int = 6,
     accounting_basis_a: str,
     accounting_basis_b: str,
     dimensional_context_a: Optional[str],
     dimensional_context_b: Optional[str],
     start_date_a: Optional[str],
     start_date_b: Optional[str],
+    end_date_a: Optional[str] = None,
+    end_date_b: Optional[str] = None,
     accession_a: str,
     accession_b: str,
     is_superseded_a: bool,
     is_superseded_b: bool,
     sign_as_reported_a: int,
     sign_as_reported_b: int,
+    approved_equivalent_concepts: frozenset[tuple[str, str]] = frozenset(),
 ) -> CompatibilityCheckResult:
     """Precondition check on two raw facts before any arithmetic combines them.
 
     Every dimension is checked independently and every failure is reported —
     this never short-circuits on the first mismatch, so a caller sees the
     full picture of why two facts are (or are not) safe to combine.
+
+    By convention (matching normalize.py's derive_q2/q3/q4 callers), `a` is
+    the longer/later-ending period (the minuend) and `b` is the shorter/
+    earlier-ending period (the subtrahend) of a YTD subtraction. The
+    `period_adjacency` check requires `end_date_b` to fall strictly before
+    `end_date_a`, given both already share the same `start_date` — this
+    catches an accidentally-reversed subtraction or a period that doesn't
+    actually nest inside the other.
+
+    Two facts tagged under different XBRL concepts fail `concept_identity`
+    unless the pair appears in `approved_equivalent_concepts` — an explicit,
+    caller-supplied allowlist of concept pairs a human has reviewed as
+    equivalent (e.g. a legacy tag superseded by a new one across a taxonomy
+    update). The default is empty: no concept substitution is permitted
+    without a documented, reviewed exception, per the project's standing
+    rule against substituting similarly-named tags without review.
     """
     failed: list[str] = []
     if cik_a != cik_b:
         failed.append("entity")
     if fiscal_year_a != fiscal_year_b:
         failed.append("fiscal_year")
+    concept_equivalent = (
+        concept_a == concept_b
+        or (concept_a, concept_b) in approved_equivalent_concepts
+        or (concept_b, concept_a) in approved_equivalent_concepts
+    )
+    if not concept_equivalent:
+        failed.append("concept_identity")
     if unit_a != unit_b:
         failed.append("unit")
+    if scale_a != scale_b:
+        failed.append("scale")
     if accounting_basis_a != accounting_basis_b:
         failed.append("accounting_basis")
     if dimensional_context_a is not None or dimensional_context_b is not None:
         failed.append("consolidated_scope")
     if start_date_a != start_date_b:
         failed.append("start_date")
+    if end_date_a is not None and end_date_b is not None and not (end_date_b < end_date_a):
+        failed.append("period_adjacency")
     if is_superseded_a or is_superseded_b:
         failed.append("filing_version")
     if sign_as_reported_a != sign_as_reported_b:
@@ -205,6 +244,8 @@ def check_independent_quarter_validation(
     independent_value: Optional[Decimal],
     independent_source: str,
     tolerance_absolute: Decimal,
+    derived_input_fact_ids: frozenset[str] = frozenset(),
+    independent_fact_ids: frozenset[str] = frozenset(),
 ) -> IndependentQuarterValidationResult:
     """Compare a derived quarter against a separately-filed discrete-quarter fact.
 
@@ -212,8 +253,30 @@ def check_independent_quarter_validation(
     Q4, since Target never files a discrete fourth quarter) — the result is
     then explicitly labeled "unavailable", per the project owner's required
     wording, rather than silently omitted or treated as a pass.
+
+    `derived_input_fact_ids` and `independent_fact_ids` identify the raw
+    facts backing each side. If they overlap — the "independent" side
+    secretly reuses a fact that also fed the derivation — this is not an
+    independent check at all, and the result is labeled "not_independent"
+    rather than "validated", regardless of whether the values happen to
+    agree.
     """
     check_name = f"independent_quarter_validation:{metric}:{fiscal_year}:Q{fiscal_quarter}"
+    overlap = tuple(sorted(derived_input_fact_ids & independent_fact_ids))
+    if overlap:
+        return IndependentQuarterValidationResult(
+            check_name=check_name,
+            status="not_independent",
+            derived_value=derived_value,
+            derived_source=derived_source,
+            independent_value=independent_value,
+            independent_source=independent_source,
+            difference=(derived_value - independent_value) if independent_value is not None else None,
+            tolerance_absolute=tolerance_absolute,
+            detail=f"Not an independent comparison: fact(s) {overlap} feed both the derived value and the 'independent' value.",
+            fact_overlap=overlap,
+        )
+
     if independent_value is None:
         return IndependentQuarterValidationResult(
             check_name=check_name,
@@ -253,15 +316,31 @@ def check_ytd_consistency(
     directly_reported_ytd: Optional[Decimal],
     sum_of_directly_reported_quarters: Optional[Decimal],
     tolerance_absolute: Decimal,
+    ytd_fact_ids: frozenset[str] = frozenset(),
+    quarter_fact_ids: frozenset[str] = frozenset(),
 ) -> ReconciliationResult:
     """Compare a directly-filed YTD fact against the sum of directly-filed discrete quarters.
 
     Unlike summing quarters back up to an annual total (tautological when a
     quarter was derived as the residual), both sides here are independently
     filed by the company — this is a genuine consistency check, not a
-    restatement of the arithmetic that produced either side.
+    restatement of the arithmetic that produced either side, *provided*
+    `ytd_fact_ids` and `quarter_fact_ids` do not overlap. If they do, this is
+    not actually independent and fails outright rather than reporting a pass.
     """
     check_name = f"ytd_consistency:{metric}:{fiscal_year}:{ytd_label}"
+    overlap = ytd_fact_ids & quarter_fact_ids
+    if overlap:
+        return ReconciliationResult(
+            check_name=check_name,
+            passed=False,
+            expected=directly_reported_ytd,
+            actual=sum_of_directly_reported_quarters,
+            difference=None,
+            tolerance_absolute=tolerance_absolute,
+            tolerance_relative_pct=Decimal("0"),
+            detail=f"Not an independent comparison: fact(s) {sorted(overlap)} feed both sides.",
+        )
     if directly_reported_ytd is None or sum_of_directly_reported_quarters is None:
         return ReconciliationResult(
             check_name=check_name,

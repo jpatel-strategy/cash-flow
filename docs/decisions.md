@@ -147,27 +147,164 @@ copy (a normal browser session viewing/saving the page, not a script) has
 been requested. Findings A–D from the project owner's message remain
 **open**, not resolved, until that document is inspected directly.
 
+## 2026-09-15 — Validation methodology extended: additional compatibility dimensions and independence checks
+
+The project owner required `check_source_compatibility` to also check exact
+start/end dates, period adjacency, duration, concept identity (or an
+explicitly approved equivalence), dimensional context, unit, scale,
+consolidated scope, accession, and filing version — and required every
+independent-validation result to record whether its "independent" side
+actually overlaps with the facts that produced the derived value, refusing
+to label a comparison independent if it does. Implemented in
+`src/target_cash/reconcile.py` and `src/target_cash/normalize.py`:
+
+- `check_source_compatibility` gained `concept_a/b` (the exact XBRL tag,
+  checked for identity or membership in a caller-supplied
+  `approved_equivalent_concepts` allowlist — empty by default, so no tag
+  substitution is permitted without a documented, reviewed exception),
+  `scale_a/b` (the XBRL `scale` attribute), and `end_date_a/b` (checked for
+  **period adjacency**: by the convention `normalize.py` already uses — `a`
+  is the longer/later-ending period, `b` the shorter — `end_date_b` must
+  fall strictly before `end_date_a`, given both share the same start date).
+  Every failed dimension is still reported together, not just the first.
+- `PeriodSpec` gained `concept` and `scale` fields so `_assert_compatible`
+  can pass them through to the same shared check.
+- `check_independent_quarter_validation` and `check_ytd_consistency` gained
+  fact-id parameters (`derived_input_fact_ids`/`independent_fact_ids` and
+  `ytd_fact_ids`/`quarter_fact_ids` respectively). Any overlap produces a new
+  status, `"not_independent"`, which `ValidationSummary.passed` treats as a
+  gate failure exactly like `"failed"` — a comparison that secretly reuses an
+  input fact is never allowed to read as a validated pass, whatever the
+  values show.
+- Test suite grew from 64 to 74 (concept mismatch, approved equivalence,
+  scale mismatch, period-adjacency pass/fail/reversed, and overlap-detection
+  cases for both independent-validation functions and the gate itself). Full
+  observed results below.
+
+"Accession" and "filing version" were already tracked (`accession_number`,
+`is_superseded` on `PeriodSpec`) — accession is recorded for lineage/audit on
+every fact but is **not** required to be identical between two combined
+facts (Q1 and a 6-month YTD figure routinely come from different 10-Q
+filings by design); filing version (`is_superseded`) is the dimension that
+actually gates on restatement consistency. "Duration" is not a separate
+numeric check: it falls out of the start/end-date and period-adjacency
+checks together, since a period's duration is fully determined by its own
+start and end dates.
+
+## 2026-09-15 — Real FY2025 10-K obtained and verified; findings A–C resolved, D partially resolved
+
+A properly browser-fetched copy of the FY2025 10-K primary document
+(`tgt-20260131-10k.htm`, 2,059,294 bytes — the earlier upload was 1,331 bytes
+of SEC block-page HTML) was inspected directly, including its inline-XBRL
+markup (not just visible text), to avoid selecting a tag by value match
+alone.
+
+**Document verification** (all confirmed from the file's own content, not
+asserted):
+- `dei:EntityRegistrantName` = "TARGET CORPORATION"; `dei:EntityCentralIndexKey`
+  = "0000027419"; `dei:TradingSymbol` = "TGT"; `dei:SecurityExchangeName` =
+  "New York Stock Exchange"; `dei:EntityFileNumber` = "1-6049" (Target's
+  known, long-standing SEC file number); `dei:DocumentType` = "10-K".
+- Cover page reads "For the fiscal year ended January 31, 2026."
+- No "Undeclared Automated Tool" text anywhere in the file.
+- Consolidated Statements of Operations, Financial Position, and Cash Flows
+  all present in full, with figures matching this session's earlier Company
+  Facts reconnaissance exactly (e.g. net sales $104,780M / $106,566M /
+  $107,412M for 2025/2024/2023).
+- **Not directly verifiable from the primary document alone**: the accession
+  number `0000027419-26-000016` does not appear as literal text inside the
+  primary statement document (normal — accession numbers live in the filing
+  index/submission wrapper, not the statement body). Identity is instead
+  corroborated by every other independently-checkable signal above matching
+  exactly what the SEC submissions file already reported for that accession
+  (form 10-K, period 2026-01-31, filed 2026-03-11).
+
+**Finding A (cash) — resolved.** Two distinct, both-legitimate XBRL concepts,
+identified by inspecting the actual `<ix:nonFraction>` markup, not by value:
+- Balance sheet "Cash and cash equivalents" ($5,488M at 2026-01-31; $4,762M
+  at 2025-02-01) is tagged `us-gaap:CashCashEquivalentsAndShortTermInvestments`,
+  contexts c-6 (instant 2026-01-31) and c-7 (instant 2025-02-01), entity
+  0000027419, no dimensional segment.
+- Cash-flow statement's beginning/ending-of-period reconciliation line uses
+  `us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents` at
+  the same instants (contexts c-6/c-7/c-8/c-9, chaining year to year).
+- These two concepts are numerically **identical** for Target only because
+  Target discloses zero restricted cash — not because they are the same tag.
+  Note 9 ("Cash and Cash Equivalents") confirms the $250M/$276M figure the
+  project owner referenced is the "Cash" sub-line within the note's
+  composition table (Cash + card-transaction receivables $627M/$593M +
+  short-term investments $4,611M/$3,893M = the $5,488M/$4,762M total) —
+  exactly as the project owner stated, now confirmed from the primary
+  document rather than accepted on assertion.
+- `config/metrics.csv` to be updated to map `cash_and_equivalents` (balance
+  sheet) to `CashCashEquivalentsAndShortTermInvestments` and a new
+  cash-roll-forward-specific mapping to
+  `CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents`, once
+  ingestion resumes — not yet activated (still Milestone 1 pre-ingestion).
+
+**Finding B (D&A) — resolved.** The Statement of Operations line itself is
+titled "Depreciation and amortization (**exclusive of** depreciation
+included in cost of sales)" — the statement's own wording confirms D&A is
+partially embedded in cost of sales. Tagged `us-gaap:DepreciationAndAmortization`
+(context c-1, FY2025 = $2,617M; c-4, FY2024 = $2,529M; c-5, FY2023 = $2,415M).
+The cash-flow add-back is a different concept,
+`us-gaap:DepreciationDepletionAndAmortization` (same contexts, $3,134M /
+$2,981M / $2,801M) — the total, including the cost-of-sales-embedded portion
+(~$517M for FY2025). **The $3,134M figure must never be inserted as a second
+income-statement operating expense** — $2,617M of D&A is already reflected
+across cost of sales and this exclusive-of-COGS line; $3,134M is used only as
+the non-cash CFO add-back.
+
+**Finding C (net income bridge) — resolved and confirmed exactly.** From the
+Statement of Operations: Operating income $5,117M − Net interest expense
+$445M + Net other income $95M (shown in parentheses as a contra-expense,
+i.e. added back) − Provision for income taxes $1,062M = Net earnings $3,705M.
+Arithmetic: 5,117 − 445 = 4,672; 4,672 + 95 = 4,767 (= Earnings before income
+taxes, as reported); 4,767 − 1,062 = 3,705 (= Net earnings, as reported).
+Exact match, no residual.
+
+**Finding D (accounts payable) — partially resolved; interim-quarter gaps
+remain open.** The 10-K's Note 9 discloses **book overdrafts included in
+Accounts Payable**: $221M at 2026-01-31 and $157M at 2025-02-01. Removing
+the book-overdraft component from each balance-sheet AP figure narrows the
+annual reconciling gap from $70M to $6M (balance-sheet AP delta −$431M;
+less the +$64M book-overdraft change = −$495M trade-payables-only delta,
+vs. the reported annual `IncreaseDecreaseInAccountsPayable` of −$501M — a
+$6M residual, not fully explained, but far smaller). Also disclosed: Note 14
+"Supplier Finance Programs" — vendor obligations eligible for early payment
+were $3,666M (2025-02-01) and $3,026M (2026-01-31); the note states these
+obligations, whether or not a vendor elects early payment, remain in
+Accounts Payable at their invoiced amount and payment date — this affects
+disclosure/risk framing more than the cash timing itself. **The Q1 and Q3
+FY2025 interim gaps identified earlier are still unresolved** — this 10-K
+only discloses book-overdraft balances at the two fiscal year-end dates, not
+at 2025-05-03 or 2025-11-01, so confirming the interim-period gaps requires
+the corresponding 10-Q filings' own Note disclosures, not yet obtained.
+`IncreaseDecreaseInAccountsPayable`'s sign is confirmed directly from the
+markup: the FY2025 annual fact carries an explicit `sign="-"` attribute on
+its `<ix:nonFraction>` element (displayed magnitude 501, true value −501),
+confirming the sign-reading approach must use the XBRL `sign` attribute
+directly rather than infer polarity from context.
+
 ## Pending decisions (not yet made — recorded so they aren't quietly defaulted)
 
-- **Cash mapping** (finding A): which of `Cash`, `CashCashEquivalentsAndShortTermInvestments`,
-  or `CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents` backs the
-  actual balance-sheet "Cash and cash equivalents" line and the cash-flow
-  statement's roll-forward line — blocked on inspecting the real 10-K (see
-  2026-09-15 entry above); do not select a tag on value-match alone.
-  Preserve all candidate tags in `raw_facts` regardless of which is selected.
-- **D&A treatment** (finding B): whether/how the $3,134M cash-flow add-back
-  and the $2,617M income-statement line (exclusive of D&A in cost of sales)
-  are both represented without double-counting D&A as an operating expense —
-  blocked on the real 10-K's statement presentation.
-- **Net-income bridge** (finding C): whether a ~$95M net-other-income line
-  reconciles operating income to net earnings — blocked on the real 10-K.
-- **Accounts payable gap** (finding D): cause of the Q1/Q3 FY2025 gaps between
-  the reported `IncreaseDecreaseInAccountsPayable` YTD figure and the
-  balance-sheet point-in-time delta. Explicitly **not** attributed to the
-  purchases-proxy approximation — book overdrafts and supplier-finance
-  (payables factoring) arrangements are noted as possible reconciling items,
-  to be checked against the relevant 10-Q statements and notes. Left
-  unresolved until then.
+- **Findings A, B, C are resolved** (see the 2026-09-15 "Real FY2025 10-K
+  obtained and verified" entry above) but **not yet activated** in
+  `config/metrics.csv` — every row there still reads `candidate_unverified`.
+  Moving a row to `reviewed` is ingestion work, deliberately held until the
+  project owner authorizes resuming it (per "do not begin the remaining
+  ingestion work until I approve that plan").
+- **Accounts payable gap** (finding D): the annual FY2025 gap is
+  substantially (not fully) explained by disclosed book overdrafts embedded
+  in the Accounts Payable balance (residual narrowed from $70M to $6M — see
+  above). The **Q1 and Q3 FY2025 interim gaps remain unresolved**: this
+  10-K only discloses book-overdraft balances at fiscal year-end dates, not
+  at 2025-05-03 or 2025-11-01. Confirming the interim gaps requires the
+  corresponding 10-Q filings and their own Note disclosures — not yet
+  obtained. Still explicitly **not** attributed to the purchases-proxy
+  approximation.
 - **Net income method** (explicit interest/tax vs. net-margin simplification):
-  deferred to the driver-model milestone; must not be decided until the
-  income-statement presentation is inspected for embedded D&A.
+  deferred to the driver-model milestone. Finding C's confirmed bridge
+  (operating income − net interest expense + net other income − taxes = net
+  earnings, exact) supports using the explicit-interest-and-tax method, but
+  the choice itself is still deferred to that milestone, not decided here.

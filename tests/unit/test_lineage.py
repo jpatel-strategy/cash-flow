@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from target_cash.lineage import find_facts_missing_lineage, link_direct, link_ytd_subtraction
-from target_cash.reconcile import check_arithmetic_invariant
+from target_cash.reconcile import check_arithmetic_invariant, check_independent_quarter_validation
 from target_cash.validation import run_validation
 
 
@@ -48,3 +48,19 @@ def test_validation_gate_fails_with_zero_checks_run():
     summary = run_validation(derived_fact_ids=[], lineage_links=[])
     assert not summary.passed
     assert summary.to_dict()["checks_run"] == 0
+
+
+def test_validation_gate_fails_when_independent_validation_is_not_actually_independent():
+    not_independent_check = check_independent_quarter_validation(
+        metric="revenue", fiscal_year=2025, fiscal_quarter=2,
+        derived_value=Decimal("25211"), derived_source="6moYTD - Q1",
+        independent_value=Decimal("25211"), independent_source="mislabeled",
+        tolerance_absolute=Decimal("1.5"),
+        derived_input_fact_ids=frozenset({"rf_q1"}),
+        independent_fact_ids=frozenset({"rf_q1"}),
+    )
+    summary = run_validation(
+        derived_fact_ids=[], lineage_links=[],
+        independent_validation_results=[not_independent_check],
+    )
+    assert not summary.passed  # a "not_independent" result must never pass the gate, even though values agree
