@@ -34,8 +34,8 @@ docs/decisions.md (2026-09-15). They are never conflated:
    "arithmetic invariant passed; independent quarter validation unavailable"
    — never silently treated as a pass.
 
-`check_cash_rollforward`'s tolerance is a documented rounding-propagation
-bound (`compute_rounding_bound`), not an arbitrary flat figure — see that
+`check_cash_movement`/`check_cash_flow_composition`'s tolerance is a documented
+rounding-propagation bound (`compute_rounding_bound`), not an arbitrary flat figure — see that
 function's docstring. The residual is always reported, even when it falls
 within the allowed bound.
 """
@@ -61,6 +61,13 @@ class ReconciliationResult:
     tolerance_absolute: Decimal
     tolerance_relative_pct: Decimal
     detail: str
+    # Only meaningful for cash-flow-composition checks; None ("not applicable")
+    # for every other check type built on this same result shape.
+    fx_evidence_status: Optional[str] = None  # "reported" | "unavailable" | None
+    implied_fx_residual: Optional[Decimal] = None  # arithmetic implication only,
+    # computed as reported_net_change - CFO - CFI - CFF when no FX fact/line
+    # exists -- NEVER an independently reported or verified source fact, and
+    # never persisted as a synthetic raw fact.
 
     def to_dict(self) -> dict:
         return {
@@ -73,6 +80,8 @@ class ReconciliationResult:
             "tolerance_absolute": str(self.tolerance_absolute),
             "tolerance_relative_pct": str(self.tolerance_relative_pct),
             "detail": self.detail,
+            "fx_evidence_status": self.fx_evidence_status,
+            "implied_fx_residual": str(self.implied_fx_residual) if self.implied_fx_residual is not None else None,
         }
 
 
@@ -493,63 +502,118 @@ def compute_rounding_bound(
     return (Decimal(num_directly_reported_components) + Decimal(2) * Decimal(num_ytd_derived_components)) * half_unit
 
 
-def check_cash_rollforward(
+def check_cash_movement(
     fiscal_year: int,
     fiscal_quarter: int,
     beginning_cash: Optional[Decimal],
-    cfo: Optional[Decimal],
-    cfi: Optional[Decimal],
-    cff: Optional[Decimal],
-    fx_effect: Optional[Decimal],
+    reported_net_change: Optional[Decimal],
     ending_cash: Optional[Decimal],
-    rounding_bound: Decimal,
+    tolerance_absolute: Decimal,
 ) -> ReconciliationResult:
-    """Beginning cash + CFO + CFI + CFF + FX effect vs. reported ending cash.
+    """Layer A of the cash roll-forward (2026-09-15 redesign): beginning cash +
+    the company's own reported net-change-in-cash line = ending cash.
 
-    `rounding_bound` must come from `compute_rounding_bound`, counting the
-    actual independently-rounded and YTD-derived components feeding this
-    specific period's roll-forward — never a flat guess. The residual is
-    always reported in `difference`, even when it falls inside the bound.
+    Genuinely independent: `beginning_cash` and `ending_cash` come from the
+    point-in-time balance instants, `reported_net_change` from the cash-flow
+    statement's own net-change line -- three separately filed facts, none
+    derived from the others. Never touches CFO/CFI/CFF or FX at all; see
+    `check_cash_flow_composition` for that layer.
     """
-    check_name = f"cash_rollforward:{fiscal_year}:Q{fiscal_quarter}"
-    fx_effect = fx_effect if fx_effect is not None else Decimal("0")
+    check_name = f"cash_movement:{fiscal_year}:Q{fiscal_quarter}"
     missing = [
         name
         for name, value in [
             ("beginning_cash", beginning_cash),
-            ("cfo", cfo),
-            ("cfi", cfi),
-            ("cff", cff),
+            ("reported_net_change", reported_net_change),
             ("ending_cash", ending_cash),
         ]
         if value is None
     ]
     if missing:
         return ReconciliationResult(
-            check_name=check_name,
-            passed=False,
-            status="blocked",
-            expected=ending_cash,
-            actual=None,
-            difference=None,
-            tolerance_absolute=rounding_bound,
-            tolerance_relative_pct=Decimal("0"),
-            detail=f"REQUIRED_INPUTS_UNAVAILABLE: cannot roll forward, missing {missing}. "
-            "This check did not execute -- it is not a numerical failure of Target's cash roll-forward.",
+            check_name=check_name, passed=False, status="blocked",
+            expected=ending_cash, actual=None, difference=None,
+            tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
+            detail=f"REQUIRED_INPUTS_UNAVAILABLE: cannot check cash movement, missing {missing}. "
+            "This check did not execute -- it is not a numerical failure of Target's cash movement.",
+        )
+    computed_ending_cash = beginning_cash + reported_net_change
+    residual = ending_cash - computed_ending_cash
+    passed = abs(residual) <= tolerance_absolute
+    return ReconciliationResult(
+        check_name=check_name, passed=passed, status=("passed" if passed else "failed"),
+        expected=ending_cash, actual=computed_ending_cash, difference=residual,
+        tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
+        detail=f"Beginning cash + reported net change vs. reported ending cash. Residual {residual} vs. "
+        f"tolerance ±{tolerance_absolute}. " + ("Within bound." if passed else "Exceeds bound — investigate."),
+    )
+
+
+def check_cash_flow_composition(
+    fiscal_year: int,
+    fiscal_quarter: int,
+    cfo: Optional[Decimal],
+    cfi: Optional[Decimal],
+    cff: Optional[Decimal],
+    reported_fx: Optional[Decimal],
+    reported_net_change: Optional[Decimal],
+    tolerance_absolute: Decimal,
+) -> ReconciliationResult:
+    """Layer B of the cash roll-forward (2026-09-15 redesign): CFO + CFI + CFF
+    [+ reported FX, when a separate FX fact/line exists] vs. the company's own
+    reported net-change-in-cash line.
+
+    `reported_fx=None` means no separate FX fact or line was found in the
+    filing -- this is reported as `fx_evidence_status="unavailable"`, never
+    silently treated as a verified zero. The gap between CFO+CFI+CFF and the
+    reported net change is then surfaced as `implied_fx_residual`: an
+    arithmetic implication computed from already-filed facts, explicitly
+    NOT an independently reported or verified source fact, and never
+    persisted as a synthetic raw fact. When `reported_fx` IS given, this
+    check is a genuine independent comparison against the net-change line;
+    when it is not, the check still runs (CFO+CFI+CFF vs. reported net
+    change is itself independent of FX), and `implied_fx_residual` is
+    reported as a disclosure alongside it, not folded silently into a pass.
+    """
+    check_name = f"cash_flow_composition:{fiscal_year}:Q{fiscal_quarter}"
+    missing = [
+        name
+        for name, value in [("cfo", cfo), ("cfi", cfi), ("cff", cff), ("reported_net_change", reported_net_change)]
+        if value is None
+    ]
+    if missing:
+        return ReconciliationResult(
+            check_name=check_name, passed=False, status="blocked",
+            expected=reported_net_change, actual=None, difference=None,
+            tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
+            detail=f"REQUIRED_INPUTS_UNAVAILABLE: cannot check cash-flow composition, missing {missing}. "
+            "This check did not execute -- it is not a numerical failure of Target's cash-flow composition.",
+            fx_evidence_status=("reported" if reported_fx is not None else "unavailable"),
         )
 
-    computed_ending_cash = beginning_cash + cfo + cfi + cff + fx_effect
-    residual = ending_cash - computed_ending_cash
-    passed = abs(residual) <= rounding_bound
+    fx_evidence_status = "reported" if reported_fx is not None else "unavailable"
+    computed_sum = cfo + cfi + cff + (reported_fx if reported_fx is not None else Decimal("0"))
+    difference = reported_net_change - computed_sum
+    implied_fx_residual = None if reported_fx is not None else (reported_net_change - (cfo + cfi + cff))
+    passed = abs(difference) <= tolerance_absolute
+    if reported_fx is not None:
+        detail = (
+            f"CFO + CFI + CFF + reported FX vs. reported net change. Residual {difference} vs. "
+            f"tolerance ±{tolerance_absolute}. " + ("Within bound." if passed else "Exceeds bound — investigate.")
+        )
+    else:
+        detail = (
+            "No separate FX fact or line exists in this filing (reported FX: unavailable). "
+            f"CFO + CFI + CFF vs. reported net change leaves an implied residual of {implied_fx_residual} "
+            "-- derived as reported_net_change - CFO - CFI - CFF, an arithmetic implication from already-filed "
+            "facts, NOT an independently reported or verified FX fact. "
+            + ("Within tolerance." if passed else "Exceeds bound — investigate.")
+        )
     return ReconciliationResult(
-        check_name=check_name,
-        passed=passed,
-        status=("passed" if passed else "failed"),
-        expected=ending_cash,
-        actual=computed_ending_cash,
-        difference=residual,
-        tolerance_absolute=rounding_bound,
-        tolerance_relative_pct=Decimal("0"),
-        detail=f"Residual {residual} vs. rounding bound ±{rounding_bound} (see compute_rounding_bound). "
-        + ("Within bound." if passed else "Exceeds bound — investigate, do not widen the bound to force a pass."),
+        check_name=check_name, passed=passed, status=("passed" if passed else "failed"),
+        expected=reported_net_change, actual=computed_sum, difference=difference,
+        tolerance_absolute=tolerance_absolute, tolerance_relative_pct=Decimal("0"),
+        detail=detail,
+        fx_evidence_status=fx_evidence_status,
+        implied_fx_residual=implied_fx_residual,
     )

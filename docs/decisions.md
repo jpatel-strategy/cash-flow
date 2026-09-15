@@ -1105,3 +1105,143 @@ Their agreement is a validation check
 since the 2026-09-15 validation-gate entry above), not a mapping decision —
 confirmed still passing at all 4 available FY2025 quarter-ends after this
 session's changes.
+
+## 2026-09-15 — FX characterization corrected; cash roll-forward redesigned into two layers
+
+The prior `check_cash_rollforward` silently defaulted a missing `fx_effect`
+to `Decimal("0")` and folded it into the same pass/fail arithmetic as a
+directly reported figure — indistinguishable, in the reported result, from
+an independently confirmed zero FX effect. Corrected per instruction:
+`ReconciliationResult` gained `fx_evidence_status` ("reported" |
+"unavailable") and `implied_fx_residual` (an arithmetic implication,
+computed only when no FX fact/line exists, never stored as a raw fact).
+
+Replaced the single formula with two independently meaningful checks:
+
+- **`check_cash_movement`** (Layer A): beginning cash + Target's own
+  reported net-change-in-cash line = ending cash. Genuinely independent —
+  three separately filed facts, none derived from the others.
+- **`check_cash_flow_composition`** (Layer B): CFO + CFI + CFF [+ reported
+  FX, when one exists] vs. the same reported net-change line. When no FX
+  fact/line exists (Target's case, confirmed by exhaustive tag scan), the
+  check still runs on CFO+CFI+CFF vs. the net-change line and reports
+  `fx_evidence_status="unavailable"` with the gap as `implied_fx_residual`
+  — explicitly labeled an arithmetic implication, never "FX reported as
+  zero" or "independently verified as zero."
+
+9 tests added/rewritten in `test_reconcile.py` (was `check_cash_rollforward`'s
+4); `test_lineage.py`'s status-classification tests ported to
+`check_cash_movement`. 138 tests passing (was 129).
+
+## 2026-09-15 — CFO/CFI/CFF/net-change-in-cash reviewed and mapped
+
+Investigated the primary Statements of Cash Flows across all 5 filings
+(evidence table in the prior "Cash-flow roll-forward mapping evidence"
+entry, now activated). Added four new `config/metrics.csv` rows, all
+marked `reviewed` against the explicit approval criteria (exact tag on the
+primary statement; consolidated context; period dates correct; sign
+normalized consistently; same concept across all 5 filings; no competing
+candidate):
+
+- `operating_cash_flow` → `us-gaap:NetCashProvidedByUsedInOperatingActivities`
+- `investing_cash_flow` → `us-gaap:NetCashProvidedByUsedInInvestingActivities`
+- `financing_cash_flow` → `us-gaap:NetCashProvidedByUsedInFinancingActivities`
+- `net_change_in_cash` → `us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect`
+  (Target's own reported net-change line — a distinct concept from
+  `cash_and_equivalents_rollforward`'s point-in-time beginning/ending
+  balances; used only for the two cash-roll-forward layers above)
+
+No FX row was added — there is no FX concept to map (per instruction: never
+mark an FX mapping reviewed when none exists).
+
+`normalize` extracted these concepts' raw facts for the first time (they
+were never in `config/metrics.csv` before this entry): 36 new rows, real
+database `raw_facts` 652 → 688. `quarterly_facts`/`lineage` remain 0 —
+dry-run only.
+
+**Dry-run derivation, all four quarters, CFO/CFI/CFF**: all derive cleanly,
+zero errors, using the same "YTD-only" pattern as
+`depreciation_amortization_cfo_addback` (Q1 direct since YTD1=Q1; Q2-Q4
+derived by subtraction). Full detail (raw fact IDs, values, formulas) in
+this session's response.
+
+**`net_change_in_cash` Q4 could not be derived** — a genuine, newly
+surfaced limitation, not a data error: `check_source_compatibility`'s
+`sign_convention` dimension flags the FY2025 annual fact (reported
+positive, $726M net increase) and the 9-month YTD fact (reported negative,
+-$940M net decrease) as incompatible on raw sign, because that dimension
+was designed to catch inconsistent *tagging* of a concept expected to have
+one direction (e.g. a cost accidentally tagged with the wrong sign in one
+filing) — it was never designed for a concept like net-change-in-cash that
+is legitimately bidirectional period to period. Q1-Q3 are unaffected
+(Target's CFO/CFI/CFF/net-change all happened to keep one sign throughout
+the periods examined). **Not fixed in this round** — changing
+`check_source_compatibility`'s behavior is a methodology change, and per
+the standing rule in this project, that needs the same explicit approval
+as the other design changes in this session, not a quiet code adjustment
+to force a derivation through. Proposed (not implemented): exempt the
+`sign_convention` dimension when the metric's `config/metrics.csv`
+`sign_convention` is `signed_net_change`.
+
+## 2026-09-15 — Filing-date metadata corrected (document-derived vs. SEC-verified)
+
+Added `filings.document_signature_date`, `filings.sec_acceptance_timestamp`,
+and `filings.filed_at_source` (safe additive migrations 0002-0004). The
+existing `filed_at` column is unchanged in meaning, but its provenance is
+now classified explicitly rather than presented uniformly as verified:
+
+| Accession | filed_at | filed_at_source | document_signature_date |
+|---|---|---|---|
+| 0000027419-25-000018 (FY2024 10-K) | 2025-03-12 | `document_derived_candidate` | 2025-03-12 |
+| 0000027419-25-000101 (Q1 10-Q) | 2025-05-30 | `sec_submissions_verified` | — |
+| 0000027419-25-000118 (Q2 10-Q) | 2025-08-29 | `sec_submissions_verified` | — |
+| 0000027419-25-000126 (Q3 10-Q) | 2025-11-26 | `sec_submissions_verified` | — |
+| 0000027419-26-000016 (FY2025 10-K) | 2026-03-11 | `sec_submissions_verified` | — |
+
+The four `sec_submissions_verified` dates trace to `CIK0000027419-submissions.json`,
+a real file downloaded by the project owner from `data.sec.gov` and
+verified against `CIK0000027419-companyfacts.json` (2026-09-14 entity-
+identity entry, above) — genuine SEC filing metadata, not a document-derived
+guess. The FY2024 10-K's `filed_at` rests only on its own signature-page
+date (found 3 times near the end of the document) — labeled a candidate
+until cross-checked against SEC submissions metadata, which this session
+cannot currently do (`data.sec.gov` egress remains blocked). No
+`sec_acceptance_timestamp` is populated for any filing — none of the
+available sources provide one. The source files themselves remain valid;
+this is a metadata-classification correction only, not a re-verification
+of identity or content.
+
+## 2026-09-15 — Instant-fact schema implemented, empty (item 5)
+
+Added migration `0005_instant_facts` (`TableMigration`, a new kind
+alongside the existing `ColumnMigration`, both additive-only and tracked in
+`_schema_migrations`): creates `instant_facts` and `instant_fact_observations`,
+per the approved design, refined per this round's instructions:
+
+- Canonical uniqueness: `UNIQUE (metric, as_of_date, accounting_basis,
+  consolidated_scope, analytical_view)`.
+- `analytical_view` is constrained to `'as_originally_filed' |
+  'latest_restated'` — a later restated filing may only supersede the
+  original within its own `latest_restated` view row; the
+  `as_originally_filed` view's row is untouched.
+- `instant_fact_observations` carries every filing's occurrence of a fact
+  with an explicit `relationship` (`'selected' | 'corroborating' |
+  'conflicting'`), plus `accession_number`, `filed_at`, and
+  `difference_from_selected` — so a conflicting later observation is
+  recorded and visible, never silently overwritten or dropped.
+- `instant_facts.restatement_status` and `selection_status` are also
+  `CHECK`-constrained, and `selected_raw_fact_id`/`accession_number` are
+  real foreign keys into `raw_facts`/`filings`.
+
+Applied against the real database: both tables now exist, both empty
+(`instant_facts=0, instant_fact_observations=0`) — confirmed after the
+migration ran via `normalize`. No table was dropped or recreated; nothing
+else in the schema changed. 5 new tests in `test_migrations.py` prove: both
+tables are created empty; the migration is idempotent on rerun; the
+canonical `UNIQUE` constraint actually rejects a duplicate
+(metric, as_of_date, accounting_basis, consolidated_scope, analytical_view)
+combination; and — the required rollback/failure proof — a deliberately
+malformed `TableMigration` fails without being recorded as applied, without
+disturbing any already-applied migration, and a subsequent call (with the
+broken migration removed, as if fixed) completes cleanly. **Population is
+explicitly not authorized and did not happen in this round.**

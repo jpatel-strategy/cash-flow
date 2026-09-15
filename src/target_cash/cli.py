@@ -313,7 +313,12 @@ def cmd_validate(args: argparse.Namespace) -> int:
     """
     from target_cash.derive import derive_reviewed_metrics
     from target_cash.lineage import LineageLink
-    from target_cash.reconcile import check_balance_sheet_cash_agreement, check_cash_rollforward, compute_rounding_bound
+    from target_cash.reconcile import (
+        check_balance_sheet_cash_agreement,
+        check_cash_flow_composition,
+        check_cash_movement,
+        compute_rounding_bound,
+    )
 
     config = load_config(Path(args.config))
     metrics_path = _resolve_path(config, "metrics_csv")
@@ -335,12 +340,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
         independent_validation_results.extend(outcome.independent_validations)
         ytd_consistency_results.extend(outcome.ytd_consistency_results)
 
-    # Cash roll-forward + balance-sheet-vs-roll-forward agreement: computed
-    # directly from the in-memory point-in-time outcomes for the two reviewed
-    # cash metrics. CFO/CFI/CFF are not yet reviewed metrics, so the
-    # roll-forward check will correctly report "missing values" rather than
-    # a false pass -- this is real wiring, not a stub, and will start
-    # actually validating once those flow metrics are reviewed.
+    # Cash roll-forward (two layers, 2026-09-15 redesign) + balance-sheet-vs-
+    # roll-forward agreement: computed directly from the in-memory outcomes.
     def _quarterly_facts_by_year_quarter(metric_name: str) -> dict:
         # Keyed by (fiscal_year, fiscal_quarter): the FY2024 Q4 opening instant and
         # the FY2025 Q4 closing instant both have fiscal_quarter == 4, so keying by
@@ -348,9 +349,17 @@ def cmd_validate(args: argparse.Namespace) -> int:
         outcome = outcomes.get(metric_name)
         return {(qf.fiscal_year, qf.fiscal_quarter): qf for qf in outcome.quarterly_facts} if outcome else {}
 
+    def _quarterly_fact_value(metric_name: str, fiscal_quarter: int):
+        outcome = outcomes.get(metric_name)
+        if outcome is None:
+            return None
+        qf = next((f for f in outcome.quarterly_facts if f.fiscal_year == 2025 and f.fiscal_quarter == fiscal_quarter), None)
+        return qf.value_normalized if qf else None
+
     cash_rollforward_results = []
     bs_cash = _quarterly_facts_by_year_quarter("cash_and_equivalents_balance_sheet")
     rf_cash = _quarterly_facts_by_year_quarter("cash_and_equivalents_rollforward")
+    cash_tolerance = compute_rounding_bound(num_directly_reported_components=2, num_ytd_derived_components=0)
 
     # Only attempted when cash_and_equivalents_rollforward is itself a reviewed
     # metric this run -- otherwise there is nothing configured to roll forward,
@@ -360,13 +369,32 @@ def cmd_validate(args: argparse.Namespace) -> int:
         beginning_key = (2024, 4) if fiscal_quarter == 1 else (2025, fiscal_quarter - 1)
         beginning_qf = rf_cash.get(beginning_key)
         ending_qf = rf_cash.get((2025, fiscal_quarter))
+        beginning_cash = beginning_qf.value_normalized if beginning_qf else None
+        ending_cash = ending_qf.value_normalized if ending_qf else None
+        net_change = _quarterly_fact_value("net_change_in_cash", fiscal_quarter)
+
+        # Layer A: beginning + reported net change = ending.
         cash_rollforward_results.append(
-            check_cash_rollforward(
+            check_cash_movement(
                 fiscal_year=2025, fiscal_quarter=fiscal_quarter,
-                beginning_cash=(beginning_qf.value_normalized if beginning_qf else None),
-                cfo=None, cfi=None, cff=None, fx_effect=None,
-                ending_cash=(ending_qf.value_normalized if ending_qf else None),
-                rounding_bound=compute_rounding_bound(num_directly_reported_components=2, num_ytd_derived_components=0),
+                beginning_cash=beginning_cash, reported_net_change=net_change, ending_cash=ending_cash,
+                tolerance_absolute=cash_tolerance,
+            )
+        )
+        # Layer B: CFO + CFI + CFF [+ reported FX, when one exists] = reported net change.
+        # No separate FX fact/line exists anywhere in the cached filings (see
+        # docs/decisions.md) -- reported_fx=None is passed explicitly, never a
+        # synthetic zero, so the check reports fx_evidence_status="unavailable"
+        # and discloses the implied residual rather than silently assuming zero.
+        cash_rollforward_results.append(
+            check_cash_flow_composition(
+                fiscal_year=2025, fiscal_quarter=fiscal_quarter,
+                cfo=_quarterly_fact_value("operating_cash_flow", fiscal_quarter),
+                cfi=_quarterly_fact_value("investing_cash_flow", fiscal_quarter),
+                cff=_quarterly_fact_value("financing_cash_flow", fiscal_quarter),
+                reported_fx=None,
+                reported_net_change=net_change,
+                tolerance_absolute=cash_tolerance,
             )
         )
         bs_qf = bs_cash.get((2025, fiscal_quarter))
@@ -375,9 +403,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
                 fiscal_year=2025, fiscal_quarter=fiscal_quarter,
                 balance_sheet_cash=(bs_qf.value_normalized if bs_qf else None),
                 balance_sheet_source=(bs_qf.quarterly_fact_id if bs_qf else "unavailable"),
-                rollforward_cash=(ending_qf.value_normalized if ending_qf else None),
+                rollforward_cash=ending_cash,
                 rollforward_source=(ending_qf.quarterly_fact_id if ending_qf else "unavailable"),
-                tolerance_absolute=compute_rounding_bound(num_directly_reported_components=2, num_ytd_derived_components=0),
+                tolerance_absolute=cash_tolerance,
             )
         )
 

@@ -2,7 +2,8 @@ from decimal import Decimal
 
 from target_cash.reconcile import (
     check_arithmetic_invariant,
-    check_cash_rollforward,
+    check_cash_flow_composition,
+    check_cash_movement,
     check_independent_quarter_validation,
     check_source_compatibility,
     check_ytd_consistency,
@@ -293,53 +294,122 @@ def test_rounding_bound_scales_with_reporting_unit():
     assert compute_rounding_bound(2, 0, reporting_unit_usd_millions=Decimal("10")) == Decimal("10.0")
 
 
-# --- Cash roll-forward (now takes a rounding bound, not a flat guess) ----------
+# --- Cash roll-forward: two layers (2026-09-15 redesign) ----------------------
+# Layer A (check_cash_movement): beginning + reported net change = ending.
+# Layer B (check_cash_flow_composition): CFO + CFI + CFF [+ reported FX] = reported net change.
 
-def test_cash_rollforward_passes_within_rounding_bound():
-    bound = compute_rounding_bound(6, 0)  # annual: $3.0M
-    result = check_cash_rollforward(
+def test_cash_movement_passes_within_tolerance():
+    bound = compute_rounding_bound(2, 0)
+    result = check_cash_movement(
         fiscal_year=2025, fiscal_quarter=0,
-        beginning_cash=Decimal("4762"), cfo=Decimal("6562"), cfi=Decimal("-3649"),
-        cff=Decimal("-2187"), fx_effect=Decimal("0"), ending_cash=Decimal("5488"),
-        rounding_bound=bound,
+        beginning_cash=Decimal("4762"), reported_net_change=Decimal("726"), ending_cash=Decimal("5488"),
+        tolerance_absolute=bound,
     )
     assert result.passed
     assert result.difference == Decimal("0")
 
 
-def test_cash_rollforward_reports_residual_even_when_within_bound():
-    bound = compute_rounding_bound(6, 0)
-    result = check_cash_rollforward(
+def test_cash_movement_reports_residual_even_when_within_bound():
+    bound = compute_rounding_bound(2, 0)
+    result = check_cash_movement(
         fiscal_year=2025, fiscal_quarter=0,
-        beginning_cash=Decimal("4762"), cfo=Decimal("6562"), cfi=Decimal("-3649"),
-        cff=Decimal("-2186"), fx_effect=Decimal("0"), ending_cash=Decimal("5488"),
-        rounding_bound=bound,
+        beginning_cash=Decimal("4762"), reported_net_change=Decimal("725"), ending_cash=Decimal("5488"),
+        tolerance_absolute=bound,
     )
     assert result.passed
-    assert result.difference == Decimal("-1")  # residual reported, not hidden by the pass
+    assert result.difference == Decimal("1")  # residual reported, not hidden by the pass
 
 
-def test_cash_rollforward_fails_when_capex_omitted():
-    bound = compute_rounding_bound(6, 0)
-    result = check_cash_rollforward(
+def test_cash_movement_fails_when_out_of_tolerance():
+    bound = compute_rounding_bound(2, 0)
+    result = check_cash_movement(
         fiscal_year=2025, fiscal_quarter=0,
-        beginning_cash=Decimal("4762"), cfo=Decimal("6562"), cfi=Decimal("0"),  # should have been -3649
-        cff=Decimal("-2187"), fx_effect=Decimal("0"), ending_cash=Decimal("5488"),
-        rounding_bound=bound,
+        beginning_cash=Decimal("4762"), reported_net_change=Decimal("0"),  # wildly wrong
+        ending_cash=Decimal("5488"), tolerance_absolute=bound,
     )
     assert not result.passed
+    assert result.status == "failed"
 
 
-def test_cash_rollforward_missing_value_is_blocked_not_failed():
+def test_cash_movement_missing_value_is_blocked_not_failed():
     """A missing required input means the check never executed -- this must be
-    reported as BLOCKED, not as a numerical FAIL of Target's cash roll-forward.
+    reported as BLOCKED, not as a numerical FAIL of Target's cash movement.
     """
-    bound = compute_rounding_bound(6, 0)
-    result = check_cash_rollforward(
+    bound = compute_rounding_bound(2, 0)
+    result = check_cash_movement(
         fiscal_year=2025, fiscal_quarter=0,
-        beginning_cash=None, cfo=Decimal("6562"), cfi=Decimal("-3649"),
-        cff=Decimal("-2187"), fx_effect=Decimal("0"), ending_cash=Decimal("5488"),
-        rounding_bound=bound,
+        beginning_cash=None, reported_net_change=Decimal("726"), ending_cash=Decimal("5488"),
+        tolerance_absolute=bound,
+    )
+    assert not result.passed
+    assert result.status == "blocked"
+    assert "REQUIRED_INPUTS_UNAVAILABLE" in result.detail
+
+
+def test_cash_flow_composition_passes_within_tolerance():
+    bound = compute_rounding_bound(4, 0)
+    result = check_cash_flow_composition(
+        fiscal_year=2025, fiscal_quarter=0,
+        cfo=Decimal("6562"), cfi=Decimal("-3649"), cff=Decimal("-2187"),
+        reported_fx=None, reported_net_change=Decimal("726"),
+        tolerance_absolute=bound,
+    )
+    assert result.passed
+    assert result.difference == Decimal("0")
+
+
+def test_cash_flow_composition_never_claims_fx_reported_when_absent():
+    """The defining fix (2026-09-15): no separate FX fact/line must never be
+    silently treated as a verified zero. It is reported as an explicit
+    'unavailable' evidence status, with the gap surfaced as an arithmetic
+    implication, never as an independently reported or verified FX fact.
+    """
+    bound = compute_rounding_bound(4, 0)
+    result = check_cash_flow_composition(
+        fiscal_year=2025, fiscal_quarter=0,
+        cfo=Decimal("6562"), cfi=Decimal("-3649"), cff=Decimal("-2187"),
+        reported_fx=None, reported_net_change=Decimal("726"),
+        tolerance_absolute=bound,
+    )
+    assert result.fx_evidence_status == "unavailable"
+    assert result.implied_fx_residual == Decimal("0")
+    assert "not an independently reported or verified fx fact" in result.detail.lower()
+    assert "verified as zero" not in result.detail.lower()
+    assert "reported as zero" not in result.detail.lower()
+
+
+def test_cash_flow_composition_uses_reported_fx_when_available():
+    bound = compute_rounding_bound(5, 0)
+    result = check_cash_flow_composition(
+        fiscal_year=2025, fiscal_quarter=0,
+        cfo=Decimal("6562"), cfi=Decimal("-3649"), cff=Decimal("-2187"),
+        reported_fx=Decimal("-5"), reported_net_change=Decimal("721"),
+        tolerance_absolute=bound,
+    )
+    assert result.fx_evidence_status == "reported"
+    assert result.implied_fx_residual is None  # not needed -- FX was directly reported
+    assert result.passed
+
+
+def test_cash_flow_composition_fails_when_out_of_tolerance():
+    bound = compute_rounding_bound(4, 0)
+    result = check_cash_flow_composition(
+        fiscal_year=2025, fiscal_quarter=0,
+        cfo=Decimal("6562"), cfi=Decimal("0"),  # should have been -3649
+        cff=Decimal("-2187"), reported_fx=None, reported_net_change=Decimal("726"),
+        tolerance_absolute=bound,
+    )
+    assert not result.passed
+    assert result.status == "failed"
+
+
+def test_cash_flow_composition_missing_value_is_blocked_not_failed():
+    bound = compute_rounding_bound(4, 0)
+    result = check_cash_flow_composition(
+        fiscal_year=2025, fiscal_quarter=0,
+        cfo=None, cfi=Decimal("-3649"), cff=Decimal("-2187"),
+        reported_fx=None, reported_net_change=Decimal("726"),
+        tolerance_absolute=bound,
     )
     assert not result.passed
     assert result.status == "blocked"
