@@ -732,3 +732,37 @@ def test_verify_persistence_integrity_flags_reclassification_completeness():
     conflicting_check = report["checks"]["conflicting_observations_reported_explicitly"]
     assert conflicting_check["passed"] is True  # never a failure by itself
     assert "rf_rev_2024_conflict" in conflicting_check["detail"]
+
+
+def test_persist_refreshes_observation_rationale_and_diff_on_conflict_not_just_value():
+    """Regression guard: a real clean-room-vs-active mismatch was caused by
+    the ON CONFLICT clause updating only value_original, leaving stale
+    classification_rationale/difference_from_selected text from an older
+    persist run in place forever. Re-persisting the SAME observation_id
+    with different rationale/diff text must actually overwrite both.
+    """
+    import dataclasses
+
+    conn = _seeded_conn()
+    preflight = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+    auth = _full_authorization(preflight_fact_count=preflight.total_annual_facts)
+    persist_annual_facts(conn, preflight, auth)
+
+    stale = conn.execute(
+        "SELECT classification_rationale, difference_from_selected FROM annual_fact_observations LIMIT 1"
+    ).fetchone()
+
+    # Simulate a newer code version producing different rationale text and a
+    # non-null diff for the SAME deterministic observation_id.
+    changed_observations = [
+        dataclasses.replace(o, classification_rationale="UPDATED RATIONALE TEXT", difference_from_selected=42.0)
+        for o in preflight.observations
+    ]
+    preflight2 = dataclasses.replace(preflight, observations=changed_observations)
+    persist_annual_facts(conn, preflight2, auth)
+
+    refreshed = conn.execute(
+        "SELECT classification_rationale, difference_from_selected FROM annual_fact_observations LIMIT 1"
+    ).fetchone()
+    assert refreshed == ("UPDATED RATIONALE TEXT", 42.0)
+    assert refreshed != stale

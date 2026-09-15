@@ -85,6 +85,7 @@ class PlannedObservation:
     relationship: str
     value_original: float
     classification_rationale: str
+    difference_from_selected: float | None = None
 
 
 @dataclass(frozen=True)
@@ -326,6 +327,7 @@ def _classify_direct_observations(
             annual_fact_id=annual_fact_id, raw_fact_id=raw_fact_id,
             accession_number=accession, filed_at=filed_at, relationship=relationship,
             value_original=value, classification_rationale=rationale,
+            difference_from_selected=diff,
         ))
 
     for fact_id, accession, filed_at, raw_value in all_facts:
@@ -640,11 +642,14 @@ def persist_annual_facts(
                 INSERT INTO annual_fact_observations
                     (observation_id, annual_fact_id, raw_fact_id, accession_number, filed_at,
                      relationship, value_original, difference_from_selected, classification_rationale)
-                VALUES (?,?,?,?,?,?,?,NULL,?)
-                ON CONFLICT(observation_id) DO UPDATE SET value_original=excluded.value_original
+                VALUES (?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(observation_id) DO UPDATE SET
+                    value_original=excluded.value_original,
+                    difference_from_selected=excluded.difference_from_selected,
+                    classification_rationale=excluded.classification_rationale
                 """,
                 (o.observation_id, o.annual_fact_id, o.raw_fact_id, o.accession_number, o.filed_at,
-                 o.relationship, o.value_original, o.classification_rationale),
+                 o.relationship, o.value_original, o.difference_from_selected, o.classification_rationale),
             )
             written["annual_fact_observations"] += 1
 
