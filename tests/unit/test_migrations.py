@@ -241,6 +241,64 @@ def test_new_tables_and_view_created_empty():
     # The view is queryable (returns zero rows against empty source tables) --
     # proves the UNION ALL and the fiscal_calendar join are syntactically sound.
     assert conn.execute("SELECT COUNT(*) FROM period_facts_unified").fetchone()[0] == 0
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(period_facts_unified)")}
+    assert "reporting_period_role" in columns
+
+
+def test_reporting_period_role_year_end_vs_quarter_end_and_frequency_never_reclassified():
+    """Item 7 (2026-09-15, 'Unified-view semantics'): an instant fact's frequency
+    must stay 'instant' -- never reclassified to 'annual' or 'quarterly' just
+    because the fiscal-calendar join attaches a fiscal year/quarter to it.
+    reporting_period_role is the separate field carrying that role instead.
+    Also proves the year-end/Q4-end collision case: a period_end date that is
+    simultaneously an annual year-end (fiscal_quarter=0) and that year's Q4
+    end (fiscal_quarter=4) must emit the instant fact exactly once, labeled
+    with the canonical YEAR_END role, never QUARTER_END and never duplicated.
+    """
+    conn = make_stale_db()
+    apply_safe_migrations(conn)
+
+    conn.execute(
+        "INSERT INTO fiscal_calendar VALUES "
+        "('0000027419', 'TARGET CORP', 2025, 0, '2025-02-02', '2026-01-31', 52, 0, NULL)"
+    )
+    conn.execute(
+        "INSERT INTO fiscal_calendar VALUES "
+        "('0000027419', 'TARGET CORP', 2025, 4, '2025-11-02', '2026-01-31', 13, 0, NULL)"
+    )
+    conn.execute(
+        "INSERT INTO fiscal_calendar VALUES "
+        "('0000027419', 'TARGET CORP', 2025, 2, '2025-05-04', '2025-08-02', 13, 0, NULL)"
+    )
+    # A year-end instant fact whose as_of_date is BOTH FY2025's annual period_end
+    # and FY2025 Q4's period_end -- the collision case.
+    conn.execute(
+        "INSERT INTO instant_facts VALUES "
+        "('inf_1', 'cash_and_equivalents_balance_sheet', '2026-01-31', 'GAAP', 'consolidated', "
+        "'as_originally_filed', 'rf_1', 'authoritative', 5488.0, 'USD', 6, 5488.0, 'USD_millions', "
+        "'0000027419-26-000016', '2026-03-15', 'as_originally_filed', 'v0', 'safe', '2026-09-14', 1)"
+    )
+    # A genuine mid-year quarter-end instant fact (FY2025 Q2 end), unambiguous.
+    conn.execute(
+        "INSERT INTO instant_facts VALUES "
+        "('inf_2', 'cash_and_equivalents_balance_sheet', '2025-08-02', 'GAAP', 'consolidated', "
+        "'as_originally_filed', 'rf_2', 'authoritative', 4000.0, 'USD', 6, 4000.0, 'USD_millions', "
+        "'0000027419-25-000118', '2025-09-02', 'as_originally_filed', 'v0', 'safe', '2026-09-14', 1)"
+    )
+    conn.commit()
+
+    rows = conn.execute(
+        "SELECT metric, frequency, fiscal_year, fiscal_quarter, reporting_period_role, end_date "
+        "FROM period_facts_unified WHERE frequency = 'instant' ORDER BY end_date"
+    ).fetchall()
+
+    assert len(rows) == 2  # the year-end/Q4-collision fact emitted exactly once, not twice
+
+    q2_row, year_end_row = rows
+    assert q2_row == ("cash_and_equivalents_balance_sheet", "instant", 2025, 2, "QUARTER_END", "2025-08-02")
+    # frequency stays 'instant' even though fiscal_year/fiscal_quarter/reporting_period_role
+    # are attached -- never reclassified to 'annual' despite matching the annual sentinel row.
+    assert year_end_row == ("cash_and_equivalents_balance_sheet", "instant", 2025, None, "YEAR_END", "2026-01-31")
 
 
 def test_quarterly_facts_analytical_view_column_added_with_default():
@@ -266,6 +324,7 @@ def test_all_new_migrations_idempotent_on_rerun():
         "0006_fiscal_calendar", "0007_concept_equivalence_rules", "0008_annual_facts",
         "0009_annual_lineage", "0010_annual_fact_observations",
         "0011_quarterly_facts_analytical_view", "0012_period_facts_unified",
+        "0013_period_facts_unified_reporting_role",
     ):
         assert mid in first
     second = apply_safe_migrations(conn)

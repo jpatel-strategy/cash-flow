@@ -1882,3 +1882,156 @@ bridge. `unamortized_discount_premium_and_issuance_cost` remains a
 genuinely empty row (Target's bridge does not use a component by that
 name), kept only as a record that the GAAP-standard concept was checked
 and is not what explains the schedule.
+
+---
+
+## 2026-09-15 (later) — Mapping-approval matrix, two-gate persistence policy, self-caught gaps, UI evidence note
+
+**Two-gate persistence policy formalized.** Per the reviewer's explicit
+instruction, arithmetic/derivation validation (`analytical_validation_gate`,
+`target_cash.annual.validate_annual`/`summarize_annual_validation`) and
+mapping-evidence review (`mapping_evidence_gate`, new module
+`src/target_cash/mapping_gate.py`) are kept structurally separate. Passing
+the first with a `candidate_unverified` mapping proves the formula was
+applied consistently to whatever tag was picked — nothing about whether the
+tag itself is correct. Annual persistence requires **both** gates to PASS
+for a metric. `target_cash validate` now reports both sections
+independently (`annual_validation`, `mapping_evidence_gate`); neither gate's
+result is merged into the other's `gate_passed` boolean.
+
+**`config/metrics.csv` column split.** The pre-existing `mapping_status`
+column is specifically the trigger for Milestone-1-era quarterly
+YTD-subtraction derivation (`derive_reviewed_metrics`/`derive_flow_metric`
+in `derive.py`), which only understands dollar-scale units — marking a
+non-dollar metric (`diluted_eps`, unit `USDPERSHARE`) `mapping_status=
+'reviewed'` crashes `target_cash.cli normalize` with
+`NormalizationError: Unrecognized unit for normalization: 'USDPERSHARE'`.
+This was caught by actually re-running `normalize` against the real
+database after an initial (wrong) attempt to reuse `mapping_status` for
+annual-model approval. Fixed by adding a new, separate
+`annual_mapping_status` column, tracking annual-mapping-evidence review
+independently of the proven quarterly-derivation trigger. `mapping_gate.py`
+reads `annual_mapping_status` for direct metrics; this too shipped with a
+bug (reading the wrong column name) that was caught and fixed before
+committing, and now has 9 dedicated unit tests (`tests/unit/
+test_mapping_gate.py`).
+
+**Mapping-approval self-caught gaps.** Building the canonical direct-metric
+list from `target_cash.annual.DURATION_METRICS`/`INSTANT_METRICS` (the
+annual model's own hardcoded tag-resolution dicts — never "every row in
+`config/metrics.csv`", which also carries legacy/candidate/quarterly-only
+rows) surfaced three real gaps, all fixed this round:
+1. `long_term_debt_gaap_carrying_value_noncurrent` — one of `INSTANT_METRICS`
+   own keys, used directly by the (passing) debt-bridge tests — had **no
+   row at all** in `config/metrics.csv`. Added, with full 5-year evidence.
+2. `current_portion_of_debt` had been marked `annual_mapping_status=
+   'reviewed'` despite having no XBRL tag and never being computed anywhere
+   by `derive()` — the metric simply doesn't exist as a model output.
+   Reverted to `candidate_unverified`; excluded from the current approval
+   set pending either implementation or removal.
+3. `long_term_debt_gaap_carrying_value` (no suffix) duplicated the
+   noncurrent row's own tag in `config/metrics.csv`, but `derive()` actually
+   produces a *different* value under that exact name — the derived sum of
+   the noncurrent and current components. Reverted the `metrics.csv` row
+   (wrong evidence for what the model actually computes) and added the
+   correct derived-metric definition to `config/metric_definitions.csv`
+   instead (`def_long_term_debt_gaap_carrying_value_v1`, trivial exact sum,
+   `reviewed`).
+
+**Derived-metric implementation gap closed.** Cross-checking every
+`config/metric_definitions.csv` row against `derive()`'s actual output keys
+found 7 metrics marked `reviewed` with **no code computing them at all**:
+`cash_conversion`, `capex_intensity`, `inventory_to_revenue`,
+`accounts_payable_to_cogs`, `debt_to_cfo`, `net_debt_to_cfo`, and (via
+naming mismatch rather than absence) `gross_margin`, `operating_margin`,
+`effective_tax_rate`, `net_margin`, `free_cash_flow`, `fcf_margin`,
+`shareholder_distributions_to_fcf`, `total_debt_gaap` — all computed
+internally under different legacy names (`gross_margin_pct`, `fcf`,
+`distributions_pct_fcf`, etc.). Fixed additively in `derive()`: the legacy
+internal names are untouched (validate_annual's bridge checks and
+pre-existing tests depend on them), and the `metric_definitions.csv`
+canonical names are added as exact aliases; the 5 genuinely-missing ratios
+are newly implemented, matching their CSV-documented zero-denominator/
+negative-denominator policies exactly (a `==0` case is `BLOCKED`, a `<0`
+case is `NOT_APPLICABLE` — kept as two distinct branches, never collapsed).
+Verified against the real FY2025 filing: `free_cash_flow` (alias of `fcf`)
+= $2,835M, matching `operating_cash_flow` $6,562M − `capital_expenditure`
+$3,727M exactly. Verified against FY2022: `shareholder_distributions_to_fcf`
+= `NOT_APPLICABLE` (FCF = −$1,510M), satisfying the round's hard
+requirement. Adding the alias names surfaced one more self-caught bug —
+`gross_margin`/`shareholder_distributions_to_fcf` are reclassification-
+affected (their legacy counterparts `gross_margin_pct`/`distributions_pct_fcf`
+already were), but weren't registered in `KNOWN_RECLASSIFIED_METRICS` under
+their new names; `validate` against the real database caught this
+immediately as a real FY2021 `FAIL` before it was fixed. 216 tests pass;
+`validate` against the real database is fully green (0 FAIL, gate_passed
+true on both gates).
+
+**Debt-dependent derived metrics promoted.** `total_debt_gaap`,
+`valuation_net_debt_excluding_leases`, `adjusted_net_debt_including_finance_leases`,
+`debt_to_cfo`, `net_debt_to_cfo` moved from `pending_debt_tests` to
+`reviewed` in `config/metric_definitions.csv`, now that the item-6 debt-
+construction tests (finance-lease non-double-counting, swap-sign
+preservation, current-portion-subtracted-once, all-5-years bridge
+reconciliation, lease-exclusion consistency, `target_defined_net_debt`
+permanent unavailability) exist and pass (21/21 in
+`tests/unit/test_annual_dry_run.py`).
+
+**Unified-view semantics (item 7).** New migration
+`0013_period_facts_unified_reporting_role` (append-only rule respected —
+`0012` is never edited once shipped) adds `reporting_period_role`
+(`YEAR_END`/`QUARTER_END`, `NULL` for quarterly/annual duration rows) to
+`period_facts_unified`, DROPping and recreating the view (safe: a view
+carries no stored rows). `frequency` stays `'instant'` for point-in-time
+facts, exactly as `0012` already had it — never reclassified to `'annual'`
+even for a date that is simultaneously a fiscal year-end and its own Q4
+end; the pre-existing tie-break (lowest `fiscal_quarter` match wins) still
+emits that fact exactly once, now labeled canonically `YEAR_END`.
+
+**Post-persistence validation design (item 8).** `validate_annual`'s
+`lineage_readiness` check no longer hard-codes `NOT_APPLICABLE` — it now
+queries `annual_facts`/`annual_lineage`/`annual_fact_observations` directly:
+`NOT_APPLICABLE` only when nothing is persisted yet for that fiscal year
+(today's correct, real state, confirmed by an actual `COUNT(*)==0`, not a
+literal), `FAIL` when a persisted row is missing its required lineage
+(direct → ≥1 selected `annual_fact_observations` row; derived → ≥1
+`annual_lineage` row), `PASS` when complete. Data-driven by construction:
+once a future milestone persists annual facts, this becomes a real
+PASS/FAIL with no code change.
+
+**Mapping-approval matrix and persistence manifest (items 3, 5).**
+`scripts/build_mapping_approval_matrix.py` generates
+`docs/milestone_2_mapping_approval_matrix.md` entirely from live data —
+`config/metrics.csv`, `config/metric_definitions.csv`, and the real curated
+database queried through `target_cash.annual`'s own `resolve_tag`/
+`duration_value`/`instant_value` functions (the same code path the annual
+model itself reads) — never hand-transcribed. Covers: full evidence rows
+(tag, accession, context ID, value, per fiscal year) for all 30 canonical
+direct annual metrics; full definitions for all 18 reviewed derived
+metrics, each cross-checked against a real computed FY2025 value; and the
+complete dual-view (AS_ORIGINALLY_FILED, LATEST_RESTATED) persistence
+manifest — 300 direct + 178 derived = 478 expected `annual_facts` rows (2
+derived slots correctly excluded: FY2022 `shareholder_distributions_to_fcf`
+under both views), ≥300 `annual_fact_observations` rows, 364
+`annual_lineage` rows (computed from `metric_definitions.csv`'s own
+numerator/denominator fields) — never a sparse-override design.
+
+**UI evidence note (item 9).** No UI/mockup files exist anywhere in this
+repository as of this round (checked; none found). Recorded here for any
+future UI implementation, correcting any earlier informal figures: **FY2025
+actuals are CFO $6,562M, CapEx $3,727M, CFI −$3,649M, FCF $2,835M
+(= CFO − CapEx, never CFO + CFI or CFO − |CFI|)**. Capital expenditure is
+not equal to total investing cash flow — CFI includes CapEx plus other
+investing activity (see the FY2025 CapEx/CFI distinction entry above and
+the regression tests in `tests/unit/test_annual_dry_run.py`:
+`test_fy2025_capex_is_not_investing_cash_flow`,
+`test_derive_never_reads_investing_cash_flow_for_fcf`). A future UI must
+never substitute `investing_cash_flow` for `capital_expenditure`, and must
+never reuse an incorrect $3,649M CapEx or $2,913M FCF figure.
+
+**Persistence remains not authorized.** Per this round's explicit
+instruction, no annual facts were persisted. `annual_facts`,
+`annual_lineage`, and `annual_fact_observations` remain empty in the real
+database (confirmed via `target_cash seed-reference-data`'s reported
+counts). `scripts/clean_room_rebuild.py`'s annual-persistence step remains
+a documented TODO.

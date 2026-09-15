@@ -33,6 +33,7 @@ DEFAULT_PATHS = {
     "schema_sql": "sql/schema.sql",
     "views_sql": "sql/views.sql",
     "metrics_csv": "config/metrics.csv",
+    "metric_definitions_csv": "config/metric_definitions.csv",
 }
 
 
@@ -439,7 +440,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     lineage_rows = conn.execute("SELECT derived_fact_id, input_fact_id, operation FROM lineage").fetchall()
     lineage_links = [LineageLink(r["derived_fact_id"], r["input_fact_id"], r["operation"]) for r in lineage_rows]
 
-    from target_cash.annual import summarize_annual_validation, validate_annual
+    from target_cash.annual import DURATION_METRICS, INSTANT_METRICS, summarize_annual_validation, validate_annual
     annual_results = validate_annual(conn)
     annual_summary = summarize_annual_validation(annual_results)
     annual_summary["checks"] = [
@@ -447,6 +448,28 @@ def cmd_validate(args: argparse.Namespace) -> int:
         for r in annual_results
     ]
     conn.close()
+
+    # mapping_evidence_gate (item 2A, 2026-09-15 "Two-gate persistence policy"):
+    # kept structurally separate from analytical_validation_gate (annual_summary
+    # above). Passing arithmetic validation with a candidate_unverified mapping
+    # proves nothing about the mapping's correctness -- both gates must pass,
+    # per metric, before that metric is eligible for annual persistence. The
+    # direct-metric list is target_cash.annual's own canonical set (DURATION_METRICS
+    # + INSTANT_METRICS), never "every row in config/metrics.csv" -- metrics.csv
+    # also carries legacy/candidate/quarterly-only rows that are not part of the
+    # annual model at all and must not be counted as direct annual metrics.
+    from target_cash.mapping_gate import mapping_evidence_gate, persistence_eligible_metrics, summarize_mapping_evidence_gate
+    metric_definitions_path = _resolve_path(config, "metric_definitions_csv")
+    with open(metric_definitions_path, newline="") as f:
+        derived_metric_names = [row["metric"] for row in csv.DictReader(f)]
+    direct_annual_metric_names = sorted(set(DURATION_METRICS) | set(INSTANT_METRICS))
+    mapping_results = mapping_evidence_gate(
+        direct_annual_metric_names, derived_metric_names, metrics_path, metric_definitions_path,
+    )
+    mapping_gate_summary = summarize_mapping_evidence_gate(mapping_results)
+    mapping_gate_summary["persistence_eligible_metrics"] = persistence_eligible_metrics(
+        mapping_results, analytical_gate_passed=annual_summary["gate_passed"],
+    )
 
     summary = run_validation(
         derived_fact_ids, lineage_links,
@@ -472,6 +495,16 @@ def cmd_validate(args: argparse.Namespace) -> int:
     # like a quarterly FAIL does; BLOCKED/UNAVAILABLE/NOT_APPLICABLE do not
     # (annual_summary["policy"] states the one exemption: target_defined_net_debt).
     output["annual_validation"] = annual_summary
+    # mapping_evidence_gate is reported as its own section, never merged into
+    # gate_passed below (2026-09-15 item 2: "Do not present candidate-based
+    # arithmetic validation as final approval"). analytical_validation_gate
+    # (annual_validation.gate_passed) can legitimately pass while most metrics
+    # are still mapping_evidence BLOCKED -- that is expected mid-milestone
+    # state, not a validate failure. Annual persistence eligibility (both
+    # gates required) is reported explicitly via
+    # mapping_evidence_gate.persistence_eligible_metrics, not via this
+    # command's exit code.
+    output["mapping_evidence_gate"] = mapping_gate_summary
     gate_passed = summary.passed and annual_summary["gate_passed"]
     print(json.dumps(output, default=str))
     return 0 if gate_passed else 1

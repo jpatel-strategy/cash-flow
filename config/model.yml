@@ -123,3 +123,4 @@ paths:
   schema_sql: "sql/schema.sql"
   views_sql: "sql/views.sql"
   metrics_csv: "config/metrics.csv"
+  metric_definitions_csv: "config/metric_definitions.csv"

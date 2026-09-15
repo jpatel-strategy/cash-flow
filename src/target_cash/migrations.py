@@ -376,6 +376,96 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
                 );
         """,
     ),
+    TableMigration(
+        migration_id="0013_period_facts_unified_reporting_role",
+        description=(
+            "Extend period_facts_unified with reporting_period_role, per the "
+            "2026-09-15 item 7 ('Unified-view semantics') instruction: an instant "
+            "fact's economic frequency must never be reclassified as ANNUAL or "
+            "QUARTERLY just because the fiscal-calendar join attaches a fiscal year/ "
+            "quarter to it -- frequency stays 'instant' for every point-in-time fact, "
+            "exactly as migration 0012 already had it. reporting_period_role is the "
+            "new, separate field carrying the fiscal-calendar role instead: "
+            "'YEAR_END' or 'QUARTER_END' for instant facts (NULL for quarterly/annual "
+            "duration facts, which are not point-in-time and do not have this "
+            "ambiguity). migration 0012 already resolves the case where a date is "
+            "simultaneously a fiscal year-end AND its Q4 end by picking the lowest "
+            "fiscal_quarter match (the annual sentinel fiscal_quarter=0 beats 1-4) -- "
+            "this migration reuses that exact same join/tie-break unchanged, so the "
+            "fact is still emitted exactly once, and reporting_period_role now simply "
+            "labels the already-chosen row as YEAR_END in that case (the documented "
+            "canonical reporting role required by item 7), never QUARTER_END.\n"
+            "Per the append-only migration rule, 0012 itself is never edited -- this "
+            "migration DROPs and recreates the view (safe: a view carries no stored "
+            "rows of its own, only a query definition, so dropping and recreating it "
+            "can never lose data) with the added column, superseding 0012's view "
+            "definition without touching any table."
+        ),
+        create_sql="""
+            DROP VIEW IF EXISTS period_facts_unified;
+
+            CREATE VIEW period_facts_unified AS
+            SELECT
+                qf.metric,
+                'quarterly'                                    AS frequency,
+                qf.fiscal_year,
+                qf.fiscal_quarter,
+                qf.period_start                                AS start_date,
+                qf.period_end                                   AS end_date,
+                qf.value_normalized                             AS value,
+                qf.normalized_unit                              AS unit,
+                CASE qf.basis WHEN 'point_in_time' THEN 'direct'
+                              WHEN 'direct_quarterly' THEN 'direct'
+                              ELSE 'derived' END                AS direct_or_derived,
+                qf.analytical_view                              AS analytical_view,
+                NULL                                            AS validation_status,
+                NULL                                            AS reporting_period_role
+            FROM quarterly_facts qf
+            WHERE qf.is_current_view = 1
+
+            UNION ALL
+
+            SELECT
+                af.metric,
+                'annual'                                        AS frequency,
+                af.fiscal_year,
+                NULL                                             AS fiscal_quarter,
+                af.period_start                                  AS start_date,
+                af.period_end                                     AS end_date,
+                af.value_normalized                               AS value,
+                af.normalized_unit                                 AS unit,
+                af.direct_or_derived                                AS direct_or_derived,
+                af.analytical_view                                  AS analytical_view,
+                af.validation_status                                 AS validation_status,
+                NULL                                                  AS reporting_period_role
+            FROM annual_facts af
+            WHERE af.is_current_view = 1
+
+            UNION ALL
+
+            SELECT
+                inf.metric,
+                'instant'                                         AS frequency,
+                fc.fiscal_year,
+                NULLIF(fc.fiscal_quarter, 0)                       AS fiscal_quarter,
+                NULL                                                AS start_date,
+                inf.as_of_date                                       AS end_date,
+                inf.value_normalized                                  AS value,
+                inf.normalized_unit                                    AS unit,
+                'direct'                                                AS direct_or_derived,
+                inf.analytical_view                                      AS analytical_view,
+                inf.selection_status                                      AS validation_status,
+                CASE WHEN fc.fiscal_quarter = 0 THEN 'YEAR_END'
+                     WHEN fc.fiscal_quarter IS NOT NULL THEN 'QUARTER_END'
+                     ELSE NULL END                                         AS reporting_period_role
+            FROM instant_facts inf
+            LEFT JOIN fiscal_calendar fc
+                ON fc.period_end = inf.as_of_date
+                AND fc.fiscal_quarter = (
+                    SELECT MIN(fc2.fiscal_quarter) FROM fiscal_calendar fc2 WHERE fc2.period_end = inf.as_of_date
+                );
+        """,
+    ),
 )
 
 

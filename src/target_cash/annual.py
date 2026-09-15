@@ -70,6 +70,12 @@ UNSCALED_METRICS = {"diluted_eps"}
 KNOWN_RECLASSIFIED_METRICS = {
     "cost_of_sales", "operating_expenses", "gross_profit", "gross_margin_pct",
     "share_repurchases", "distributions_pct_fcf",
+    # config/metric_definitions.csv canonical-name aliases (2026-09-15 item 4)
+    # of the two entries directly above -- an alias of a known-reclassified
+    # metric is reclassified too; omitting it here would make
+    # analytical_view_selection FAIL on the alias's own name for the exact
+    # same, already-documented, already-accepted divergence.
+    "gross_margin", "shareholder_distributions_to_fcf",
 }
 
 TOLERANCE_USD_MILLIONS = Decimal("0.5")
@@ -244,6 +250,74 @@ def derive(view: dict) -> dict:
         view["distributions_pct_fcf"] = {"status": "NOT_APPLICABLE", "value": None}
     else:
         view["distributions_pct_fcf"] = {"status": "UNAVAILABLE", "value": None}
+
+    # --- config/metric_definitions.csv canonical names (2026-09-15 item 4) ---
+    # The block above computes every derived value under legacy internal names
+    # (gross_margin_pct, fcf, distributions_pct_fcf, ...) that validate_annual's
+    # bridge checks and pre-existing tests already depend on -- never renamed,
+    # to avoid touching proven logic. The reviewed metric_definitions.csv rows
+    # use different, more explicit names for the SAME values; these are added
+    # here as pure aliases (same status/value object), plus five metrics that
+    # metric_definitions.csv approved but that had no computation anywhere
+    # until now: cash_conversion, capex_intensity, inventory_to_revenue,
+    # accounts_payable_to_cogs, debt_to_cfo, net_debt_to_cfo. Without this,
+    # those five rows were marked 'reviewed' with no code actually producing
+    # them -- the same class of gap self-caught and corrected elsewhere this
+    # round (see docs/decisions.md 2026-09-15 'Mapping-approval self-caught gaps').
+    def _alias(new_name, existing_name):
+        view[new_name] = view[existing_name]
+
+    _alias("gross_margin", "gross_margin_pct")
+    _alias("operating_margin", "operating_margin_pct")
+    _alias("effective_tax_rate", "effective_tax_rate_pct")
+    _alias("net_margin", "net_margin_pct")
+    _alias("free_cash_flow", "fcf")
+    _alias("fcf_margin", "fcf_margin_pct")
+    _alias("shareholder_distributions_to_fcf", "distributions_pct_fcf")
+    # total_debt_gaap's formula ("long_term_debt_gaap_carrying_value -
+    # finance_lease_liabilities") is exactly total_debt_gaap_excluding_separately_reported_leases.
+    _alias("total_debt_gaap", "total_debt_gaap_excluding_separately_reported_leases")
+    total_debt_gaap = total_debt_excl
+
+    capex_val = val("capital_expenditure")
+    set_derived("capex_intensity", None if None in (capex_val, revenue) or revenue == 0 else round(100 * capex_val / revenue, 2))
+
+    inv = val("inventory")
+    set_derived("inventory_to_revenue", None if None in (inv, revenue) or revenue == 0 else round(100 * inv / revenue, 2))
+
+    ap = val("accounts_payable")
+    set_derived("accounts_payable_to_cogs", None if None in (ap, cogs) or cogs == 0 else round(100 * ap / cogs, 2))
+
+    # cash_conversion: BLOCKED if net_income==0 (zero_denominator_policy),
+    # NOT_APPLICABLE if net_income<0 (negative_denominator_policy), per
+    # config/metric_definitions.csv -- the two policies are kept distinct,
+    # never collapsed into one "non-positive" branch.
+    if ni is None or cfo is None:
+        view["cash_conversion"] = {"status": "UNAVAILABLE", "value": None}
+    elif ni == 0:
+        view["cash_conversion"] = {"status": "BLOCKED", "value": None}
+    elif ni < 0:
+        view["cash_conversion"] = {"status": "NOT_APPLICABLE", "value": None}
+    else:
+        set_derived("cash_conversion", round(cfo / ni, 4))
+
+    if cfo is None or total_debt_gaap is None:
+        view["debt_to_cfo"] = {"status": "UNAVAILABLE", "value": None}
+    elif cfo == 0:
+        view["debt_to_cfo"] = {"status": "BLOCKED", "value": None}
+    elif cfo < 0:
+        view["debt_to_cfo"] = {"status": "NOT_APPLICABLE", "value": None}
+    else:
+        set_derived("debt_to_cfo", round(total_debt_gaap / cfo, 4))
+
+    if cfo is None or valuation_net_debt is None:
+        view["net_debt_to_cfo"] = {"status": "UNAVAILABLE", "value": None}
+    elif cfo == 0:
+        view["net_debt_to_cfo"] = {"status": "BLOCKED", "value": None}
+    elif cfo < 0:
+        view["net_debt_to_cfo"] = {"status": "NOT_APPLICABLE", "value": None}
+    else:
+        set_derived("net_debt_to_cfo", round(valuation_net_debt / cfo, 4))
 
     return view
 
@@ -425,8 +499,47 @@ def validate_annual(conn: sqlite3.Connection) -> list[AnnualCheckResult]:
         else:
             add("fiscal_calendar_mapping", fy, "both", "BLOCKED", "no fiscal_calendar row for this year")
 
-        # lineage readiness: N/A pre-persistence
-        add("lineage_readiness", fy, "both", "NOT_APPLICABLE", "no annual_facts/annual_lineage rows exist yet -- nothing to check")
+        # lineage readiness: queries annual_facts/annual_lineage/annual_fact_observations
+        # directly against the real database -- NOT_APPLICABLE only when nothing has
+        # actually been persisted yet for this fiscal year (the correct, expected
+        # state as of this milestone, since annual persistence is not yet authorized).
+        # Data-driven by construction: once a future milestone persists annual_facts
+        # rows, this check automatically becomes a real PASS/FAIL with no code change
+        # required (2026-09-15 item 8: "After persistence, lineage_readiness must
+        # become PASS. It must not remain NOT_APPLICABLE.").
+        annual_fact_rows = conn.execute(
+            "SELECT annual_fact_id, metric, direct_or_derived, analytical_view "
+            "FROM annual_facts WHERE fiscal_year = ? AND is_current_view = 1",
+            (fy,),
+        ).fetchall()
+        if not annual_fact_rows:
+            add("lineage_readiness", fy, "both", "NOT_APPLICABLE",
+                "no annual_facts rows persisted yet for this fiscal year -- nothing to check")
+        else:
+            missing = []
+            for fact_id, metric, kind, view in annual_fact_rows:
+                if kind == "direct":
+                    observed = conn.execute(
+                        "SELECT COUNT(*) FROM annual_fact_observations "
+                        "WHERE annual_fact_id = ? AND relationship = 'selected'",
+                        (fact_id,),
+                    ).fetchone()[0]
+                    if observed == 0:
+                        missing.append(f"{metric}:{view} (direct, no selected annual_fact_observations row)")
+                else:
+                    linked = conn.execute(
+                        "SELECT COUNT(*) FROM annual_lineage WHERE derived_fact_id = ?", (fact_id,),
+                    ).fetchone()[0]
+                    if linked == 0:
+                        missing.append(f"{metric}:{view} (derived, no annual_lineage rows)")
+            if missing:
+                detail = f"{len(missing)} annual_facts row(s) missing required lineage: " + "; ".join(missing[:5])
+                if len(missing) > 5:
+                    detail += " ..."
+                add("lineage_readiness", fy, "both", "FAIL", detail)
+            else:
+                add("lineage_readiness", fy, "both", "PASS",
+                    f"all {len(annual_fact_rows)} persisted annual_facts rows for FY{fy} have complete lineage")
 
         # 53-week disclosure
         if period:

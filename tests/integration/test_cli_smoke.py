@@ -28,8 +28,15 @@ def isolated_project(tmp_path, monkeypatch):
 
     metrics_csv = tmp_path / "config" / "metrics.csv"
     metrics_csv.write_text(
-        "metric,statement,category,candidate_xbrl_taxonomy,candidate_xbrl_tag,unit,sign_convention,mapping_status,notes\n"
-        "revenue,income_statement,flow,us-gaap,Revenues,USD,positive_inflow,candidate_unverified,\n"
+        "metric,statement,category,candidate_xbrl_taxonomy,candidate_xbrl_tag,unit,sign_convention,mapping_status,notes,annual_mapping_status\n"
+        "revenue,income_statement,flow,us-gaap,Revenues,USD,positive_inflow,candidate_unverified,,candidate_unverified\n"
+    )
+
+    metric_definitions_csv = tmp_path / "config" / "metric_definitions.csv"
+    metric_definitions_csv.write_text(
+        "metric_definition_id,version,metric,formula,numerator_metrics,denominator_metrics,unit,"
+        "sign_policy,zero_denominator_policy,negative_denominator_policy,lineage_requirements,"
+        "valid_analytical_views,review_status,limitation\n"
     )
 
     model_yml = tmp_path / "config" / "model.yml"
@@ -66,6 +73,7 @@ paths:
   schema_sql: "sql/schema.sql"
   views_sql: "sql/views.sql"
   metrics_csv: "config/metrics.csv"
+  metric_definitions_csv: "config/metric_definitions.csv"
 """
     )
 
@@ -319,9 +327,9 @@ def test_validate_wires_real_checks_for_a_reviewed_flow_metric(isolated_project,
     'unavailable', with the exact required wording -- never silently a pass.
     """
     (tmp_path / "config" / "metrics.csv").write_text(
-        "metric,statement,category,candidate_xbrl_taxonomy,candidate_xbrl_tag,unit,sign_convention,mapping_status,notes\n"
+        "metric,statement,category,candidate_xbrl_taxonomy,candidate_xbrl_tag,unit,sign_convention,mapping_status,notes,annual_mapping_status\n"
         "da_addback,cash_flow_statement,flow,us-gaap,DepreciationDepletionAndAmortization,USD,"
-        "positive_noncash_addback,reviewed,\n"
+        "positive_noncash_addback,reviewed,,candidate_unverified\n"
     )
 
     synthetic_html = """
@@ -446,3 +454,14 @@ def test_validate_includes_annual_validation_section(isolated_project, capsys):
     assert annual["gate_passed"] is True
     assert "target_defined_net_debt" in annual["allowed_permanently_unavailable_metrics"]
     assert exit_code == 1  # the quarterly gate's own checks_run == 0 still fails the overall command
+
+    # mapping_evidence_gate (2026-09-15 item 2) is reported as its own section,
+    # kept separate from gate_passed above -- an isolated project's synthetic
+    # metrics.csv has no rows for target_cash.annual's canonical direct metrics,
+    # so every one of them is correctly reported "missing" -> BLOCKED, never
+    # silently skipped or silently passed.
+    mapping_gate = output["mapping_evidence_gate"]
+    assert mapping_gate["checks_run"] > 0
+    assert mapping_gate["passed_count"] == 0
+    assert mapping_gate["blocked_count"] == mapping_gate["checks_run"]
+    assert mapping_gate["persistence_eligible_metrics"] == []

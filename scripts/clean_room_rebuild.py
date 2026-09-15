@@ -3,35 +3,38 @@
 
 Builds a brand-new target_cash.db in an isolated temporary directory, from
 nothing but: the project's own code (schema.sql, views.sql,
-config/metrics.csv, config/model.yml, and every migration in
-src/target_cash/migrations.py, applied automatically by every CLI command's
-_connect_db call), the registered source manifest (docs/sources.csv), and
-the cached source documents (data/raw/*.htm -- the same files a manual
-re-upload would produce; this script never reads or copies the active
-database at data/curated/target_cash.db).
+config/metrics.csv, config/metric_definitions.csv, config/model.yml, and
+every migration in src/target_cash/migrations.py, applied automatically by
+every CLI command's _connect_db call), the registered source manifest
+(docs/sources.csv), and the cached source documents (data/raw/*.htm -- the
+same files a manual re-upload would produce; this script never reads or
+copies the active database at data/curated/target_cash.db).
 
 Usage (from the repository root):
     .venv/bin/python scripts/clean_room_rebuild.py [--keep]
 
 Steps, in order: fetch every registered source -> normalize (dry-run) ->
-validate (dry-run, includes the annual_validation section) -> normalize
---persist-derived (Milestone 1: quarterly_facts/instant_facts) ->
-seed-reference-data (Milestone 2: fiscal_calendar/concept_equivalence_rules
-only) -> validate (final).
+validate (dry-run, includes the annual_validation and mapping_evidence_gate
+sections) -> normalize --persist-derived (Milestone 1: quarterly_facts/
+instant_facts) -> seed-reference-data (Milestone 2: fiscal_calendar/
+concept_equivalence_rules only) -> validate (final).
 
 **Annual analytical persistence is NOT part of this script yet** --
 persisting annual_facts/annual_lineage/annual_fact_observations is not
-authorized as of this milestone (see docs/milestone_2_schema_and_dry_run.md).
-Once a `normalize --persist-annual` (or equivalent) command exists and is
-authorized, add it here, immediately after seed-reference-data and before
-the final validate call, so this script continues to prove the ENTIRE
-database -- Milestone 1's quarterly/instant facts and Milestone 2's annual
-facts alike -- rebuilds byte-for-byte-equivalent (via canonical export
-hashing, scripts/compare_databases.py) from source documents alone. The
-expected post-persistence counts that step should reproduce are the
-persistence manifest in docs/milestone_2_schema_and_dry_run.md (35
-annual_facts, 35 annual_lineage, 84 annual_fact_observations, as of the
-7-metric reviewed-only manifest computed there).
+authorized as of this milestone (see docs/decisions.md, 2026-09-15 later
+entry, "Persistence remains not authorized"). Once a `normalize
+--persist-annual` (or equivalent) command exists and is authorized, add it
+here, immediately after seed-reference-data and before the final validate
+call, so this script continues to prove the ENTIRE database -- Milestone
+1's quarterly/instant facts and Milestone 2's annual facts alike -- rebuilds
+byte-for-byte-equivalent (via canonical export hashing,
+scripts/compare_databases.py) from source documents alone. The expected
+post-persistence counts that step should reproduce are the persistence
+manifest in docs/milestone_2_mapping_approval_matrix.md, Section C: 478
+annual_facts (300 direct + 178 derived), >=300 annual_fact_observations,
+364 annual_lineage -- regenerate that document (scripts/
+build_mapping_approval_matrix.py) if config/metrics.csv or
+config/metric_definitions.csv change before persistence is implemented.
 
 Prints the resulting table counts and validate totals, then (unless
 --keep is passed) deletes the temporary directory. Exit code is nonzero
@@ -102,6 +105,7 @@ def main() -> int:
         shutil.copyfile(REPO_ROOT / "sql" / "schema.sql", tmp_dir / "sql" / "schema.sql")
         shutil.copyfile(REPO_ROOT / "sql" / "views.sql", tmp_dir / "sql" / "views.sql")
         shutil.copyfile(REPO_ROOT / "config" / "metrics.csv", tmp_dir / "config" / "metrics.csv")
+        shutil.copyfile(REPO_ROOT / "config" / "metric_definitions.csv", tmp_dir / "config" / "metric_definitions.csv")
         shutil.copyfile(REPO_ROOT / "config" / "model.yml", tmp_dir / "config" / "model.yml")
 
         missing_sources = []
@@ -169,6 +173,10 @@ def main() -> int:
         print(f"validate.annual_validation.checks_run: {annual.get('checks_run')}")
         print(f"validate.annual_validation.gate_passed: {annual.get('gate_passed')}")
         print(f"validate.annual_validation.by_status: {annual.get('by_status')}")
+        mapping_gate = validate_final.get("mapping_evidence_gate", {})
+        print(f"validate.mapping_evidence_gate.checks_run: {mapping_gate.get('checks_run')}")
+        print(f"validate.mapping_evidence_gate.passed_count: {mapping_gate.get('passed_count')}")
+        print(f"validate.mapping_evidence_gate.blocked_count: {mapping_gate.get('blocked_count')}")
         print(f"database: {db_path}")
         return 0
     finally:
