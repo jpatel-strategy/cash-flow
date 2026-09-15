@@ -466,6 +466,65 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
                 );
         """,
     ),
+    TableMigration(
+        migration_id="0014_annual_fact_observations_original_historical",
+        description=(
+            "Add 'original_historical' to annual_fact_observations.relationship's CHECK constraint "
+            "(2026-09-16 observation-completeness round). The existing 4-value vocabulary "
+            "(selected, corroborating, restated, conflicting) cannot distinguish two genuinely "
+            "different relationships that both arise from the SAME reclassification: attached to "
+            "the AS_ORIGINALLY_FILED fact, a later, different-valued observation is correctly "
+            "'restated' (evidence that this fact was later restated). But attached to the "
+            "LATEST_RESTATED fact, the ORIGINAL, now-superseded observation is the OPPOSITE "
+            "direction of the same relationship -- reusing 'restated' there would be backwards and "
+            "ambiguous, and 'conflicting' would misrepresent a known, documented, policy-explained "
+            "reclassification as an unresolved disagreement. 'original_historical' names the "
+            "original filing's own value, retained under the restated view as historical evidence, "
+            "explicitly distinct from a genuine unexplained 'conflicting' disagreement.\n"
+            "SQLite cannot ALTER a CHECK constraint in place, so this migration rebuilds the table: "
+            "CREATE the new table with the expanded CHECK, COPY every existing row unchanged, DROP "
+            "the old table, RENAME the new one into place -- wrapped in one explicit transaction "
+            "(BEGIN...COMMIT) for atomicity, so any failure leaves the original table completely "
+            "untouched rather than partially rebuilt. Every existing row's values are preserved "
+            "exactly (this migration inserts no new rows and changes no existing value); only the "
+            "constraint governing which relationship strings may be inserted going forward changes. "
+            "Per the append-only migration rule, migration 0010 itself is never edited."
+        ),
+        create_sql="""
+            BEGIN TRANSACTION;
+
+            CREATE TABLE annual_fact_observations_v2 (
+                observation_id            TEXT PRIMARY KEY,
+                annual_fact_id            TEXT NOT NULL REFERENCES annual_facts(annual_fact_id),
+                raw_fact_id               TEXT NOT NULL REFERENCES raw_facts(fact_id),
+                accession_number          TEXT NOT NULL REFERENCES filings(accession_number),
+                filed_at                  TEXT NOT NULL,
+                relationship              TEXT NOT NULL
+                                              CHECK (relationship IN
+                                                  ('selected', 'corroborating', 'restated', 'original_historical', 'conflicting')),
+                value_original            REAL NOT NULL,
+                difference_from_selected  REAL,
+                classification_rationale  TEXT NOT NULL
+            );
+
+            INSERT INTO annual_fact_observations_v2
+                (observation_id, annual_fact_id, raw_fact_id, accession_number, filed_at,
+                 relationship, value_original, difference_from_selected, classification_rationale)
+            SELECT
+                observation_id, annual_fact_id, raw_fact_id, accession_number, filed_at,
+                relationship, value_original, difference_from_selected, classification_rationale
+            FROM annual_fact_observations;
+
+            DROP TABLE annual_fact_observations;
+
+            ALTER TABLE annual_fact_observations_v2 RENAME TO annual_fact_observations;
+
+            CREATE INDEX IF NOT EXISTS idx_annual_fact_observations_annual
+                ON annual_fact_observations(annual_fact_id);
+
+            COMMIT;
+        """,
+    ),
 )
 
 

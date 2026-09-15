@@ -175,7 +175,9 @@ def test_preflight_direct_facts_get_exactly_one_selected_observation():
     # 2 direct metrics x 2 FY x 2 views = 8 direct facts, each with exactly 1 observation.
     assert len(preflight.observations) == 8
     assert all(o.relationship == "selected" for o in preflight.observations)
-    assert preflight.observations_by_relationship() == {"selected": 8, "corroborating": 0, "restated": 0, "conflicting": 0}
+    assert preflight.observations_by_relationship() == {
+        "selected": 8, "corroborating": 0, "restated": 0, "original_historical": 0, "conflicting": 0,
+    }
 
 
 def test_preflight_derived_facts_get_lineage_edges_never_source_edges():
@@ -539,3 +541,194 @@ def test_verify_persistence_integrity_finance_leases_not_double_counted_on_real_
 
     report = verify_persistence_integrity(conn)
     assert report["checks"]["finance_leases_not_double_counted"]["passed"] is True
+
+
+# --- Observation-completeness enrichment (2026-09-16 round) ---------------
+
+def _seeded_conn_with_reclassification():
+    """Extends the base fixture with a synthetic multi-vintage evidence
+    trail for FY2024 revenue: as-filed 1000 (acc-2024), corroborated 1000
+    (acc-2025), restated 950 (acc-2026), and a genuinely unexplained third
+    value 875 (acc-2027) -- exercises every relationship the classifier can
+    produce, including 'conflicting'.
+    """
+    conn = _seeded_conn()
+    # _seeded_conn() already inserts its own 'rf_rev_2024' raw_fact for
+    # acc-2024/FY2024 revenue -- remove it first so this fixture's own,
+    # differently-valued FY2024 revenue evidence trail (below) is the only
+    # evidence for that exact (accession, tag, period) triple, avoiding two
+    # same-accession/same-filed_at rows for the classifier's as-filed lookup
+    # to arbitrarily choose between.
+    conn.execute("DELETE FROM raw_facts WHERE fact_id = 'rf_rev_2024'")
+    filings_cols = (
+        "accession_number, cik, company_name, form_type, filed_at, period_of_report, "
+        "primary_document_url, ingestion_method"
+    )
+    for acc, filed_at, period_of_report in (
+        ("acc-2026", "2026-03-01", "2026-02-01"),
+        ("acc-2027", "2027-03-01", "2027-02-01"),
+    ):
+        conn.execute(
+            f"INSERT INTO filings ({filings_cols}) VALUES "
+            f"('{acc}', '0000027419', 'Target Corporation', '10-K', '{filed_at}', '{period_of_report}', "
+            "'https://example.invalid', 'manual_upload')"
+        )
+    # Revenue for FY2024 (period 2023-01-29..2024-02-03) as reported across 4 vintages,
+    # filed in this exact chronological order. The unexplained value (875) is deliberately
+    # filed BETWEEN the corroboration and the eventual restatement, not last -- otherwise
+    # it would itself become latest_restated's own 'selected' anchor by construction
+    # (the algorithm's "latest" is always whichever fact was filed most recently).
+    for fact_id, acc, value in (
+        ("rf_rev_2024_asfiled", "acc-2024", "1000000000"),    # filed 2024-03-01
+        ("rf_rev_2024_corrob", "acc-2025", "1000000000"),     # filed 2025-03-01
+        ("rf_rev_2024_conflict", "acc-2026", "875000000"),    # filed 2026-03-01 -- unexplained, mid-sequence
+        ("rf_rev_2024_restated", "acc-2027", "950000000"),    # filed 2027-03-01 -- the real, final restatement
+    ):
+        conn.execute(
+            "INSERT INTO raw_facts VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (fact_id, acc, "us-gaap", "RevenueFromContractWithCustomerExcludingAssessedTax", "USD",
+             "2023-01-29", "2024-02-03", "c-1", None, value, 6, 1, 0, "2026-09-16T00:00:00Z"),
+        )
+    conn.commit()
+    return conn
+
+
+def test_enrichment_classifies_corroborating_restated_and_original_historical():
+    conn = _seeded_conn_with_reclassification()
+    preflight = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+
+    def obs_for(fy, view, relationship):
+        return [
+            o for o in preflight.observations
+            if o.annual_fact_id == f"annual:revenue:{fy}:{view}" and o.relationship == relationship
+        ]
+
+    as_filed_selected = obs_for(2024, "as_originally_filed", "selected")
+    assert len(as_filed_selected) == 1
+    assert as_filed_selected[0].raw_fact_id == "rf_rev_2024_asfiled"
+    assert as_filed_selected[0].value_original == 1000.0
+
+    as_filed_corroborating = obs_for(2024, "as_originally_filed", "corroborating")
+    assert {o.raw_fact_id for o in as_filed_corroborating} == {"rf_rev_2024_corrob"}
+
+    as_filed_restated = obs_for(2024, "as_originally_filed", "restated")
+    assert {o.raw_fact_id for o in as_filed_restated} == {"rf_rev_2024_restated"}
+    assert as_filed_restated[0].value_original == 950.0
+
+    latest_selected = obs_for(2024, "latest_restated", "selected")
+    assert len(latest_selected) == 1
+    assert latest_selected[0].raw_fact_id == "rf_rev_2024_restated"
+    assert latest_selected[0].value_original == 950.0
+
+    latest_original_historical = obs_for(2024, "latest_restated", "original_historical")
+    assert {o.raw_fact_id for o in latest_original_historical} == {"rf_rev_2024_asfiled", "rf_rev_2024_corrob"}
+
+
+def test_enrichment_reports_unexplained_third_value_as_conflicting_under_both_views():
+    conn = _seeded_conn_with_reclassification()
+    preflight = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+
+    conflicting = [
+        o for o in preflight.observations
+        if o.raw_fact_id == "rf_rev_2024_conflict"
+    ]
+    assert len(conflicting) == 2  # once under each view
+    assert {o.relationship for o in conflicting} == {"conflicting"}
+    assert {o.annual_fact_id for o in conflicting} == {
+        "annual:revenue:2024:as_originally_filed", "annual:revenue:2024:latest_restated",
+    }
+    for o in conflicting:
+        assert o.value_original == 875.0
+        assert "unexplained" in o.classification_rationale
+
+
+def test_enrichment_never_mislabels_a_reclassification_as_conflicting():
+    """The COGS/SG&A and repurchase-style differences must not be labeled
+    'conflicting' when the two-view policy explains them."""
+    conn = _seeded_conn_with_reclassification()
+    preflight = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+    reclass_facts = {"rf_rev_2024_asfiled", "rf_rev_2024_corrob", "rf_rev_2024_restated"}
+    mislabeled = [o for o in preflight.observations if o.raw_fact_id in reclass_facts and o.relationship == "conflicting"]
+    assert mislabeled == []
+
+
+def test_enrichment_no_corroboration_scenario_produces_only_a_selected_observation():
+    """A metric/year with only ONE ever-filed value (no reclassification, no
+    repeat comparative disclosure) gets exactly one observation per view."""
+    conn = _seeded_conn()  # base fixture: exactly one raw_fact per period, no cross-referencing
+    preflight = compute_persistence_preflight(conn, {"cost_of_sales"}, {}, "v0-test", "2026-09-16")
+    for o in preflight.observations:
+        assert o.relationship == "selected"
+
+
+def test_enrichment_is_idempotent_across_repeated_preflight_and_persist_calls():
+    conn = _seeded_conn_with_reclassification()
+    preflight1 = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+    auth1 = _full_authorization(preflight_fact_count=preflight1.total_annual_facts)
+    persist_annual_facts(conn, preflight1, auth1)
+    first_obs_count = conn.execute("SELECT COUNT(*) FROM annual_fact_observations").fetchone()[0]
+
+    preflight2 = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+    assert {o.observation_id for o in preflight2.observations} == {o.observation_id for o in preflight1.observations}
+    auth2 = _full_authorization(preflight_fact_count=preflight2.total_annual_facts)
+    persist_annual_facts(conn, preflight2, auth2)
+    second_obs_count = conn.execute("SELECT COUNT(*) FROM annual_fact_observations").fetchone()[0]
+
+    assert first_obs_count == second_obs_count
+    dup_check = conn.execute(
+        "SELECT annual_fact_id, raw_fact_id, relationship, COUNT(*) c FROM annual_fact_observations "
+        "GROUP BY annual_fact_id, raw_fact_id, relationship HAVING c > 1"
+    ).fetchall()
+    assert dup_check == []
+
+
+def test_enrichment_does_not_change_annual_facts_or_lineage_row_counts():
+    """Enrichment adds observation rows only -- annual_facts/annual_lineage
+    counts and their own values must be unaffected."""
+    conn = _seeded_conn_with_reclassification()
+    preflight = compute_persistence_preflight(
+        conn, {"revenue", "cost_of_sales", "gross_profit"}, GROSS_PROFIT_DEF, "v0-test", "2026-09-16",
+    )
+    auth = _full_authorization(preflight_fact_count=preflight.total_annual_facts)
+    persist_annual_facts(conn, preflight, auth)
+
+    facts_before = conn.execute(
+        "SELECT annual_fact_id, value_normalized FROM annual_facts ORDER BY annual_fact_id"
+    ).fetchall()
+    lineage_before = conn.execute(
+        "SELECT annual_lineage_id FROM annual_lineage ORDER BY annual_lineage_id"
+    ).fetchall()
+
+    # Re-run with the identical (enriched) plan -- simulates the idempotent
+    # observation-enrichment path re-using the normal persist-annual command.
+    preflight2 = compute_persistence_preflight(
+        conn, {"revenue", "cost_of_sales", "gross_profit"}, GROSS_PROFIT_DEF, "v0-test", "2026-09-16",
+    )
+    auth2 = _full_authorization(preflight_fact_count=preflight2.total_annual_facts)
+    persist_annual_facts(conn, preflight2, auth2)
+
+    facts_after = conn.execute(
+        "SELECT annual_fact_id, value_normalized FROM annual_facts ORDER BY annual_fact_id"
+    ).fetchall()
+    lineage_after = conn.execute(
+        "SELECT annual_lineage_id FROM annual_lineage ORDER BY annual_lineage_id"
+    ).fetchall()
+    assert facts_before == facts_after
+    assert lineage_before == lineage_after
+
+
+def test_verify_persistence_integrity_flags_reclassification_completeness():
+    from target_cash.annual_persistence import verify_persistence_integrity
+
+    conn = _seeded_conn_with_reclassification()
+    preflight = compute_persistence_preflight(conn, {"revenue"}, {}, "v0-test", "2026-09-16")
+    auth = _full_authorization(preflight_fact_count=preflight.total_annual_facts)
+    persist_annual_facts(conn, preflight, auth)
+
+    report = verify_persistence_integrity(conn)
+    assert report["checks"]["every_reclassification_has_original_and_later_evidence"]["passed"] is True
+    assert report["checks"]["zero_duplicate_observation_keys"]["passed"] is True
+    assert report["checks"]["every_direct_fact_has_exactly_one_selected_observation"]["passed"] is True
+    conflicting_check = report["checks"]["conflicting_observations_reported_explicitly"]
+    assert conflicting_check["passed"] is True  # never a failure by itself
+    assert "rf_rev_2024_conflict" in conflicting_check["detail"]

@@ -142,7 +142,9 @@ class PersistencePreflight:
         return out
 
     def observations_by_relationship(self) -> dict[str, int]:
-        out: dict[str, int] = {"selected": 0, "corroborating": 0, "restated": 0, "conflicting": 0}
+        out: dict[str, int] = {
+            "selected": 0, "corroborating": 0, "restated": 0, "original_historical": 0, "conflicting": 0,
+        }
         for o in self.observations:
             out[o.relationship] = out.get(o.relationship, 0) + 1
         return out
@@ -159,6 +161,7 @@ class PersistencePreflight:
             "selected_observations": obs_by_rel["selected"],
             "corroborating_observations": obs_by_rel["corroborating"],
             "restated_observations": obs_by_rel["restated"],
+            "original_historical_observations": obs_by_rel["original_historical"],
             "conflicting_observations": obs_by_rel["conflicting"],
             "annual_fact_observations_total": len(self.observations),
             # This project's 18 reviewed derived-metric definitions all lineage
@@ -220,6 +223,149 @@ def _direct_citation(conn, metric: str, fiscal_year: int, view_key: str):
         return value, "USD" if metric != "diluted_eps" else "USDPERSHARE", fact_id, accession, filed_at
 
 
+def _all_annual_period_raw_facts(conn, metric: str, fiscal_year: int):
+    """Every raw_facts row (any accession, any filing vintage), never just
+    the as-filed or latest one, whose start/end date match this fiscal
+    year's exact ANNUAL period for this metric -- never a quarterly sub-
+    period. Ordered oldest-filed first, so all_facts[-1] is the most
+    recently filed (matching latest_restated_duration/instant's own
+    tie-break exactly). Returns (fact_id, accession_number, filed_at, value) tuples.
+    """
+    period = fiscal_period(conn, fiscal_year)
+    if not period:
+        return []
+    is_duration = metric in DURATION_METRICS
+    spec = DURATION_METRICS[metric] if is_duration else INSTANT_METRICS[metric]
+    taxonomy, tag = resolve_tag(spec, fiscal_year)
+    if is_duration:
+        rows = conn.execute(
+            """
+            SELECT rf.fact_id, rf.accession_number, f.filed_at, rf.value
+            FROM raw_facts rf JOIN filings f ON f.accession_number = rf.accession_number
+            WHERE rf.taxonomy=? AND rf.tag=? AND rf.start_date=? AND rf.end_date=?
+              AND rf.dimensional_context IS NULL
+            ORDER BY f.filed_at ASC, rf.accession_number ASC
+            """,
+            (taxonomy, tag, period["period_start"], period["period_end"]),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT rf.fact_id, rf.accession_number, f.filed_at, rf.value
+            FROM raw_facts rf JOIN filings f ON f.accession_number = rf.accession_number
+            WHERE rf.taxonomy=? AND rf.tag=? AND rf.end_date=?
+              AND rf.dimensional_context IS NULL AND rf.start_date IS NULL
+            ORDER BY f.filed_at ASC, rf.accession_number ASC
+            """,
+            (taxonomy, tag, period["period_end"]),
+        ).fetchall()
+    return [tuple(r) for r in rows]
+
+
+def _classify_direct_observations(
+    metric: str, fiscal_year: int, all_facts: list[tuple], as_filed_accession: str,
+    annual_fact_ids: dict[str, str],
+) -> list["PlannedObservation"]:
+    """Classifies EVERY known raw_fact for this (metric, fiscal_year) period
+    into observation rows for BOTH analytical views, from one shared
+    evidence pool -- not just the two facts already used to compute the
+    persisted values. `annual_fact_ids` maps {'as_filed': <annual_fact_id>,
+    'restated': <annual_fact_id>} for whichever views actually got a
+    persisted fact this fiscal year (a view missing from this dict is
+    skipped entirely -- no observation is ever attached to a fact that was
+    not itself persisted).
+
+    Value-based classification (never identity-based beyond the two
+    anchors), so multiple facts sharing the same value are handled
+    uniformly and a genuine third, unexplained value is never miscoded as
+    'restated'/'original_historical' just because it differs from the
+    anchor it's being compared to:
+
+    AS_ORIGINALLY_FILED anchor = the fiscal year's own authoritative 10-K fact.
+      - this fact: 'selected'
+      - another fact, same value: 'corroborating'
+      - another fact, value equals the eventual LATEST_RESTATED value: 'restated'
+        (evidence this was later restated to a different, specific value)
+      - anything else: 'conflicting' (a genuine, unexplained third value --
+        never assumed to be a corroboration or a known reclassification)
+    LATEST_RESTATED anchor = the single most-recently-filed fact for this period.
+      - this fact: 'selected'
+      - another fact, same value: 'corroborating'
+      - another fact, value equals the original AS_ORIGINALLY_FILED value
+        (and that value differs from the latest one): 'original_historical'
+        (the pre-restatement original, retained as historical evidence --
+        never 'restated', which would be backwards here, and never
+        'conflicting', which would misrepresent a documented, policy-
+        explained reclassification as an unresolved disagreement)
+      - anything else: 'conflicting'
+
+    An empty all_facts list, or no fact from the authoritative accession at
+    all, produces no observations (the caller separately excludes the fact
+    itself in that case) -- never a fabricated relationship.
+    """
+    if not all_facts:
+        return []
+    as_filed_matches = [f for f in all_facts if f[1] == as_filed_accession]
+    if not as_filed_matches:
+        return []
+    as_filed_fact = as_filed_matches[0]
+    as_filed_raw_fact_id = as_filed_fact[0]
+    as_filed_value = q6(metric, as_filed_fact[3])
+    latest_fact = all_facts[-1]
+    latest_raw_fact_id = latest_fact[0]
+    latest_value = q6(metric, latest_fact[3])
+
+    observations: list[PlannedObservation] = []
+
+    def _add(view_key, raw_fact_id, accession, filed_at, value, relationship, diff, rationale):
+        annual_fact_id = annual_fact_ids.get(view_key)
+        if annual_fact_id is None:
+            return
+        observations.append(PlannedObservation(
+            observation_id=f"annual_obs:{annual_fact_id}:{relationship}:{raw_fact_id}",
+            annual_fact_id=annual_fact_id, raw_fact_id=raw_fact_id,
+            accession_number=accession, filed_at=filed_at, relationship=relationship,
+            value_original=value, classification_rationale=rationale,
+        ))
+
+    for fact_id, accession, filed_at, raw_value in all_facts:
+        value = q6(metric, raw_value)
+        if fact_id == as_filed_raw_fact_id:
+            _add("as_filed", fact_id, accession, filed_at, value, "selected", None,
+                 f"authoritative source for {metric} FY{fiscal_year} (as_originally_filed)")
+        elif abs(value - as_filed_value) < 0.001:
+            _add("as_filed", fact_id, accession, filed_at, value, "corroborating", 0.0,
+                 f"later filing ({accession}) reports the same value for {metric} FY{fiscal_year}, "
+                 "corroborating the original filing")
+        elif abs(value - latest_value) < 0.001:
+            _add("as_filed", fact_id, accession, filed_at, value, "restated", value - as_filed_value,
+                 f"later filing ({accession}) restated {metric} FY{fiscal_year} from {as_filed_value} to {value}")
+        else:
+            _add("as_filed", fact_id, accession, filed_at, value, "conflicting", value - as_filed_value,
+                 f"unexplained value {value} for {metric} FY{fiscal_year} in {accession} -- matches neither "
+                 f"the as-filed value ({as_filed_value}) nor the latest-restated value ({latest_value})")
+
+    for fact_id, accession, filed_at, raw_value in all_facts:
+        value = q6(metric, raw_value)
+        if fact_id == latest_raw_fact_id:
+            _add("restated", fact_id, accession, filed_at, value, "selected", None,
+                 f"latest verified applicable observation for {metric} FY{fiscal_year} (latest_restated)")
+        elif abs(value - latest_value) < 0.001:
+            _add("restated", fact_id, accession, filed_at, value, "corroborating", 0.0,
+                 f"earlier filing ({accession}) already reported the same, now-selected value for "
+                 f"{metric} FY{fiscal_year}")
+        elif abs(value - as_filed_value) < 0.001:
+            _add("restated", fact_id, accession, filed_at, value, "original_historical", value - latest_value,
+                 f"original as-filed value for {metric} FY{fiscal_year} ({accession}), superseded by a "
+                 f"later restatement to {latest_value}")
+        else:
+            _add("restated", fact_id, accession, filed_at, value, "conflicting", value - latest_value,
+                 f"unexplained value {value} for {metric} FY{fiscal_year} in {accession} -- matches neither "
+                 f"the as-filed value ({as_filed_value}) nor the latest-restated value ({latest_value})")
+
+    return observations
+
+
 def compute_persistence_preflight(
     conn: sqlite3.Connection,
     eligible_metrics: set[str],
@@ -249,6 +395,12 @@ def compute_persistence_preflight(
 
         for fiscal_year in FISCAL_YEARS:
             period = fiscal_period(conn, fiscal_year)
+            # Populated only for is_direct, only for views that actually get a
+            # persisted fact this fiscal year -- feeds the full-evidence
+            # observation classification once both views have been examined
+            # (below), rather than duplicating the raw_facts scan per view.
+            direct_view_fact_ids: dict[str, str] = {}
+
             for view_key, schema_view in VIEW_KEY_TO_SCHEMA_VALUE.items():
                 cell = all_years[fiscal_year][view_key].get(metric, {})
                 status, value = cell.get("status"), cell.get("value")
@@ -280,13 +432,7 @@ def compute_persistence_preflight(
                         mapping_version=mapping_version, information_cutoff=information_cutoff,
                     )
                     preflight.facts.append(fact)
-                    preflight.observations.append(PlannedObservation(
-                        observation_id=f"annual_obs:{annual_fact_id}:selected:{raw_fact_id}",
-                        annual_fact_id=annual_fact_id, raw_fact_id=raw_fact_id,
-                        accession_number=accession, filed_at=filed_at or "", relationship="selected",
-                        value_original=q6(metric, raw_value),
-                        classification_rationale=f"authoritative source for {metric} FY{fiscal_year} ({schema_view})",
-                    ))
+                    direct_view_fact_ids[view_key] = annual_fact_id
                 else:
                     def_row = metric_definitions[metric]
                     unit = def_row["unit"]
@@ -316,6 +462,24 @@ def compute_persistence_preflight(
                             derived_fact_id=annual_fact_id, input_annual_fact_id=input_fact_id,
                             operation=role, sequence=sequence,
                         ))
+
+            # Full-evidence observation enrichment (2026-09-16 observation-
+            # completeness round): both views' worth of observations are
+            # classified together from ONE shared evidence pool -- every
+            # raw_fact any filing ever reported for this exact (metric,
+            # fiscal_year) annual period, across every accession -- rather
+            # than a single 'selected' row per view. Only for direct metrics
+            # (derived metrics have no raw XBRL evidence of their own to
+            # enrich); only for views that actually got a persisted fact
+            # this fiscal year (an excluded/BLOCKED view has no annual_fact_id
+            # to attach an observation to).
+            if is_direct and direct_view_fact_ids and period is not None:
+                all_facts = _all_annual_period_raw_facts(conn, metric, fiscal_year)
+                preflight.observations.extend(
+                    _classify_direct_observations(
+                        metric, fiscal_year, all_facts, period["authority_accession"], direct_view_fact_ids,
+                    )
+                )
 
     return preflight
 
@@ -686,6 +850,56 @@ def verify_persistence_integrity(conn: sqlite3.Connection) -> dict:
     record("target_defined_net_debt_never_persisted",
            conn.execute("SELECT COUNT(*) FROM annual_facts WHERE metric = 'target_defined_net_debt'").fetchone()[0] == 0,
            "target_defined_net_debt is permanently UNAVAILABLE by design; must never appear in annual_facts")
+
+    # --- Observation-completeness checks (2026-09-16 round) ----------------
+
+    exactly_one_selected = conn.execute(
+        "SELECT af.annual_fact_id FROM annual_facts af "
+        "WHERE af.direct_or_derived = 'direct' "
+        "AND (SELECT COUNT(*) FROM annual_fact_observations o WHERE o.annual_fact_id = af.annual_fact_id AND o.relationship = 'selected') != 1"
+    ).fetchall()
+    record("every_direct_fact_has_exactly_one_selected_observation", len(exactly_one_selected) == 0,
+           f"{len(exactly_one_selected)} direct fact(s) without exactly one selected observation: {[r[0] for r in exactly_one_selected[:5]]}")
+
+    duplicate_obs_keys = conn.execute(
+        "SELECT annual_fact_id, raw_fact_id, relationship, COUNT(*) c FROM annual_fact_observations "
+        "GROUP BY annual_fact_id, raw_fact_id, relationship HAVING c > 1"
+    ).fetchall()
+    record("zero_duplicate_observation_keys", len(duplicate_obs_keys) == 0,
+           f"{len(duplicate_obs_keys)} duplicate (annual_fact_id, raw_fact_id, relationship) key(s)")
+
+    # Every documented reclassification (any metric/fiscal_year pair with a
+    # 'restated' or 'original_historical' observation) must have evidence on
+    # BOTH sides: the AS_ORIGINALLY_FILED fact's own 'restated' pointer to the
+    # new value, AND the LATEST_RESTATED fact's own 'original_historical'
+    # pointer back to the original -- one-sided evidence would mean the
+    # reclassification is only half-recorded.
+    reclass_pairs = conn.execute(
+        """
+        SELECT af.metric, af.fiscal_year,
+               SUM(CASE WHEN af.analytical_view = 'as_originally_filed' AND o.relationship = 'restated' THEN 1 ELSE 0 END) AS restated_side,
+               SUM(CASE WHEN af.analytical_view = 'latest_restated' AND o.relationship = 'original_historical' THEN 1 ELSE 0 END) AS historical_side
+        FROM annual_fact_observations o JOIN annual_facts af ON af.annual_fact_id = o.annual_fact_id
+        WHERE o.relationship IN ('restated', 'original_historical')
+        GROUP BY af.metric, af.fiscal_year
+        """
+    ).fetchall()
+    one_sided = [(m, fy) for m, fy, restated_side, historical_side in reclass_pairs if restated_side == 0 or historical_side == 0]
+    record("every_reclassification_has_original_and_later_evidence", len(one_sided) == 0,
+           f"{len(reclass_pairs)} reclassified (metric, fiscal_year) pair(s) found; "
+           f"{len(one_sided)} one-sided (missing evidence on one side): {one_sided}")
+
+    conflicting_rows = conn.execute(
+        "SELECT af.metric, af.fiscal_year, af.analytical_view, o.raw_fact_id, o.accession_number, o.value_original, o.classification_rationale "
+        "FROM annual_fact_observations o JOIN annual_facts af ON af.annual_fact_id = o.annual_fact_id "
+        "WHERE o.relationship = 'conflicting'"
+    ).fetchall()
+    # 'conflicting' is never itself a failure -- a genuine, unresolved
+    # disagreement is a fact about the filings, not a bug in this pipeline.
+    # This check exists purely to REPORT any such rows explicitly (item 6:
+    # "or report them explicitly"), never to silently absorb them.
+    record("conflicting_observations_reported_explicitly", True,
+           f"{len(conflicting_rows)} conflicting observation(s): {[tuple(r) for r in conflicting_rows]}")
 
     all_passed = all(c["passed"] for c in checks.values())
     return {"all_passed": all_passed, "total_annual_facts": total_facts, "checks": checks}

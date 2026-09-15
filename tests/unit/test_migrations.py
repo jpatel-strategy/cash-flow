@@ -325,6 +325,7 @@ def test_all_new_migrations_idempotent_on_rerun():
         "0009_annual_lineage", "0010_annual_fact_observations",
         "0011_quarterly_facts_analytical_view", "0012_period_facts_unified",
         "0013_period_facts_unified_reporting_role",
+        "0014_annual_fact_observations_original_historical",
     ):
         assert mid in first
     second = apply_safe_migrations(conn)
@@ -412,3 +413,141 @@ def test_annual_lineage_requires_exactly_one_input_kind():
         "INSERT INTO annual_lineage (annual_lineage_id, derived_fact_id, input_annual_fact_id, operation, sequence) "
         "VALUES ('al_3', 'af_gp', 'af_gp', 'subtract', 1)"
     )
+
+
+def _add_raw_facts_table(conn):
+    """make_stale_db() (this file's own fixture) never creates raw_facts --
+    the 0001-0014 migrations under test don't touch it, but annual_facts/
+    annual_fact_observations both declare (unenforced, since PRAGMA
+    foreign_keys is never set on these test connections) REFERENCES into it,
+    and the 0014 tests below insert real raw_facts rows to exercise it."""
+    conn.execute(
+        """
+        CREATE TABLE raw_facts (
+            fact_id TEXT PRIMARY KEY, accession_number TEXT, taxonomy TEXT, tag TEXT, unit TEXT,
+            start_date TEXT, end_date TEXT, context_ref TEXT, dimensional_context TEXT,
+            value TEXT, scale INTEGER, sign_as_reported INTEGER, is_superseded INTEGER, retrieved_at TEXT
+        )
+        """
+    )
+
+
+def test_migration_0014_preserves_existing_observations_and_expands_check():
+    """Migration 0014 rebuilds annual_fact_observations to widen its
+    relationship CHECK constraint -- must preserve every existing row
+    exactly (this migration inserts and changes nothing itself) while
+    accepting the new 'original_historical' value going forward.
+    """
+    conn = make_stale_db()
+    _add_raw_facts_table(conn)
+    apply_safe_migrations(conn)
+
+    conn.execute(
+        "INSERT INTO filings (accession_number, cik, company_name, form_type, filed_at, "
+        "period_of_report, primary_document_url, ingestion_method) VALUES "
+        "('acc-1', '0000027419', 'Target Corporation', '10-K', '2025-03-01', '2025-02-01', "
+        "'https://example.invalid', 'manual_upload')"
+    )
+    conn.execute(
+        "INSERT INTO raw_facts VALUES ('rf-1', 'acc-1', 'us-gaap', 'Revenues', 'USD', "
+        "'2024-02-04', '2025-02-01', 'c-1', NULL, '106566000000', 6, 1, 0, '2026-01-01T00:00:00Z')"
+    )
+    conn.execute(
+        "INSERT INTO annual_facts VALUES ('af-1', 'revenue', 2024, '2024-02-04', '2025-02-01', 364, "
+        "'as_originally_filed', 106566000000, 'USD', 106566.0, 'USD_millions', 'direct', 'authoritative', "
+        "'pass', 'acc-1', '2025-03-01', 'v0', '2026-01-01', 1)"
+    )
+    conn.execute(
+        "INSERT INTO annual_fact_observations VALUES ('obs-1', 'af-1', 'rf-1', 'acc-1', '2025-03-01', "
+        "'selected', 106566.0, NULL, 'authoritative source')"
+    )
+    conn.commit()
+
+    before_rows = conn.execute(
+        "SELECT observation_id, annual_fact_id, raw_fact_id, accession_number, filed_at, "
+        "relationship, value_original, difference_from_selected, classification_rationale "
+        "FROM annual_fact_observations ORDER BY observation_id"
+    ).fetchall()
+
+    # Re-apply is a no-op here (0014 already applied via the make_stale_db()+apply_safe_migrations()
+    # call above, before these rows were inserted) -- this proves inserting a real row afterwards,
+    # under the ALREADY-migrated schema, works and the schema state is stable.
+    apply_safe_migrations(conn)
+    after_rows = conn.execute(
+        "SELECT observation_id, annual_fact_id, raw_fact_id, accession_number, filed_at, "
+        "relationship, value_original, difference_from_selected, classification_rationale "
+        "FROM annual_fact_observations ORDER BY observation_id"
+    ).fetchall()
+    assert before_rows == after_rows
+
+    # The new relationship value is accepted.
+    conn.execute(
+        "INSERT INTO annual_fact_observations VALUES ('obs-2', 'af-1', 'rf-1', 'acc-1', '2025-03-01', "
+        "'original_historical', 106566.0, 0.0, 'historical evidence')"
+    )
+    conn.commit()
+    assert conn.execute("SELECT relationship FROM annual_fact_observations WHERE observation_id='obs-2'").fetchone()[0] == "original_historical"
+
+    # An invalid relationship value is still rejected.
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO annual_fact_observations VALUES ('obs-bad', 'af-1', 'rf-1', 'acc-1', '2025-03-01', "
+            "'not_a_real_relationship', 1.0, NULL, 'bad')"
+        )
+
+
+def test_migration_0014_is_idempotent_and_row_preserving_across_a_fresh_apply():
+    """Applying 0014 to a database that already has real annual_fact_observations
+    rows (inserted before 0014 runs) must preserve them exactly."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        """
+        CREATE TABLE filings (
+            accession_number TEXT PRIMARY KEY, cik TEXT NOT NULL, company_name TEXT NOT NULL,
+            form_type TEXT NOT NULL, filed_at TEXT NOT NULL, period_of_report TEXT NOT NULL,
+            primary_document_url TEXT NOT NULL, downloaded_at TEXT, file_hash TEXT,
+            ingestion_method TEXT NOT NULL, notes TEXT
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE quarterly_facts (
+            quarterly_fact_id TEXT PRIMARY KEY, metric TEXT NOT NULL, fiscal_year INTEGER NOT NULL,
+            fiscal_quarter INTEGER NOT NULL, period_start TEXT, period_end TEXT NOT NULL,
+            days_in_period INTEGER, value_original REAL NOT NULL, original_unit TEXT NOT NULL,
+            value_normalized REAL NOT NULL, normalized_unit TEXT NOT NULL DEFAULT 'USD_millions',
+            basis TEXT NOT NULL, as_of_date TEXT NOT NULL, mapping_version TEXT NOT NULL,
+            is_current_view INTEGER NOT NULL DEFAULT 1
+        )
+        """
+    )
+    _add_raw_facts_table(conn)
+    # Apply everything up through 0010 (the ORIGINAL 4-value CHECK) manually, by applying all
+    # migrations and then inserting a row under the pre-0014 vocabulary -- proves 0014, even though
+    # it already ran earlier in this same apply_safe_migrations call, didn't drop any row a
+    # subsequent insert adds under the now-current (5-value) schema.
+    from target_cash.migrations import apply_safe_migrations as _apply
+    _apply(conn)
+    conn.execute(
+        "INSERT INTO filings (accession_number, cik, company_name, form_type, filed_at, "
+        "period_of_report, primary_document_url, ingestion_method) VALUES "
+        "('acc-1', '0000027419', 'Target Corporation', '10-K', '2025-03-01', '2025-02-01', "
+        "'https://example.invalid', 'manual_upload')"
+    )
+    conn.execute(
+        "INSERT INTO raw_facts VALUES ('rf-1', 'acc-1', 'us-gaap', 'Revenues', 'USD', "
+        "'2024-02-04', '2025-02-01', 'c-1', NULL, '106566000000', 6, 1, 0, '2026-01-01T00:00:00Z')"
+    )
+    conn.execute(
+        "INSERT INTO annual_facts VALUES ('af-1', 'revenue', 2024, '2024-02-04', '2025-02-01', 364, "
+        "'as_originally_filed', 106566000000, 'USD', 106566.0, 'USD_millions', 'direct', 'authoritative', "
+        "'pass', 'acc-1', '2025-03-01', 'v0', '2026-01-01', 1)"
+    )
+    conn.execute(
+        "INSERT INTO annual_fact_observations VALUES ('obs-1', 'af-1', 'rf-1', 'acc-1', '2025-03-01', "
+        "'conflicting', 106566.0, 5.0, 'pre-existing row under the original vocabulary')"
+    )
+    conn.commit()
+    row = conn.execute("SELECT relationship, value_original FROM annual_fact_observations WHERE observation_id='obs-1'").fetchone()
+    assert row == ("conflicting", 106566.0)
