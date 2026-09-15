@@ -231,12 +231,19 @@ def derive_flow_metric(metric: str, facts: list[RawFactRow]) -> DerivationOutcom
     # against the sum of directly-reported discrete quarters. Deliberately never
     # attempted at the annual level: annual == Q1+Q2+Q3+Q4 is tautological once
     # Q4 is defined as annual-minus-nine_month_YTD (see reconcile.py docstring).
+    # Every value compared here must be normalized to the same unit
+    # (USD_millions) before comparison, same as independent_quarter_validation
+    # already does -- raw_facts.value is unscaled USD, and compute_rounding_bound
+    # returns its bound in USD_millions, so comparing raw values against it
+    # would silently compare mismatched units.
     if direct_q2 is not None:
         outcome.ytd_consistency_results.append(
             check_ytd_consistency(
                 metric=metric, fiscal_year=2025, ytd_label="six_month_YTD",
-                directly_reported_ytd=(ytd6.value if ytd6 is not None else None),
-                sum_of_directly_reported_quarters=direct_q1.value + direct_q2.value,
+                directly_reported_ytd=(normalize_unit(ytd6.value, ytd6.unit) if ytd6 is not None else None),
+                sum_of_directly_reported_quarters=(
+                    normalize_unit(direct_q1.value, direct_q1.unit) + normalize_unit(direct_q2.value, direct_q2.unit)
+                ),
                 tolerance_absolute=compute_rounding_bound(num_directly_reported_components=3, num_ytd_derived_components=0),
                 ytd_fact_ids=frozenset({ytd6.fact_id}) if ytd6 is not None else frozenset(),
                 quarter_fact_ids=frozenset({direct_q1.fact_id, direct_q2.fact_id}),
@@ -246,8 +253,12 @@ def derive_flow_metric(metric: str, facts: list[RawFactRow]) -> DerivationOutcom
         outcome.ytd_consistency_results.append(
             check_ytd_consistency(
                 metric=metric, fiscal_year=2025, ytd_label="nine_month_YTD",
-                directly_reported_ytd=(ytd9.value if ytd9 is not None else None),
-                sum_of_directly_reported_quarters=direct_q1.value + direct_q2.value + direct_q3.value,
+                directly_reported_ytd=(normalize_unit(ytd9.value, ytd9.unit) if ytd9 is not None else None),
+                sum_of_directly_reported_quarters=(
+                    normalize_unit(direct_q1.value, direct_q1.unit)
+                    + normalize_unit(direct_q2.value, direct_q2.unit)
+                    + normalize_unit(direct_q3.value, direct_q3.unit)
+                ),
                 tolerance_absolute=compute_rounding_bound(num_directly_reported_components=4, num_ytd_derived_components=0),
                 ytd_fact_ids=frozenset({ytd9.fact_id}) if ytd9 is not None else frozenset(),
                 quarter_fact_ids=frozenset({direct_q1.fact_id, direct_q2.fact_id, direct_q3.fact_id}),
