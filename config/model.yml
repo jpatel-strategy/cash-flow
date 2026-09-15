@@ -26,55 +26,82 @@ units:
   decimal_places: 2
   arithmetic: "python.decimal.Decimal"   # never binary float for financial values
 
-# Category-specific reconciliation tolerances, approved 2026-09-14 (see docs/decisions.md),
-# replacing an earlier universal $1M / 0.5% placeholder. A single universal tolerance was
-# rejected because the four checks below test fundamentally different things: exact
-# subtraction of already-precise reported values has no reason to differ at all, while a
-# roll-forward of several distinct reported lines can accumulate the source filings' own
-# $1M rounding. None use a relative percentage — a relative tolerance scales with the
-# balance being checked, which would mask a fixed-dollar error (e.g. an omitted capex line)
-# in a large-magnitude figure, or be meaninglessly loose for a near-zero quarterly flow.
+# Validation methodology, corrected 2026-09-15 (see docs/decisions.md and
+# docs/accounting_policies.md for full derivation and worked examples). The
+# earlier "annual_vs_quarters" / "derived_quarter_calculation" categories were
+# REMOVED: comparing a sum of quarters against an annual total is tautological
+# whenever one quarter (always Q4 here) was derived as the residual — that
+# equality is algebraically guaranteed, not evidence about the data. That
+# class of self-consistency check is now an arithmetic invariant (see
+# src/target_cash/reconcile.py:check_arithmetic_invariant), which is reported
+# separately from genuine independent validation and never conflated with it.
+#
+# Three of the categories below use `compute_rounding_bound`, a documented
+# worst-case propagated-rounding bound — not an arbitrary flat figure. Each
+# independently-rounded reported component contributes half of Target's
+# reporting unit ($1M, so $0.5M) to the bound; a YTD-derived component
+# contributes twice that, since it inherits rounding error from both of the
+# two facts it was subtracted from. The bound is computed per check instance
+# from the actual number of such components feeding it (see
+# docs/accounting_policies.md worked examples for the annual-roll-forward and
+# independent-quarter-validation cases) — it is not a single fixed number
+# stored here. None of this uses a relative percentage: a relative tolerance
+# scales with the balance being checked, which would mask a fixed-dollar
+# error in a large-magnitude figure or be meaninglessly loose near zero.
 reconciliation_tolerance:
-  annual_vs_quarters:
-    directly_reported_flow:
-      absolute_usd_millions: 0
-      relative_pct: 0
-      rationale: >
-        Applies to metrics Target reports as a discrete 3-month figure in every 10-Q
-        (confirmed for revenue and cost of sales — see docs/decisions.md). Summing four
-        already-precise reported values and comparing to a fifth reported value should
-        match exactly; any nonzero difference means a mapping or period error, not rounding.
-    derived_ytd_flow:
-      absolute_usd_millions: 1.0
-      relative_pct: 0
-      rationale: >
-        Applies to metrics only available as YTD figures in 10-Qs (confirmed for operating
-        cash flow and D&A), so quarters are derived by subtraction before summing. Target's
-        own statements round to the nearest $1M; chained subtraction can accumulate at most
-        a few dollars of rounding drift, never more than $1M.
+  reporting_unit_usd_millions: 1.0   # Target rounds its statements to the nearest $1M;
+                                      # half of this is the per-component rounding bound
+
+  source_compatibility:
+    # No numeric tolerance — a precondition gate (entity, fiscal year, unit,
+    # accounting basis, consolidated scope, start/end dates, filing version,
+    # sign convention). Any failed dimension blocks the derivation outright;
+    # see reconcile.check_source_compatibility.
+    tolerance: "n/a — pass/fail precondition, not a numeric comparison"
+
+  arithmetic_invariant:
+    # No numeric tolerance — recomputing a derivation formula must produce
+    # exactly the stored value, or the code has a bug. This checks the code,
+    # not the data — see reconcile.check_arithmetic_invariant's docstring.
+    tolerance: "n/a — exact equality of a recomputation, not a data check"
+
+  independent_quarter_validation:
+    # Compares a YTD-derived quarter (2 rounding-error-contributing inputs)
+    # against a separately-filed discrete-quarter fact (1 rounding-error-
+    # contributing input) when one exists. Bound = compute_rounding_bound(
+    # num_directly_reported_components=1, num_ytd_derived_components=1) =
+    # (1 + 2*1) * (1.0/2) = $1.5M. When no independent fact exists (always
+    # true for Q4), the result is labeled "unavailable", never a pass.
+    worked_example_usd_millions: 1.5
+
+  ytd_consistency:
+    # Compares a directly-filed YTD fact against the sum of three directly-
+    # filed discrete quarters — genuinely independent since neither side was
+    # derived from the other. Bound = compute_rounding_bound(
+    # num_directly_reported_components=4, num_ytd_derived_components=0) =
+    # (4 + 0) * (1.0/2) = $2.0M.
+    worked_example_usd_millions: 2.0
+
   cash_rollforward:
-    absolute_usd_millions: 1.0
-    relative_pct: 0
-    rationale: >
-      Beginning cash + CFO + CFI + CFF + FX effect vs. reported ending cash. All inputs are
-      already $1M-rounded reported figures, so the roll-forward should tie out to that same
-      unit. Tested in USD millions of cash (billions in magnitude for Target), where a
-      relative tolerance would hide real dollar-sized errors.
-  derived_quarter_calculation:
-    absolute_usd_millions: 0
-    relative_pct: 0
-    rationale: >
-      Q2 = 6mo YTD - Q1, Q3 = 9mo YTD - 6mo YTD, Q4 = annual - 9mo YTD. Pure subtraction of
-      two already-reported values in their original (pre-normalization) unit; any nonzero
-      result means a mismatched fiscal year, unit, scope, or accounting basis — exactly the
-      failure normalize.py's compatibility checks exist to catch, not tolerate.
+    # Beginning cash + CFO + CFI + CFF + FX effect vs. reported ending cash.
+    # The component count (and therefore the bound) depends on whether CFO/
+    # CFI/CFF/FX for the specific period being checked are directly reported
+    # (true for an annual roll-forward) or YTD-derived (true for a Q2/Q3
+    # roll-forward, since Target's cash-flow statement is YTD-only in 10-Qs).
+    # Annual worked example: 6 directly-reported components (beginning cash,
+    # CFO, CFI, CFF, FX, ending cash) -> compute_rounding_bound(6, 0) =
+    # (6 + 0) * (1.0/2) = $3.0M. The residual is always reported, even when
+    # it falls inside the bound — never silently absorbed.
+    worked_example_annual_usd_millions: 3.0
+
   excel_vs_python:
+    # Kept separate from the rounding-bound method above (per explicit
+    # instruction): Excel and Python compute the identical formula on
+    # identical inputs, so this is not about propagated filing-rounding at
+    # all — any difference should only be binary-float vs. Decimal rounding
+    # noise at the last displayed digit.
     absolute_usd_millions: 0.01
     relative_pct: 0
-    rationale: >
-      One unit at the 2-decimal USD_millions display precision. Excel and Python compute
-      the identical formula on identical inputs; any difference should only be binary-float
-      vs. Decimal rounding noise at the last displayed digit, never a modeling divergence.
 
 data_source:
   mode: "manual_upload"       # this Claude Code remote environment has no network egress

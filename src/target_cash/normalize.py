@@ -31,6 +31,11 @@ class PeriodSpec:
     start_date: str
     end_date: str
     value: Decimal
+    cik: str = ""
+    dimensional_context: Optional[str] = None  # None = consolidated; anything else = segment/member scope
+    accession_number: str = ""
+    is_superseded: bool = False
+    sign_as_reported: int = 1
 
 
 @dataclass(frozen=True)
@@ -63,16 +68,32 @@ def normalize_unit(value: Decimal, original_unit: str, normalized_unit: str = "U
 
 
 def _assert_compatible(a: PeriodSpec, b: PeriodSpec) -> None:
-    if a.fiscal_year != b.fiscal_year:
+    """Precondition gate on two facts before any subtraction combines them.
+
+    Delegates entirely to reconcile.check_source_compatibility (including the
+    start-date dimension) so the derivation path here — which must raise and
+    refuse to compute — and the audit/reporting path exposed to callers who
+    want a structured pass/fail record share one single definition of
+    "compatible". See docs/decisions.md, 2026-09-15 methodology correction.
+    """
+    from target_cash.reconcile import check_source_compatibility  # local import avoids a module cycle
+
+    result = check_source_compatibility(
+        check_name="normalize._assert_compatible",
+        cik_a=a.cik, cik_b=b.cik,
+        fiscal_year_a=a.fiscal_year, fiscal_year_b=b.fiscal_year,
+        unit_a=a.unit, unit_b=b.unit,
+        accounting_basis_a=a.accounting_basis, accounting_basis_b=b.accounting_basis,
+        dimensional_context_a=a.dimensional_context, dimensional_context_b=b.dimensional_context,
+        start_date_a=a.start_date, start_date_b=b.start_date,
+        accession_a=a.accession_number, accession_b=b.accession_number,
+        is_superseded_a=a.is_superseded, is_superseded_b=b.is_superseded,
+        sign_as_reported_a=a.sign_as_reported, sign_as_reported_b=b.sign_as_reported,
+    )
+    if not result.passed:
         raise NormalizationError(
-            f"Fiscal year mismatch: {a.fiscal_year} vs {b.fiscal_year}; cannot combine periods across fiscal years."
-        )
-    if a.unit != b.unit:
-        raise NormalizationError(f"Unit mismatch: {a.unit} vs {b.unit}; cannot combine without explicit conversion.")
-    if a.accounting_basis != b.accounting_basis:
-        raise NormalizationError(
-            f"Accounting basis mismatch: {a.accounting_basis} vs {b.accounting_basis}; "
-            "likely a restatement or standard adoption between the two periods. Stop and review."
+            f"Incompatible source facts on: {', '.join(result.failed_dimensions)} "
+            f"(accessions {a.accession_number!r} and {b.accession_number!r}). {result.detail}"
         )
 
 
@@ -80,10 +101,6 @@ def derive_q2(six_month_ytd: PeriodSpec, q1: PeriodSpec) -> Decimal:
     if six_month_ytd.scope != "six_month_YTD" or q1.scope != "Q1":
         raise NormalizationError("derive_q2 requires a six_month_YTD period and a Q1 period.")
     _assert_compatible(six_month_ytd, q1)
-    if q1.start_date != six_month_ytd.start_date:
-        raise NormalizationError(
-            "Q2 derivation requires Q1 and the 6-month YTD period to share the same start date."
-        )
     return six_month_ytd.value - q1.value
 
 
@@ -91,8 +108,6 @@ def derive_q3(nine_month_ytd: PeriodSpec, six_month_ytd: PeriodSpec) -> Decimal:
     if nine_month_ytd.scope != "nine_month_YTD" or six_month_ytd.scope != "six_month_YTD":
         raise NormalizationError("derive_q3 requires a nine_month_YTD period and a six_month_YTD period.")
     _assert_compatible(nine_month_ytd, six_month_ytd)
-    if nine_month_ytd.start_date != six_month_ytd.start_date:
-        raise NormalizationError("Q3 derivation requires both YTD periods to share the same start date.")
     return nine_month_ytd.value - six_month_ytd.value
 
 
@@ -100,8 +115,6 @@ def derive_q4(annual: PeriodSpec, nine_month_ytd: PeriodSpec) -> Decimal:
     if annual.scope != "annual" or nine_month_ytd.scope != "nine_month_YTD":
         raise NormalizationError("derive_q4 requires an annual period and a nine_month_YTD period.")
     _assert_compatible(annual, nine_month_ytd)
-    if annual.start_date != nine_month_ytd.start_date:
-        raise NormalizationError("Q4 derivation requires the annual and 9-month YTD periods to share the same start date.")
     return annual.value - nine_month_ytd.value
 
 

@@ -69,16 +69,105 @@ appended, never rewritten, so the reasoning behind a later change stays visible.
   `config/model.yml` — see the filing matrix and blocking questions delivered
   alongside this entry for the approval request.
 
+## 2026-09-14 — Fiscal year, cutoff, and initial tolerance framework approved, then corrected
+
+- Project owner approved fiscal 2025 as the proof year and `2026-09-14` as the
+  information cutoff. Activated in `config/model.yml`.
+- Project owner approved a first tolerance framework (four categories:
+  directly-reported annual-vs-quarters, YTD-derived annual-vs-quarters, cash
+  roll-forward, Excel-vs-Python), which was activated in `config/model.yml`.
+- **This framework was superseded the same day** — see the next entry. It is
+  recorded here, not deleted, so the reasoning that led to the correction
+  stays visible.
+
+## 2026-09-15 — Validation methodology corrected: arithmetic invariants vs. independent validation
+
+The project owner identified a substantive flaw in the approach above and
+required it be corrected before any tolerance is treated as permanent. Full
+correction implemented in `src/target_cash/reconcile.py`,
+`src/target_cash/normalize.py`, `src/target_cash/validation.py`,
+`config/model.yml`, and `docs/accounting_policies.md` ("Validation
+methodology" section). Summary of the correction:
+
+- **The flaw**: the prior "annual equals sum of quarters" check was reported
+  as if it were an independent reconciliation. It is not, whenever the fourth
+  quarter is derived as `annual - Q1 - Q2 - Q3` (equivalently
+  `annual - nine_month_YTD`) — the equality is then algebraically guaranteed
+  by construction, proving only that the subtraction was coded correctly, not
+  that the underlying data is accurate. The same conflation applied to
+  checking `Q1 + Q2 == six_month_YTD` when Q2 was itself defined as
+  `six_month_YTD - Q1`.
+- **The fix**: three validation layers, kept structurally distinct and never
+  conflated in code, config, or reported output:
+  1. **Source compatibility** (`check_source_compatibility`) — a precondition
+     on entity, fiscal year, unit, accounting basis, consolidated scope,
+     start/end dates, filing version, and sign convention, checked before any
+     subtraction is attempted. No numeric tolerance; pass/fail.
+  2. **Arithmetic invariant** (`check_arithmetic_invariant`) — confirms a
+     derivation formula was applied correctly by recomputing it. Explicitly
+     documented as a code-correctness check, never reported as data
+     validation. This replaces the old "annual equals quarters" /
+     "derived_quarter_calculation" categories.
+  3. **Independent quarter validation** (`check_independent_quarter_validation`,
+     `check_ytd_consistency`) — the only checks that compare a derived value
+     against a fact genuinely not used to produce it: a directly-reported
+     discrete quarter (Target files these for revenue and cost of sales,
+     confirmed via Company Facts reconnaissance) or a directly-reported YTD
+     figure compared against the sum of directly-reported discrete quarters.
+     When no independent fact exists — always true for Q4 — the result is
+     labeled exactly `"arithmetic invariant passed; independent quarter
+     validation unavailable"`, per the project owner's required wording,
+     never silently counted as a pass.
+- **Tolerance redesign**: `compute_rounding_bound` replaces every flat-figure
+  guess with a worst-case propagated-rounding bound derived from how many
+  independently-rounded reported facts feed the specific check: each
+  directly-reported component contributes half of Target's $1M reporting
+  unit ($0.5M); each YTD-derived component contributes twice that ($1.0M),
+  since it inherits rounding error from both of its inputs. Worked examples
+  in `config/model.yml` and `docs/accounting_policies.md`. The residual is
+  always reported, even when it falls inside the bound. Excel-vs-Python
+  tolerance stays a separate, flat $0.01M figure, per explicit instruction —
+  it tests binary-float-vs-Decimal noise on identical inputs, not propagated
+  filing-rounding, so the rounding-bound method does not apply to it.
+- `config/model.yml: reconciliation_tolerance` rewritten accordingly; the
+  approved-then-superseded framework above is no longer active.
+
+## 2026-09-15 — Uploaded "FY2025 10-K" was actually SEC's automated-traffic block page
+
+The file uploaded as Target's FY2025 10-K (`tgt-20260131-10k.htm`) is not the
+filing — its content is SEC's `"Your Request Originates from an Undeclared
+Automated Tool"` rate-limit/block page, meaning whatever process fetched it
+was blocked by SEC before it could retrieve the real document. Per the
+project's standing rule that missing data is not zero and unverified claims
+are never treated as reported facts: none of the project owner's stated
+figures for cash, D&A, the net-income bridge, or accounts payable have been
+independently confirmed against the actual statement, even though several
+match this session's earlier Company Facts reconnaissance. A properly-fetched
+copy (a normal browser session viewing/saving the page, not a script) has
+been requested. Findings A–D from the project owner's message remain
+**open**, not resolved, until that document is inspected directly.
+
 ## Pending decisions (not yet made — recorded so they aren't quietly defaulted)
 
-- **Information cutoff date**: cannot be fixed until the SEC filing inventory
-  (submissions JSON) is available and we can see what was actually public by a
-  candidate cutoff.
-- **Proof fiscal year**: which complete fiscal year (4 quarters + opening cash)
-  to use for the first data gate — deferred until the filing inventory is seen.
-- **Reconciliation tolerance**: placeholder of $1.0M absolute / 0.5% relative in
-  `config/model.yml`; to be revisited once real filings show Target's actual
-  reporting precision.
+- **Cash mapping** (finding A): which of `Cash`, `CashCashEquivalentsAndShortTermInvestments`,
+  or `CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents` backs the
+  actual balance-sheet "Cash and cash equivalents" line and the cash-flow
+  statement's roll-forward line — blocked on inspecting the real 10-K (see
+  2026-09-15 entry above); do not select a tag on value-match alone.
+  Preserve all candidate tags in `raw_facts` regardless of which is selected.
+- **D&A treatment** (finding B): whether/how the $3,134M cash-flow add-back
+  and the $2,617M income-statement line (exclusive of D&A in cost of sales)
+  are both represented without double-counting D&A as an operating expense —
+  blocked on the real 10-K's statement presentation.
+- **Net-income bridge** (finding C): whether a ~$95M net-other-income line
+  reconciles operating income to net earnings — blocked on the real 10-K.
+- **Accounts payable gap** (finding D): cause of the Q1/Q3 FY2025 gaps between
+  the reported `IncreaseDecreaseInAccountsPayable` YTD figure and the
+  balance-sheet point-in-time delta. Explicitly **not** attributed to the
+  purchases-proxy approximation — book overdrafts and supplier-finance
+  (payables factoring) arrangements are noted as possible reconciling items,
+  to be checked against the relevant 10-Q statements and notes. Left
+  unresolved until then.
 - **Net income method** (explicit interest/tax vs. net-margin simplification):
   deferred to the driver-model milestone; must not be decided until the
   income-statement presentation is inspected for embedded D&A.

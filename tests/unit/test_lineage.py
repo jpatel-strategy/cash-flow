@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from target_cash.lineage import find_facts_missing_lineage, link_direct, link_ytd_subtraction
+from target_cash.reconcile import check_arithmetic_invariant
 from target_cash.validation import run_validation
 
 
@@ -28,15 +31,20 @@ def test_find_facts_missing_lineage_empty_when_all_linked():
     assert missing == []
 
 
-def test_validation_gate_fails_when_a_derived_fact_has_no_lineage():
+def test_validation_gate_fails_when_a_derived_fact_has_no_lineage_even_if_checks_pass():
     links = [link_direct("qf_1", "rf_1")]
-    summary = run_validation(reconciliation_results=[], derived_fact_ids=["qf_1", "qf_2"], lineage_links=links)
-    assert not summary.passed
+    passing_check = check_arithmetic_invariant("some_check", Decimal("1"), Decimal("1"))
+    summary = run_validation(
+        derived_fact_ids=["qf_1", "qf_2"],
+        lineage_links=links,
+        arithmetic_invariant_results=[passing_check],
+    )
+    assert not summary.passed  # missing lineage on qf_2 fails the gate despite the passing check
     assert summary.facts_missing_lineage == ["qf_2"]
 
 
 def test_validation_gate_fails_with_zero_checks_run():
-    # An empty validation run must not report success by default.
-    summary = run_validation(reconciliation_results=[], derived_fact_ids=[], lineage_links=[])
+    # An empty validation run must not report success by default, even with no missing lineage.
+    summary = run_validation(derived_fact_ids=[], lineage_links=[])
     assert not summary.passed
     assert summary.to_dict()["checks_run"] == 0

@@ -177,15 +177,11 @@ def cmd_validate(args: argparse.Namespace) -> int:
     conn = _connect_db(config)
     conn.row_factory = sqlite3.Row
 
-    # The four category-specific tolerances live under config['reconciliation_tolerance']
-    # (see config/model.yml and docs/decisions.md). Each of the checks below will read the
-    # tolerance for its own category once it is wired to real quarterly_facts — there is
-    # nothing to check against yet, so no tolerance lookup happens here.
-    #
-    # Annual totals for comparison must come from a directly-reported annual fact, not be
-    # inferred from the quarters being reconciled — that would be circular.
-    reconciliation_results = []
-
+    # The tolerance methodology (source compatibility / arithmetic invariant / independent
+    # quarter validation / cash-rollforward rounding bound / Excel-vs-Python) lives under
+    # config['reconciliation_tolerance'] (see config/model.yml and docs/decisions.md).
+    # Each check category is populated once real quarterly_facts and their source raw_facts
+    # exist — there is nothing to check yet, so every category below is empty.
     derived_fact_ids = [
         r["quarterly_fact_id"]
         for r in conn.execute(
@@ -198,17 +194,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     lineage_links = [LineageLink(r["derived_fact_id"], r["input_fact_id"], r["operation"]) for r in lineage_rows]
     conn.close()
 
-    summary = run_validation(reconciliation_results, derived_fact_ids, lineage_links)
+    summary = run_validation(derived_fact_ids, lineage_links)
     output = summary.to_dict()
     output["command"] = "validate"
-    output["detail"] = (
-        output.get("detail")
-        or (
+    if output["checks_run"] == 0:
+        output["detail"] = (
             "No quarterly facts have been ingested yet, so the first data gate cannot pass. "
             "This is the correct state until real filing data is normalized — see docs/limitations.md."
-            if not reconciliation_results else None
         )
-    )
     print(json.dumps(output, default=str))
     return 0 if summary.passed else 1
 

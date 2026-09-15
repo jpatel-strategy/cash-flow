@@ -14,7 +14,11 @@ from target_cash.normalize import (
 )
 
 
-def make_period(scope, value, start="2024-02-01", end=None, fiscal_year=2024, unit="USD", basis="US-GAAP-2024"):
+def make_period(
+    scope, value, start="2024-02-01", end=None, fiscal_year=2024, unit="USD", basis="US-GAAP-2024",
+    cik="0000027419", dimensional_context=None, accession="0000027419-24-000001",
+    is_superseded=False, sign_as_reported=1,
+):
     return PeriodSpec(
         fiscal_year=fiscal_year,
         scope=scope,
@@ -23,6 +27,11 @@ def make_period(scope, value, start="2024-02-01", end=None, fiscal_year=2024, un
         start_date=start,
         end_date=end or start,
         value=to_decimal(value),
+        cik=cik,
+        dimensional_context=dimensional_context,
+        accession_number=accession,
+        is_superseded=is_superseded,
+        sign_as_reported=sign_as_reported,
     )
 
 
@@ -91,6 +100,45 @@ def test_derive_q2_rejects_wrong_scope_labels():
     ytd6 = make_period("six_month_YTD", "210")
     with pytest.raises(NormalizationError):
         derive_q2(ytd6, not_q1)
+
+
+def test_derive_q2_rejects_mismatched_entity():
+    q1 = make_period("Q1", "100", cik="0000027419")
+    ytd6 = make_period("six_month_YTD", "210", cik="0000320193")  # a different filer's CIK
+    with pytest.raises(NormalizationError, match="entity"):
+        derive_q2(ytd6, q1)
+
+
+def test_derive_q2_rejects_non_consolidated_dimensional_context():
+    q1 = make_period("Q1", "100", dimensional_context=None)
+    ytd6 = make_period("six_month_YTD", "210", dimensional_context="SegmentMember")
+    with pytest.raises(NormalizationError, match="consolidated_scope"):
+        derive_q2(ytd6, q1)
+
+
+def test_derive_q2_rejects_superseded_input_mixed_with_current():
+    q1 = make_period("Q1", "100", is_superseded=False)
+    ytd6 = make_period("six_month_YTD", "210", is_superseded=True)
+    with pytest.raises(NormalizationError, match="filing_version"):
+        derive_q2(ytd6, q1)
+
+
+def test_derive_q2_rejects_mismatched_sign_convention():
+    q1 = make_period("Q1", "100", sign_as_reported=1)
+    ytd6 = make_period("six_month_YTD", "210", sign_as_reported=-1)
+    with pytest.raises(NormalizationError, match="sign_convention"):
+        derive_q2(ytd6, q1)
+
+
+def test_derive_q2_reports_every_failed_dimension_at_once():
+    q1 = make_period("Q1", "100", cik="0000027419", fiscal_year=2024, unit="USD")
+    ytd6 = make_period("six_month_YTD", "210", cik="0000320193", fiscal_year=2023, unit="USD_millions")
+    with pytest.raises(NormalizationError) as excinfo:
+        derive_q2(ytd6, q1)
+    message = str(excinfo.value)
+    assert "entity" in message
+    assert "fiscal_year" in message
+    assert "unit" in message
 
 
 def test_point_in_time_fact_is_never_a_difference():
