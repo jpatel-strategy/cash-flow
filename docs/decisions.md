@@ -1335,3 +1335,85 @@ validation entry). Every number reconciles exactly to a specific, named
 cause — none is unexplained.
 
 148 tests passing (was 138).
+
+## 2026-09-15 — Milestone 1 first analytical persistence (conditionally authorized and executed)
+
+All conditions the project owner set for conditional persistence were met
+and independently re-verified immediately before writing: `gate_passed=true`,
+`checks_failed=0`, `checks_blocked=0`, `net_change_in_cash` Q4 = exactly
++$1,666M, all 4 `cash_movement` checks passed, all 4
+`cash_flow_composition` checks passed, database backup succeeded, the new
+`persist_instant_facts` function's transaction tests passed (4 new tests:
+selected+corroborating observations written correctly, idempotent on
+repeated calls, entire batch rolled back on a real failure), and the git
+working tree was clean after the sign-policy correction commit
+(`8925310`).
+
+**Backup**: `<scratchpad>/db_backups/target_cash.db.before-persist-milestone1.20260915T043629Z`,
+SHA-256 `256491a3a2754a3d2de501efc81df5e27040a05e4227ae58f86a60d3e1a98330` —
+confirmed identical to the live database immediately before persisting, and
+confirmed to now DIFFER from the live database's post-persistence hash
+(`772e6ad075c8733b8f6e404ea2ff6a1308d69d7d68500ee7c3bce53cb167fcf7`), proving
+the backup genuinely preserves the pre-persistence state rather than having
+been silently overwritten.
+
+**Database counts:**
+
+| Table | Before | After |
+|---|---|---|
+| filings | 5 | 5 |
+| raw_facts | 688 | 688 |
+| quarterly_facts | 0 | 28 |
+| lineage | 0 | 45 |
+| instant_facts | 0 | 10 |
+| instant_fact_observations | 0 | 18 |
+
+**Persisted** (all 9 reviewed metrics, every quarter/instant each derived
+with zero errors — nothing candidate_unverified, blocked, or unavailable
+was written):
+
+- 7 flow metrics × 4 FY2025 quarters = 28 `quarterly_facts` rows, 45
+  `lineage` rows, via `persist_all_outcomes`: `net_other_income`,
+  `operating_cash_flow`, `investing_cash_flow`, `financing_cash_flow`,
+  `net_change_in_cash`, `depreciation_amortization_opex`,
+  `depreciation_amortization_cfo_addback`.
+- 2 point-in-time metrics × 5 FY2025 instants = 10 `instant_facts` rows, 18
+  `instant_fact_observations` rows, via `persist_instant_facts`:
+  `cash_and_equivalents_balance_sheet`, `cash_and_equivalents_rollforward`.
+  The 2025-02-01 opening instant for each carries 1 `selected` + 3
+  `corroborating` observations (the FY2024 10-K plus the three agreeing
+  FY2025 filings); every other instant carries 1 `selected` observation
+  only (no cross-filing repetition at those dates).
+
+**Excluded, as required**: no `candidate_unverified` metric (`revenue`,
+`net_income`, `accounts_payable`, and 14 others all remain unmapped/
+unreviewed); no synthetic FX fact (FX was never mapped to any metric — the
+exclusion is structural, not a filtered-out row); no unresolved
+accounts-payable interpretation; no inferred value lacking lineage (every
+persisted row's lineage/observations were verified present below).
+
+**Post-persistence verification, all clean:**
+- `normalize` (no `--persist-derived`) re-run: `derivation_persisted=false`,
+  `quarterly_facts_computed_this_run=38` (matches what's persisted),
+  `quarterly_facts_in_db=28` (unchanged — no duplication), `raw_facts_newly_inserted=0`.
+- `validate` re-run against the persisted facts: identical totals to the
+  pre-persistence dry-run (`checks_run=79, checks_passed=62, checks_failed=0,
+  checks_blocked=0, checks_unavailable=17, gate_passed=true`),
+  `facts_missing_lineage=[]`.
+- Full test suite: 148 passed.
+- Duplicate check: zero duplicate `(metric, fiscal_year, fiscal_quarter)` in
+  `quarterly_facts`; zero duplicate canonical key in `instant_facts`.
+- Orphan-lineage check: zero `lineage`/`instant_fact_observations` rows
+  pointing to a nonexistent derived or source fact.
+- Source-to-derived lineage completeness: every `quarterly_facts` row has
+  at least one `lineage` row; every `instant_facts` row has at least one
+  observation including exactly one `selected` observation.
+- Instant canonical uniqueness: 10 `instant_facts` rows, 10 distinct
+  `(metric, as_of_date, accounting_basis, consolidated_scope,
+  analytical_view)` keys.
+
+**Not persisted** (per instruction, still open): `interest_expense`,
+`income_tax_expense`, `net_income` (ambiguity unresolved), `accounts_payable`
+(interim gaps unresolved), and every other `candidate_unverified` metric.
+The instant-fact `latest_restated` analytical view remains unused — no
+restated filing has been encountered.
