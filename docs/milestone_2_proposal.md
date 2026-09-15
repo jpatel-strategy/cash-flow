@@ -1,347 +1,441 @@
 # Milestone 2 Proposal: Five-Year Historical Financial Model and Driver Architecture
 
-**Status: DELIVERABLES FOR REVIEW. Nothing in this milestone has been persisted
-as an analytical fact. No schema in this document has been implemented. No
-mapping below is marked `reviewed`. No forecasting, DCF, Excel, Power BI, or
-website work has begun.** This document is the complete Milestone 2
-deliverable package per the governing instruction and stops for reviewer
-approval before any further action.
+**Status: REVISED after a methodology correction. DELIVERABLES FOR REVIEW.**
+Nothing in this milestone has been persisted as an annual analytical fact.
+No schema in this document has been implemented. No mapping below is marked
+`reviewed`. No forecasting, DCF, Excel, Power BI, or website work has begun.
 
-Milestone 1 (repository setup and four-quarter data proof) is frozen at
-commit `879ac2d` (phrasing corrected at `c9f11ed`) — see
-`docs/milestone_1_evidence.md`.
+## Correction notice (read first)
+
+The first version of this document contained a methodology error: it
+claimed FY2023 could never have primary-filing authority under this
+project's filing set, and — chronologically impossible — that FY2023 would
+appear as a comparative in the FY2022 10-K (a filing that predates FY2023
+and cannot contain it). Both claims were wrong. The actual gap was simply
+that this project's source manifest was missing the FY2023 10-K itself.
+
+**Correction applied:** the FY2023 10-K (accession `0000027419-24-000032`),
+FY2022 10-K (accession `0000027419-23-000015`), and FY2021 10-K (accession
+`0000027419-22-000007`) were supplied by the project owner, verified,
+hash-registered, and ingested. **The full five-year authoritative filing
+set (FY2021-FY2025) is now in place.** Full detail of the correction is in
+`docs/decisions.md`'s 2026-09-15 "Methodology correction" entry.
+
+Re-examining each year through its *own* primary filing — rather than
+through a later filing's comparative column, which is what the first pass
+had no choice but to do for FY2021/FY2022/FY2023 — surfaced real findings
+that the first pass could not have seen: two genuine reclassifications, two
+tag migrations across filing vintages, and an unresolved debt-reconciliation
+gap. These are documented in full below and in `docs/decisions.md`. **Every
+finding from the first version of this document is downgraded to
+PROVISIONAL and reassessed here against the newly authoritative sources.**
+
+---
 
 ## Table of contents
 
-1. [Source coverage](#1-source-coverage)
-2. [Financial definitions](#3-financial-definitions)
-3. [Accounting consistency — 53-week fiscal year and comparability](#4-accounting-consistency)
-4. [Five-year mapping matrix](#5-five-year-mapping-matrix)
-5. [Annual historical dry-run table (FY2022-FY2025)](#2-annual-historical-dry-run-table)
-6. [Driver dictionary](#7-driver-dictionary)
-7. [Proposed historical analytical schema](#6-proposed-analytical-schema)
-8. [Validation plan and dry-run results](#8-validation-plan)
-9. [Unresolved mappings and accounting limitations](#unresolved-and-limitations)
-10. [Tests executed](#tests-executed)
-11. [Git diff summary](#git-diff-summary)
+1. [Source coverage — corrected, complete inventory](#1-source-coverage)
+2. [Authority framework](#3-authority-framework)
+3. [Financial definitions](#4-financial-definitions)
+4. [Accounting consistency — 53-week fiscal year](#5-accounting-consistency)
+5. [Five-year mapping matrix — revised](#6-five-year-mapping-matrix)
+6. [Annual historical dry-run table (FY2021-FY2025) — provisional](#7-annual-dry-run-table)
+7. [Debt reconciliation](#8-debt-reconciliation)
+8. [Driver dictionary](#9-driver-dictionary)
+9. [Proposed analytical schema, including `period_facts_unified`](#10-proposed-schema)
+10. [Validation plan and dry-run results](#11-validation-plan)
+11. [Tests executed](#tests-executed)
+12. [Git diff summary](#git-diff-summary)
 
 ---
 
 ## 1. Source coverage
 
-| Filing | Accession | Period of report | Status |
-|---|---|---|---|
-| FY2025 10-K | `0000027419-26-000016` | 2026-01-31 | Cached, verified (Milestone 1) |
-| FY2024 10-K | `0000027419-25-000018` | 2025-02-01 | Cached, verified (Milestone 1) |
-| FY2025 Q1/Q2/Q3 10-Qs | see `docs/sources.csv` | — | Cached, verified (Milestone 1) |
-| **FY2022 10-K** | `0000027419-23-000015` | **2023-01-28** | **NOT PRESENT — requested below** |
+**The complete five-year authoritative filing set is now ingested.**
 
-### Request
+| Filing | Accession | Period of report | Filed at (signature-page date) | SHA-256 | Status |
+|---|---|---|---|---|---|
+| FY2025 10-K | `0000027419-26-000016` | 2026-01-31 | 2026-03-11 | `20bc4552...` | Ingested (Milestone 1) |
+| FY2024 10-K | `0000027419-25-000018` | 2025-02-01 | 2025-03-12 | `d079d7c1...` | Ingested (Milestone 1) |
+| **FY2023 10-K** | `0000027419-24-000032` | 2024-02-03 | 2024-03-13 | `f37f8372...` | **Ingested this milestone** |
+| **FY2022 10-K** | `0000027419-23-000015` | 2023-01-28 | 2023-03-08 | `45a94324...` | **Ingested this milestone** |
+| **FY2021 10-K** | `0000027419-22-000007` | 2022-01-29 | 2022-03-09 | `487a6f5c...` | **Ingested this milestone** |
+| FY2025 Q1/Q2/Q3 10-Qs | see `docs/sources.csv` | — | — | — | Ingested (Milestone 1) |
 
-**The FY2022 10-K is not available in this environment.** Per item 1's
-instruction, only this one filing is requested — no broader source-vault
-project is being opened:
+Each new filing was verified before ingestion (dei:EntityRegistrantName,
+dei:EntityCentralIndexKey=`0000027419`, dei:DocumentType=10-K,
+dei:DocumentFiscalYearFocus matching the expected year, dei:AmendmentFlag=
+FALSE, dei:TradingSymbol=TGT, dei:EntityFileNumber=1-6049,
+dei:DocumentPeriodEndDate matching the expected date via its nested
+`CurrentFiscalYearEndDate` span — e.g. the FY2023 10-K resolves to "February
+3, 2024"), hash-verified, and registered via
+`target_cash.cli fetch --mode manual` (the tested manifest-append path, not
+a hand-edited CSV). No SEC block-page markers found in any of the three. The
+FY2021 10-K's `dei:EntityRegistrantName` reads "TARGET CORP" rather than
+"TARGET CORPORATION" — the same CIK (`0000027419`), a legal-name variant,
+not a distinct entity.
 
-> Accession `0000027419-23-000015`, primary document `tgt-20230128.htm`,
-> period end `2023-01-28`, URL
-> `https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/tgt-20230128.htm`
+**Idempotency confirmed:** a repeat `fetch` call for the FY2023 accession
+was refused ("already has a record for accession ... refusing to create a
+duplicate row"). A repeat `normalize` call after ingestion inserted zero new
+raw facts.
 
-Please download this document and upload it into this session (network
-egress to `www.sec.gov` remains blocked here, per the environment limitation
-already on file in `docs/limitations.md`). Once uploaded, it will be
-hash-verified and registered in `docs/sources.csv` before any of its facts
-are ingested, exactly as done for the FY2024 and FY2025 10-Ks.
+**Raw-fact counts** (`normalize`, dry-run, no `--persist-derived`):
 
-### A second, previously-unstated source-authority gap
+| Filing | Facts found (current concept list) | Facts newly inserted |
+|---|---:|---:|
+| FY2025 10-K | 163 | 8 |
+| FY2025 Q1 10-Q | 116 | 7 |
+| FY2025 Q2 10-Q | 184 | 11 |
+| FY2025 Q3 10-Q | 186 | 11 |
+| FY2024 10-K | 162 | 8 |
+| **FY2023 10-K** | **129** | **102** |
+| **FY2022 10-K** | **130** | **103** |
+| **FY2021 10-K** | **114** | **97** |
 
-Obtaining the FY2022 10-K does **not** fully close the five-year window.
-**No filing among current or planned holdings will ever have FY2023 as its
-own primary period of report:**
+`raw_facts_stored` after ingesting the three new filings: **1035** (up from
+688 at Milestone 1's close). After also adding the three new
+debt-reconciliation candidate tags to `config/metrics.csv` (§8) and
+re-running `normalize`, `raw_facts_stored` = **1113**. `quarterly_facts_in_db`
+(28) and `instant_facts_in_db` (10) are **unchanged** throughout —
+`derivation_persisted: false` on every run. Nothing has been persisted.
 
-- The FY2024 10-K's own period is FY2024; FY2023 appears there only as a
-  comparative (one year back).
-- The FY2025 10-K's own period is FY2025; FY2023 appears there only as a
-  second comparative (two years back).
-- The FY2022 10-K's own period is FY2022 (period end 2023-01-28); its
-  comparative reaches back to FY2021, not forward to FY2023.
+---
 
-Under this project's authoritative-source-filing policy (a fact is
-authoritative only when the filing's own period of report equals that fact's
-period), **FY2023 will structurally remain a corroborating-only period** —
-well-evidenced (it appears identically in two independent filings) but never
-backed by a filing whose own primary statements are for FY2023. This is
-reported as a standing limitation, not a request for a further filing, per
-the explicit instruction not to broaden the source-vault project. It is
-recorded in `docs/limitations.md` (see the update in this milestone's diff).
+## 2. Authority framework
+
+Per the instruction not to treat comparative availability as authority, the
+following four states are used consistently for every fiscal year and
+every metric below:
+
+| State | Meaning |
+|---|---|
+| **Authoritative primary-period filing** | A filing whose own `period_of_report` equals the fact's period. Exists now for **every year FY2021-FY2025** — the five-filing set closes the window completely. |
+| **Corroborating comparative** | The same fact reported in a *different* filing's comparative column (one or two years back). Retained, never discarded, but never itself sufficient to call a year authoritative. |
+| **Conflicting/restated observation** | A corroborating comparative that disagrees numerically with the authoritative primary-period value (see §6/§7 — genuine cases found this milestone). Both values retained; neither silently overwritten. |
+| **Missing authoritative source** | No filing exists (or is held) whose own period matches. **Does not currently apply to any FY2021-FY2025 metric** — this state applied to FY2021/FY2022 before this milestone's ingestion and is now cleared. |
+
+Every year now has an authoritative primary-period filing for income
+statement, cash flow statement, *and* balance sheet — the FY2021-FY2025
+window is fully closed.
 
 ---
 
 ## 3. Financial definitions
 
-These are fixed before any calculation below uses them, per item 3.
+Unchanged from the first version of this document except where noted below
+(the debt/net-debt definitions in §8 supersede the earlier draft language).
 
 | Term | Definition | Notes |
 |---|---|---|
-| **Gross profit** | Revenue − Cost of sales | Always **derived** for Target — see §5, no direct XBRL tag exists. |
-| **Free cash flow (FCF)** | Operating cash flow − Capital expenditures | **This is this project's own working definition, not a claim about Target's non-GAAP measures.** Target does not define or disclose a "free cash flow" figure identically to this in either cached 10-K (confirmed by tag scan — no `*FreeCashFlow*` concept exists in either filing). This project's FCF must never be presented as Target's official non-GAAP FCF measure. |
-| **Net debt** | Interest-bearing debt (current + noncurrent long-term debt and capital/finance lease obligations) − Cash and cash equivalents (and any short-term investments included in the same balance-sheet line) | See §9 for the unresolved `LongTermDebt` vs. `LongTermDebtAndCapitalLeaseObligations` question that affects which "interest-bearing debt" figure is used. |
-| **Cash conversion** | Operating cash flow / Net income | A ratio, not a percentage of revenue; values >1.0 mean CFO exceeds reported net income (common when D&A is large relative to working-capital drag). |
-| **Operating cash conversion / working capital** | Standard indirect-method components: net income, D&A add-back, and changes in inventory/AP where mapped | See §8, item "CFO reconciliation" — currently **partial**, not a full indirect-method proof, because several CFO line items (stock compensation, deferred taxes, other non-cash items) are not yet mapped. |
+| **Gross profit** | Revenue − Cost of sales | Always **derived** — confirmed absent (0 occurrences) in all **five** filings, not just the two examined in the first pass. |
+| **Free cash flow (FCF)** | Operating cash flow − Capital expenditures | This project's own working definition. Confirmed again: no `*FreeCashFlow*` XBRL concept exists in any of the five filings, and the text "free cash flow" is never used as a labeled Target measure. Never presented as Target's official non-GAAP FCF. |
+| **Net debt** | Total interest-bearing debt − Cash and cash equivalents (and any short-term investments in the same balance-sheet line) | **Confirmed this milestone: the text "net debt" does not appear anywhere in any of the five cached filings.** This is entirely this project's own construction, never a Target-defined figure. "Total interest-bearing debt" itself is an open definitional choice — see §8. |
+| **Cash conversion** | Operating cash flow / Net income | A ratio, not a percentage. |
 
-**Explicit caveats carried forward from the governing instruction:**
-
-- This project's FCF definition is never labeled as Target's own official
-  non-GAAP measure unless Target defines it identically (it does not, per
-  above).
-- Financing cash flows (debt issuance, dividends, share repurchases) are
-  never treated as a source of operating investment capacity. Investment
-  capacity, once modeled in a later milestone, will be built from CFO and
-  FCF only; CFF is presented purely as a historical use/source of cash for
-  shareholder distributions and debt management, never folded into any
-  "capacity" figure.
+**Caveats carried forward, reaffirmed:** this project's FCF is never labeled
+Target's own non-GAAP measure; financing cash flows are never treated as
+operating investment capacity.
 
 ---
 
-## 4. Accounting consistency — 53-week fiscal year and comparability
+## 4. Accounting consistency — 53-week fiscal year
 
-Target's own verbatim disclosure, found identically in both the FY2024 10-K
-and FY2025 10-K:
+**Reassessed and strengthened**, now backed directly by the FY2023 10-K's
+own primary text (previously this section relied only on the FY2024/FY2025
+10-Ks' comparative mentions):
 
-> "2023 consisted of 53 weeks. The extra week in 2023 contributed $1.7
-> billion of Net Sales."
+> FY2023 10-K, own primary statement: "2023 consisted of 53 weeks. The
+> extra week in 2023 contributed $1.7 billion of sales." … "2023 consisted
+> of 53 weeks compared with 52 weeks in 2022 and 2021."
 
-Week-count table (cross-confirmed by both filings' own comparative tables —
-FY2024 10-K: "2023 consisted of 53 weeks compared with 52 weeks in 2024 and
-2022"; FY2025 10-K: "2023 consisted of 53 weeks compared with 52 weeks in
-2025 and 2024"):
+This is now confirmed from the primary source for FY2023 itself, not merely
+from later filings' comparatives.
 
 | Fiscal year | Weeks | Period |
 |---|---|---|
+| FY2021 | 52 | 2021-01-31 to 2022-01-29 |
 | FY2022 | 52 | 2022-01-30 to 2023-01-28 |
 | FY2023 | **53** | 2023-01-29 to 2024-02-03 |
 | FY2024 | 52 | 2024-02-04 to 2025-02-01 |
 | FY2025 | 52 | 2025-02-02 to 2026-01-31 |
 
-**Both a reported growth figure and a week-count limitation note are carried
-side by side wherever FY2023 is compared to an adjacent year** in the dry-run
-table below (§5). **No 52-week-adjusted FY2023 figure is invented anywhere
-in this project** — Target discloses the extra week's approximate revenue
-contribution ($1.7B) but does not disclose a fully adjusted comparable
-income statement, so no normalization is computed.
+**Reported growth, with week-count limitation notes, all now backed by
+authoritative-filing figures (not comparative-only):**
 
-Other accounting-consistency items checked for every metric below (per item
-4): authoritative filing selected where more than one candidate period
-exists; corroborating comparatives retained, never discarded on agreement;
-no restatement found between the two cached filings for any metric in
-common years (FY2023 and FY2024 figures agree exactly between the FY2024 and
-FY2025 10-Ks in every case checked); direct vs. derived status recorded per
-metric (§5); no missing value replaced with zero anywhere (FY2022
-balance-sheet items are reported as `BLOCKED`, not `0`).
+- FY2022 vs. FY2021 (52wk vs. 52wk, directly comparable): revenue +2.94%.
+- FY2023 vs. FY2022 (53wk vs. 52wk): revenue **-1.57% even including** the
+  extra week's ~$1.7B contribution — the underlying comparable-week decline
+  is larger than the headline number suggests.
+- FY2024 vs. FY2023 (52wk vs. 53wk): revenue -0.79% — this headline number
+  is **worse** on a comparable-week basis than it looks, since FY2024 had
+  one fewer selling week than FY2023.
+- FY2025 vs. FY2024 (52wk vs. 52wk, directly comparable): revenue -1.68%.
+
+No 52-week-adjusted figure is invented anywhere in this project.
 
 ---
 
 ## 5. Five-year mapping matrix
 
-Legend: **Direct** = value taken from a single reported XBRL tag. **Derived**
-= computed from other mapped metrics. `mapping_status` is never changed to
-`reviewed` in this document — every row below stays `candidate_unverified`
-in `config/metrics.csv` (two rows, `net_other_income` and the four cash-flow
-totals, were already marked `reviewed` in Milestone 1 and are included here
-only for completeness of the annual view).
+**Revised** to incorporate the tag migrations and reclassifications found
+this milestone. Every row stays at its existing `mapping_status`
+(`candidate_unverified` unless already `reviewed` in Milestone 1); no
+mapping is marked reviewed in this document.
 
-| Metric | Statement | XBRL concept | Direct/Derived | Sign policy | Statement location | Competing tags considered | Missing years | Notes |
-|---|---|---|---|---|---|---|---|---|
-| `revenue` | IS | `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax` | Direct | `positive_magnitude_inflow` | Statement of Operations, "Sales" + "Other revenue" combined into "Total revenue" | Legacy `Revenues`/`SalesRevenueNet` not present in either filing (ASC 606 tag used throughout) | FY2021 (blocked) | Annual contexts confirmed exact across both filings for FY2023/FY2024 overlap. |
-| `cost_of_sales` | IS | `us-gaap:CostOfGoodsAndServicesSold` | Direct | `positive_magnitude_expense` | Statement of Operations, "Cost of sales" | None found | FY2021 | — |
-| `gross_profit` | IS | *(none — derived)* | **Derived** = revenue − cost_of_sales | `positive_magnitude_inflow` | Not a reported line | `us-gaap:GrossProfit`: **0 occurrences**, confirmed absent | FY2021 | See §3; no direct tag exists in either cached filing. |
-| `operating_expenses` (SG&A) | IS | `us-gaap:SellingGeneralAndAdministrativeExpense` **(corrected this milestone)** | Direct | `positive_magnitude_expense` | Statement of Operations, "Selling, general and administrative expenses" | Original candidate `us-gaap:OperatingExpenses`: **0 occurrences**, confirmed absent | FY2021 | Tag correction applied to `config/metrics.csv` this milestone (candidate status unchanged). |
-| `depreciation_amortization_opex` | IS | `us-gaap:DepreciationAndAmortization` | Direct | `positive_magnitude_expense` | Statement of Operations, "Depreciation and amortization (exclusive of depreciation included in cost of sales)" | — | FY2021 | Already `reviewed` (Milestone 1). Confirmed to also reproduce FY2022-FY2023 in the FY2024 10-K. |
-| `operating_income` | IS | `us-gaap:OperatingIncomeLoss` | Direct (cross-checked as derived — see §8) | `positive_magnitude_inflow` | Statement of Operations, "Operating income" | — | FY2021 | Bridge check: gross_profit − operating_expenses − depreciation_amortization_opex reproduces this exactly, zero residual, FY2022-FY2025. |
-| `interest_expense` | IS | `us-gaap:InterestExpenseNonoperating` | Direct | `positive_magnitude_expense` | Statement of Operations, "Net interest expense" | `FinanceLeaseInterestExpense` (narrower, rejected), `InterestPaidNet` (cash-paid, rejected) | FY2021 | Already corrected, not yet `reviewed` (Milestone 1 note carried forward). |
-| `net_other_income` | IS | `us-gaap:OtherNonoperatingIncomeExpense` | Direct | `positive_magnitude_inflow` | Statement of Operations, "Net other income" | `RentalIncomeNonoperating` (rejected, narrower) | FY2021 | Already `reviewed` (Milestone 1). |
-| `pretax_income` | IS | `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest` | Direct (cross-checked as derived) | `signed_bidirectional` | Statement of Operations, "Earnings before income taxes" | Narrower `...Foreign` variant present but not competing (a note-level sub-total) | FY2021 | Bridge check: operating_income − interest_expense + net_other_income reproduces this exactly, zero residual, FY2022-FY2025. |
-| `income_tax_expense` | IS | `us-gaap:IncomeTaxExpenseBenefit` | Direct | `positive_magnitude_expense` | Statement of Operations, "Provision for income taxes" | — | FY2021 | — |
-| `net_income` | IS | `us-gaap:NetIncomeLoss` | Direct (cross-checked as derived) | `signed_bidirectional` | Statement of Operations, "Net earnings" | — | FY2021 | Bridge check: pretax_income − income_tax_expense reproduces this exactly, zero residual, FY2022-FY2025. Statement-location detection ambiguity noted in Milestone 1 remains open (multiple identically-valued contexts; the consolidated no-segment context is used). |
-| `diluted_eps` | IS | `us-gaap:EarningsPerShareDiluted` | Direct | `signed_bidirectional` | Statement of Operations, "Diluted" | — | FY2021 | Cross-check: net_income / diluted_shares reproduces reported EPS to the cent, FY2022-FY2025. |
-| `diluted_shares` | IS | `us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding` | Direct | `point_in_time_unsigned` (share count) | Statement of Operations, "Weighted average diluted shares outstanding" | — | FY2021 | — |
-| `operating_cash_flow`, `investing_cash_flow`, `financing_cash_flow`, `net_change_in_cash` | CF | (see Milestone 1 mapping) | Direct | `signed_bidirectional` | Statement of Cash Flows | Already resolved (Milestone 1) | FY2021 | Already `reviewed`. Annual context confirmed identical pattern in both 10-Ks. |
-| `capital_expenditure` | CF | `us-gaap:PaymentsToAcquirePropertyPlantAndEquipment` | Direct | `positive_magnitude_outflow` | Statement of Cash Flows, "Investments in property and equipment" | — | FY2021 | — |
-| `depreciation_amortization_cfo_addback` | CF | `us-gaap:DepreciationDepletionAndAmortization` | Direct | `positive_magnitude_inflow` | Statement of Cash Flows, "Depreciation and amortization" | — | FY2021 | Already `reviewed` (Milestone 1). |
-| `dividends_paid` | CF | `us-gaap:PaymentsOfDividendsCommonStock` **(tag detail confirmed this milestone)** | Direct | `positive_magnitude_outflow` | Statement of Cash Flows, "Dividends paid" | Generic `PaymentsOfDividends`: **0 occurrences** — the common-stock-specific tag is the one actually used | FY2021 | — |
-| `share_repurchases` | CF | `us-gaap:PaymentsForRepurchaseOfCommonStock` | Direct | `positive_magnitude_outflow` | Statement of Cash Flows, "Share repurchases" | — | FY2021 | FY2023 value is a reported zero (`—`), not a missing value — confirmed present in the tagged statement with an explicit em-dash. |
-| `debt_proceeds` | CF | `us-gaap:ProceedsFromIssuanceOfLongTermDebt` | Direct | `positive_magnitude_inflow` | Statement of Cash Flows, "Issuance of long-term debt" | — | FY2021 | FY2023 value is a reported zero (`—`), confirmed, not missing. |
-| `debt_repayments` | CF | `us-gaap:RepaymentsOfLongTermDebt` | Direct | `positive_magnitude_outflow` | Statement of Cash Flows, "Repayments of long-term debt" | — | FY2021 | — |
-| `cash_and_equivalents_balance_sheet` | BS | `us-gaap:CashCashEquivalentsAndShortTermInvestments` | Direct, point-in-time | `point_in_time_unsigned` | Statement of Financial Position, "Cash and cash equivalents" | — | FY2021 (and FY2022 — see below) | Already `reviewed` (Milestone 1). Two-year BS lookback in each 10-K covers FY2024/FY2025 and FY2023/FY2024 only. |
-| `inventory` | BS | `us-gaap:InventoryNet` | Direct, point-in-time | `point_in_time_unsigned` | Statement of Financial Position, "Inventory" | — | FY2021, **FY2022** (blocked — see §9) | — |
-| `accounts_payable` | BS | `us-gaap:AccountsPayableCurrent` | Direct, point-in-time | `point_in_time_unsigned` | Statement of Financial Position, "Accounts payable" | — | FY2021, **FY2022** | Milestone 1's interim-gap limitation for quarterly AP does not apply to the annual (10-K-only) figure used here. |
-| `long_term_debt` | BS | `us-gaap:LongTermDebtAndCapitalLeaseObligations` **(corrected this milestone)** + `...Current` | Direct, point-in-time | `point_in_time_unsigned` | Statement of Financial Position, "Long-term debt and other borrowings" (noncurrent) + current portion | Original candidate `LongTermDebtNoncurrent`: **0 occurrences**. Competing candidate `us-gaap:LongTermDebt` (note-schedule total) **unresolved** — see §9 | FY2021, **FY2022** | Tag correction applied to `config/metrics.csv` this milestone. |
+| Metric | FY2021 tag (own 10-K) | FY2022 tag (own 10-K) | FY2023 tag (own 10-K) | FY2024/FY2025 tag | Consistency finding |
+|---|---|---|---|---|---|
+| `revenue` | `RevenueFromContractWithCustomerExcludingAssessedTax` | same | same | same | Fully consistent across all 5 filings, zero discrepancy. |
+| `cost_of_sales` | `CostOfGoodsAndServicesSold` | same | same | same | **Reclassification found** — see below; tag is consistent, the *value* for FY2022/FY2023 differs by filing vintage. |
+| `gross_profit` | *(none — derived)* | *(none)* | *(none)* | *(none)* | Confirmed absent in all 5 filings, not just 2. Always derived. |
+| `operating_expenses` (SG&A) | `SellingGeneralAndAdministrativeExpense` | same | same | same | Tag consistent across all 5 filings; **value for FY2022/FY2023 differs by vintage** — see reclassification below. |
+| `depreciation_amortization_opex` | `DepreciationAndAmortization` | same | same | same | Fully consistent. |
+| `operating_income` | `OperatingIncomeLoss` | same | same | same | Fully consistent; unaffected by the COGS/SG&A reclassification (bridge holds exactly under both splits). |
+| `interest_expense` | **`InterestExpense`** | **`InterestExpense`** | **`InterestExpense`** | `InterestExpenseNonoperating` | **Tag migration** — the plain `InterestExpense` tag is used through the FY2023 10-K; `InterestExpenseNonoperating` (this project's current candidate) begins with the FY2024 10-K. Values fully continuous across the rename (421→478→502→411→445). |
+| `net_other_income` | `OtherNonoperatingIncomeExpense` | same | same | same | Fully consistent (already `reviewed` for FY2024/FY2025; confirmed continuing back through FY2021). |
+| `pretax_income` | `IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest` | same | same | same | Fully consistent; bridge exact in all 5 years. |
+| `income_tax_expense` | `IncomeTaxExpenseBenefit` | same | same | same | Fully consistent. |
+| `net_income` | **`NetIncomeLossAvailableToCommonStockholdersBasic`** | `NetIncomeLoss` | `NetIncomeLoss` | `NetIncomeLoss` | **Tag migration** — `NetIncomeLoss` has zero occurrences in the FY2021 10-K; that filing uses the basic-EPS-numerator tag instead (economically identical here — Target has no preferred stock or NCI in this period). `NetIncomeLoss` begins with the FY2022 10-K. |
+| `diluted_eps`, `diluted_shares` | `EarningsPerShareDiluted`, `WeightedAverageNumberOfDilutedSharesOutstanding` | same | same | same | Fully consistent; EPS reproduces to the cent from net_income/shares in all 5 years. |
+| `operating_cash_flow`, `investing_cash_flow`, `financing_cash_flow` | `NetCashProvidedByUsedIn{Operating,Investing,Financing}Activities` | same | same | same | Fully consistent across all 5 years; composition check (CFO+CFI+CFF=reported net change) exact in every year. |
+| `net_change_in_cash` | `CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect` | same | same | same | Fully consistent. |
+| `capital_expenditure` | `PaymentsToAcquirePropertyPlantAndEquipment` | same | same | same | Fully consistent. |
+| `depreciation_amortization_cfo_addback` | `DepreciationDepletionAndAmortization` | same | same | same | Fully consistent. |
+| `dividends_paid` | `PaymentsOfDividendsCommonStock` | same | same | same | Fully consistent. |
+| `share_repurchases` | `PaymentsForRepurchaseOfCommonStock` | same | same | same | Tag consistent; **FY2022 value reclassified** — see below. FY2023's reported value is a genuine zero (`—`), not missing. |
+| `debt_proceeds`, `debt_repayments` | `ProceedsFromIssuanceOfLongTermDebt`, `RepaymentsOfLongTermDebt` | same | same | same | Fully consistent. FY2023's `debt_proceeds` is a genuine reported zero. |
+| `cash_and_equivalents_balance_sheet` | `CashCashEquivalentsAndShortTermInvestments` | same | same | same | Fully consistent; every year now has authoritative primary-filing balance-sheet authority. |
+| `inventory`, `accounts_payable` | `InventoryNet`, `AccountsPayableCurrent` | same | same | same | Fully consistent; every year now authoritative. |
+| `long_term_debt` | `LongTermDebtAndCapitalLeaseObligations` (+ `...Current`) | same | same | same | Tag consistent across all 5 years. See §8 for the full debt reconciliation and the unresolved note-schedule residual. |
+
+### Reclassifications found (real, not tag or mapping errors)
+
+**COGS/SG&A reclassification.** Comparing each year's own primary filing to
+how later filings present the same year as a comparative:
+
+| Year | As-originally-filed (own 10-K) | Latest-restated (later 10-K's comparative) | Shift |
+|---|---:|---:|---:|
+| FY2022 COGS | 82,229 | 82,306 | +77 |
+| FY2022 SG&A | 20,658 | 20,581 | -77 |
+| FY2023 COGS | 77,736 | 77,828 | +92 |
+| FY2023 SG&A | 21,554 | 21,462 | -92 |
+
+In both years, revenue, D&A, and operating income are byte-identical across
+every vintage (the combined COGS+SG&A total is unchanged) — a pure
+reclassification between two expense lines with **zero effect on operating
+income, pretax income, or net income**. It **does** change derived
+`gross_profit` and gross margin depending on which vintage's split is used
+(shown both ways in §7). This is exactly the case the `instant_facts`
+schema's `analytical_view` (`as_originally_filed` / `latest_restated`)
+column was designed for.
+
+**Share-repurchase reclassification.** FY2022's
+`PaymentsForRepurchaseOfCommonStock`: 2,826 (FY2022 10-K, as-originally-filed)
+vs. 2,646 (FY2023 10-K's comparative onward, latest-restated) — a $180M
+difference, first appearing one filing cycle earlier than the COGS/SG&A
+shift. No mechanism is asserted; both values are retained.
 
 ---
 
-## 2. Annual historical dry-run table (FY2022-FY2025)
+## 6. Annual historical dry-run table (FY2021-FY2025) — provisional
 
-All figures in USD millions unless noted. **FY2022 column values are sourced
-only from the FY2024 10-K's own comparative context (`c-5`) — corroborating,
-not authoritative**, pending the FY2022 10-K itself (see §1). No FY2021
-column is shown; every FY2021 figure is fully blocked pending that same
-filing.
+All figures USD millions. Every figure below now comes from an
+**authoritative primary-period filing** (no more comparative-only figures
+for FY2021/FY2022/FY2023). **Marked PROVISIONAL** pending reviewer
+sign-off on the reclassification handling in §5 and the debt-metric
+decision in §8.
 
 ### Income statement
 
-| Line | FY2022 (corroborating only) | FY2023 (53wk; comparative-only, no primary-authority filing) | FY2024 | FY2025 |
-|---|---:|---:|---:|---:|
-| Revenue | 109,120 | 107,412 | 106,566 | 104,780 |
-| Cost of sales | 82,306 | 77,828 | 76,502 | 75,511 |
-| **Gross profit (derived)** | **26,814** | **29,584** | **30,064** | **29,269** |
-| Gross margin | 24.58% | 27.55% | 28.21% | 27.94% |
-| SG&A | 20,581 | 21,462 | 21,969 | 21,535 |
-| D&A (opex) | 2,385 | 2,415 | 2,529 | 2,617 |
-| Operating income (reported) | 3,848 | 5,707 | 5,566 | 5,117 |
-| — bridge check (Gross profit − SG&A − D&A) | 3,848 ✓ | 5,707 ✓ | 5,566 ✓ | 5,117 ✓ |
-| Operating margin | 3.53% | 5.31% | 5.22% | 4.88% |
-| Net interest expense | 478 | 502 | 411 | 445 |
-| Net other income | 48 | 92 | 106 | 95 |
-| Pretax income (reported) | 3,418 | 5,297 | 5,261 | 4,767 |
-| — bridge check (OpInc − Int + Other) | 3,418 ✓ | 5,297 ✓ | 5,261 ✓ | 4,767 ✓ |
-| Income tax expense | 638 | 1,159 | 1,170 | 1,062 |
-| Effective tax rate | 18.67% | 21.88% | 22.24% | 22.28% |
-| Net income (reported) | 2,780 | 4,138 | 4,091 | 3,705 |
-| — bridge check (Pretax − Tax) | 2,780 ✓ | 4,138 ✓ | 4,091 ✓ | 3,705 ✓ |
-| Net margin | 2.55% | 3.85% | 3.84% | 3.54% |
-| Diluted shares (millions) | 464.7 | 462.8 | 461.8 | 455.6 |
-| Diluted EPS (reported) | 5.98 | 8.94 | 8.86 | 8.13 |
-| — cross-check (NI / diluted shares) | 5.98 ✓ | 8.94 ✓ | 8.86 ✓ | 8.13 ✓ |
-
-**Reported year-over-year growth (unadjusted) with 53-week limitation note:**
-FY2023 revenue declined 1.57% vs. FY2022 on a 53-week vs. 52-week basis
-(FY2023 had one extra week); FY2024 revenue declined 0.79% vs. FY2023 on a
-52-week vs. 53-week basis (FY2024 had one fewer week — the reported decline
-therefore understates the underlying comparable-week trend, since Target
-itself attributes ~$1.7B of FY2023 net sales to the extra week alone). No
-adjusted 52-week figure is computed or asserted for FY2023.
+| Line | FY2021 | FY2022 (as-filed) | FY2023 (as-filed) | FY2024 | FY2025 |
+|---|---:|---:|---:|---:|---:|
+| Revenue | 106,005 | 109,120 | 107,412 | 106,566 | 104,780 |
+| Cost of sales | 74,963 | 82,229 | 77,736 | 76,502 | 75,511 |
+| **Gross profit (derived, as-filed split)** | **31,042** | **26,891** | **29,676** | **30,064** | **29,269** |
+| Gross margin (as-filed) | 29.28% | 24.64% | 27.63% | 28.21% | 27.94% |
+| *Gross profit (derived, latest-restated split)* | *n/a* | *26,814* | *29,584* | *n/a* | *n/a* |
+| *Gross margin (latest-restated)* | *n/a* | *24.58%* | *27.55%* | *n/a* | *n/a* |
+| SG&A (as-filed) | 19,752 | 20,658 | 21,554 | 21,969 | 21,535 |
+| D&A (opex) | 2,344 | 2,385 | 2,415 | 2,529 | 2,617 |
+| Operating income (reported) | 8,946 | 3,848 | 5,707 | 5,566 | 5,117 |
+| — bridge check | 8,946 ✓ | 3,848 ✓ | 5,707 ✓ | 5,566 ✓ | 5,117 ✓ |
+| Operating margin | 8.44% | 3.53% | 5.31% | 5.22% | 4.88% |
+| Interest expense | 421 | 478 | 502 | 411 | 445 |
+| Net other income | 382 | 48 | 92 | 106 | 95 |
+| Pretax income | 8,907 | 3,418 | 5,297 | 5,261 | 4,767 |
+| — bridge check | 8,907 ✓ | 3,418 ✓ | 5,297 ✓ | 5,261 ✓ | 4,767 ✓ |
+| Income tax expense | 1,961 | 638 | 1,159 | 1,170 | 1,062 |
+| Effective tax rate | 22.02% | 18.67% | 21.88% | 22.24% | 22.28% |
+| Net income | 6,946 | 2,780 | 4,138 | 4,091 | 3,705 |
+| — bridge check | 6,946 ✓ | 2,780 ✓ | 4,138 ✓ | 4,091 ✓ | 3,705 ✓ |
+| Net margin | 6.55% | 2.55% | 3.85% | 3.84% | 3.54% |
+| Diluted shares (M) | 492.7 | 464.7 | 462.8 | 461.8 | 455.6 |
+| Diluted EPS | 14.10 | 5.98 | 8.94 | 8.86 | 8.13 |
+| — cross-check | 14.10 ✓ | 5.98 ✓ | 8.94 ✓ | 8.86 ✓ | 8.13 ✓ |
 
 ### Cash flow statement
 
-| Line | FY2022 (corroborating only) | FY2023 | FY2024 | FY2025 |
-|---|---:|---:|---:|---:|
-| Operating cash flow (CFO) | 4,018 | 8,621 | 7,367 | 6,562 |
-| Investing cash flow (CFI) | (5,504) | (4,760) | (2,860) | (3,649) |
-| Financing cash flow (CFF) | (2,196) | (2,285) | (3,550) | (2,187) |
-| — composition check (CFO+CFI+CFF) | (3,682) | 1,576 | 957 | 726 |
-| Net change in cash (reported) | (3,682) | 1,576 | 957 | 726 |
-| — composition check vs. reported | ✓ exact | ✓ exact | ✓ exact | ✓ exact |
-| Capital expenditure | 5,528 | 4,806 | 2,891 | 3,727 |
-| **Free cash flow (CFO − CapEx)** | **(1,510)** | **3,815** | **4,476** | **2,835** |
-| D&A (CFO add-back) | 2,700 | 2,801 | 2,981 | 3,134 |
-| Dividends paid | 1,836 | 2,011 | 2,046 | 2,053 |
-| Share repurchases | 2,646 | 0 (reported) | 1,007 | 408 |
-| Debt proceeds | 2,625 | 0 (reported) | 741 | 1,984 |
-| Debt repayments | 163 | 147 | 1,139 | 1,643 |
+| Line | FY2021 | FY2022 | FY2023 | FY2024 | FY2025 |
+|---|---:|---:|---:|---:|---:|
+| CFO | 8,625 | 4,018 | 8,621 | 7,367 | 6,562 |
+| CFI | (3,154) | (5,504) | (4,760) | (2,860) | (3,649) |
+| CFF | (8,071) | (2,196) | (2,285) | (3,550) | (2,187) |
+| — composition check | (2,600) | (3,682) | 1,576 | 957 | 726 |
+| Net change in cash (reported) | (2,600) | (3,682) | 1,576 | 957 | 726 |
+| — check vs. reported | ✓ exact | ✓ exact | ✓ exact | ✓ exact | ✓ exact |
+| Capital expenditure | 3,544 | 5,528 | 4,806 | 2,891 | 3,727 |
+| **Free cash flow (CFO-CapEx)** | **5,081** | **(1,510)** | **3,815** | **4,476** | **2,835** |
+| D&A (CFO add-back) | 2,642 | 2,700 | 2,801 | 2,981 | 3,134 |
+| Dividends paid | 1,548 | 1,836 | 2,011 | 2,046 | 2,053 |
+| Share repurchases (as-filed) | 7,356 | 2,826 *(restated: 2,646)* | 0 (reported) | 1,007 | 408 |
+| Debt proceeds | 1,972 | 2,625 | 0 (reported) | 741 | 1,984 |
+| Debt repayments | 1,147 | 163 | 147 | 1,139 | 1,643 |
 
 ### Balance sheet / working capital
 
-| Line (fiscal year-end instant) | FY2022 | FY2023 (comparative-only) | FY2024 | FY2025 |
-|---|---:|---:|---:|---:|
-| Cash and equivalents | **BLOCKED** — see §9 | 3,805 | 4,762 | 5,488 |
-| Inventory | **BLOCKED** | 11,886 | 12,740 | 12,304 |
-| Accounts payable | **BLOCKED** | 12,098 | 13,053 | 12,622 |
-| Long-term debt + capital leases (noncurrent) | **BLOCKED** | 14,922 | 14,304 | 14,326 |
-| Long-term debt + capital leases (current) | **BLOCKED** | 1,116 | 1,636 | 2,130 |
-| **Total debt** | **BLOCKED** | 16,038 | 15,940 | 16,456 |
-| **Net debt** (total debt − cash) | **BLOCKED** | 12,233 | 11,178 | 10,968 |
+Every year below is now an **authoritative** primary-filing instant (no
+BLOCKED years remain).
 
-**Note on FY2022 cash:** the cash *rollforward* balance (beginning/ending
-instant used only in the cash-movement check, per `cash_and_equivalents_rollforward`)
-for 2023-01-28 is available (2,229, corroborating, from both cached 10-Ks'
-comparative cash-flow-statement roll-forward lines). The **balance-sheet**
-cash line for that same date is not — the two-year balance-sheet lookback in
-the FY2024 10-K reaches only to 2024-02-03. This is exactly the distinction
-the two separate metrics (`cash_and_equivalents_balance_sheet` vs.
-`cash_and_equivalents_rollforward`) were designed to preserve.
+| Line (fiscal year-end) | FY2021 | FY2022 | FY2023 | FY2024 | FY2025 |
+|---|---:|---:|---:|---:|---:|
+| Cash and equivalents | 5,911 | 2,229 | 3,805 | 4,762 | 5,488 |
+| Inventory | 13,902 | 13,499 | 11,886 | 12,740 | 12,304 |
+| Accounts payable | 15,478 | 13,487 | 12,098 | 13,053 | 12,622 |
+| LTD + capital leases, noncurrent | 13,549 | 16,009 | 14,922 | 14,304 | 14,326 |
+| LTD + capital leases, current | 171 | 130 | 1,116 | 1,636 | 2,130 |
+| **Total debt (BS carrying value)** | **13,720** | **16,139** | **16,038** | **15,940** | **16,456** |
+| **Net debt** (total debt − cash) | **7,809** | **13,910** | **12,233** | **11,178** | **10,968** |
 
 ### Operational drivers
 
-| Driver | FY2022 | FY2023 | FY2024 | FY2025 |
-|---|---:|---:|---:|---:|
-| CapEx % revenue | 5.07% | 4.47% | 2.71% | 3.56% |
-| CFO margin | 3.68% | 8.03% | 6.91% | 6.26% |
-| FCF margin | (1.38%) | 3.55% | 4.20% | 2.71% |
-| Cash conversion (CFO/NI) | 1.45x | 2.08x | 1.80x | 1.77x |
-| Inventory % revenue | **BLOCKED** | 11.07% | 11.96% | 11.74% |
-| AP % cost of sales | **BLOCKED** | 15.55% | 17.06% | 16.72% |
-| Debt-to-CFO | **BLOCKED** | 1.86x | 2.16x | 2.51x |
-| Net-debt-to-CFO | **BLOCKED** | 1.42x | 1.52x | 1.67x |
-| Distributions % FCF ((dividends+repurchases)/FCF) | **NOT_APPLICABLE** (FCF negative) | 52.72% | 68.16% | 86.81% |
+| Driver | FY2021 | FY2022 | FY2023 | FY2024 | FY2025 |
+|---|---:|---:|---:|---:|---:|
+| CapEx % revenue | 3.34% | 5.07% | 4.47% | 2.71% | 3.56% |
+| CFO margin | 8.14% | 3.68% | 8.03% | 6.91% | 6.26% |
+| FCF margin | 4.79% | (1.38%) | 3.55% | 4.20% | 2.71% |
+| Cash conversion (CFO/NI) | 1.24x | 1.45x | 2.08x | 1.80x | 1.77x |
+| Inventory % revenue | 13.12% | 12.37% | 11.07% | 11.96% | 11.74% |
+| AP % cost of sales (as-filed) | 20.65% | 16.40% | 15.56% | 17.06% | 16.72% |
+| Debt-to-CFO | 1.59x | 4.02x | 1.86x | 2.16x | 2.51x |
+| Net-debt-to-CFO | 0.91x | 3.46x | 1.42x | 1.52x | 1.67x |
+| Distributions % FCF | **174.98%** | **NOT_APPLICABLE** (FCF negative) | 52.72% | 68.16% | 86.81% |
 
-FY2022's distributions/FCF ratio is deliberately classified `NOT_APPLICABLE`
-rather than reported as a raw negative percentage — dividing a positive
-distribution total by a negative FCF produces a mathematically well-defined
-but economically misleading negative ratio (it would read as if
-distributions were "negative," which is not what happened; FY2022 simply
-funded its distributions from sources other than that year's free cash
-flow).
-
----
-
-## 7. Driver dictionary
-
-### Core margin / rate metrics
-
-| ID | Business meaning | Formula | Unit | Frequency | Sign | Limitation | Forecast relevance |
-|---|---|---|---|---|---|---|---|
-| `gross_margin` | Pricing/COGS efficiency | gross_profit / revenue | % | Annual (quarterly once IS metrics are quarterized) | Positive | Depends on derived gross_profit | Revenue-driver anchor |
-| `operating_margin` | Core operating profitability | operating_income / revenue | % | Annual | Positive | — | Margin-bridge anchor |
-| `effective_tax_rate` | Effective tax burden | income_tax_expense / pretax_income | % | Annual | Positive, typically 15-30% | Sensitive to one-off tax items not separately identified | Tax-assumption anchor |
-| `net_margin` | Bottom-line profitability | net_income / revenue | % | Annual | Positive | — | EPS-bridge anchor |
-
-### The nine requested operational drivers
-
-| Driver ID | Business meaning | Formula | Numerator / Denominator | Unit | Valid frequency | Sign interpretation | Limitation | Forecast relevance | Source-lineage requirement |
-|---|---|---|---|---|---|---|---|---|---|
-| `capex_pct_revenue` | Capital intensity of the business | capital_expenditure / revenue | capital_expenditure / revenue | % | Annual, quarterly (CFO metrics already quarterized) | Positive; higher = more capital-intensive | CapEx is lumpy year to year (e.g. FY2022/FY2023 store-remodel cycle vs. FY2024 pullback) | Anchors forecast CapEx as % of forecast revenue | Both inputs must trace to `reviewed` mappings before use |
-| `cfo_margin` | Cash-generative efficiency of operations | operating_cash_flow / revenue | CFO / revenue | % | Annual, quarterly | Positive in all periods examined; concept itself is `signed_bidirectional` | — | Core driver for CFO forecast | — |
-| `fcf_margin` | Cash left after reinvestment, as % of sales | (operating_cash_flow − capital_expenditure) / revenue | FCF / revenue | % | Annual, quarterly | Can be negative (FY2022) | Inherits CapEx lumpiness | Core driver for FCF forecast and, later, investment capacity | — |
-| `cash_conversion` | How much of accounting profit becomes cash | operating_cash_flow / net_income | CFO / net_income | ratio (x) | Annual, quarterly | Normally >1x when D&A > working-capital drag; undefined if net_income = 0 | Not meaningful in a net-loss period (none observed FY2022-FY2025) | Diagnostic for earnings quality | — |
-| `inventory_pct_revenue` | Inventory intensity | inventory / revenue | inventory (point-in-time) / revenue (annual flow) | % | Annual only (point-in-time vs. flow mismatch makes quarterly less meaningful without average-balance convention) | Positive | Mixes a point-in-time stock with an annual flow — a convention decision (average vs. year-end inventory) is needed before quarterly use | Working-capital forecast anchor | Inventory value must be flagged `point_in_time`, never differenced |
-| `ap_pct_cogs` | Trade-payable-funded portion of COGS | accounts_payable / cost_of_sales | AP (point-in-time) / COGS (annual flow) | % | Annual only, same convention caveat as above | Positive | Same point-in-time/flow mismatch | Working-capital forecast anchor | — |
-| `debt_to_cfo` | Leverage relative to cash-generating capacity | total_debt / operating_cash_flow | total_debt (point-in-time) / CFO (annual flow) | ratio (x) | Annual | Positive; higher = more leveraged relative to cash flow | Depends on the unresolved `LongTermDebt` vs. `LongTermDebtAndCapitalLeaseObligations` question (§9) | Debt-capacity / covenant-style driver | — |
-| `net_debt_to_cfo` | Leverage net of cash reserves | net_debt / operating_cash_flow | (total_debt − cash) / CFO | ratio (x) | Annual | Positive here in every year examined; could be negative if cash > debt | Same debt-definition dependency | Debt-capacity driver | — |
-| `distributions_pct_fcf` | Share of free cash flow returned to shareholders | (dividends_paid + share_repurchases) / (operating_cash_flow − capital_expenditure) | distributions / FCF | % | Annual | Positive when FCF > 0; **NOT_APPLICABLE when FCF ≤ 0** (see FY2022) | Capital-allocation / distribution-sustainability driver | Must carry an explicit NOT_APPLICABLE branch, never a raw negative-denominator ratio |
-
-**Separation of historical observation from future assumption (per item 7):**
-every driver above is, in this milestone, a purely historical, backward-looking
-observation computed from filed facts. **No driver value in this table is a
-forecast input, target, or assumption** — that distinction (a separate
-`assumptions`/driver-projection layer) is explicitly out of scope until a
-forecasting milestone is authorized, consistent with `sql/schema.sql`'s
-already-declared-but-unpopulated `assumptions` table.
+**FY2021's distributions/FCF ratio of ~175%** is a genuine, notable data
+point, not an error: FY2021 combined $1,548M in dividends with $7,356M in
+share repurchases — the year's cash returned to shareholders substantially
+exceeded that year's free cash flow (funded from the prior year's large
+cash balance: cash fell from $8,511M to $5,911M over FY2021, consistent
+with this). **FY2022's ratio remains `NOT_APPLICABLE`** under both the
+as-filed and restated repurchase figures, since FY2022's FCF is negative
+either way. **FY2022's debt-to-CFO (4.02x) and net-debt-to-CFO (3.46x) are
+sharply elevated relative to every other year** — driven by FY2022's
+unusually low CFO ($4,018M, the lowest of the five years) combined with
+that year's debt issuance, not by a debt increase alone; this is flagged
+as a genuine year-specific outlier, not a data error.
 
 ---
 
-## 6. Proposed analytical schema
+## 7. Debt reconciliation
 
-**Not implemented.** Two designs are presented for review, per item 6's
-requirement to support annual+quarterly frequencies, instant+duration facts,
-direct+derived facts, as-originally-filed/latest-restated views,
-selected/corroborating observations, metric-definition versions,
-source/derivation lineage, and deterministic rebuilds.
+Per the explicit instruction not to select the note-schedule total merely
+because it is larger or more detailed, here is the full year-by-year
+reconciliation now that all five balance sheets are authoritative:
 
-### Option A (recommended): parallel `annual_facts` / `annual_lineage`, mirroring the existing quarterly design
+| Fiscal year-end | BS carrying value (LTD+CapLease, total) | Finance lease liability | Debt-only carrying (BS − FinLease) | Note-schedule total (`LongTermDebt`) | Residual (note-schedule − debt-only) |
+|---|---:|---:|---:|---:|---:|
+| FY2021 (2022-01-29) | 13,720 | 2,075 | 11,645 | 11,568 | **-77** |
+| FY2022 (2023-01-28) | 16,139 | 2,072 | 14,067 | 14,141 | **+74** |
+| FY2023 (2024-02-03) | 16,038 | 2,013 | 14,025 | 14,151 | **+126** |
+| FY2024 (2025-02-01) | 15,940 | 2,161 | 13,779 | 13,904 | **+125** |
+| FY2025 (2026-01-31) | 16,456 | 2,113 | 14,343 | 14,398 | **+55** |
 
-This is the same pattern already used successfully for `instant_facts` in
-Milestone 1: a new table alongside the existing ones, touching nothing that
-already exists. It is a **safe additive migration** — `TableMigration`,
-`CREATE TABLE IF NOT EXISTS`, no `ALTER` of any existing table, fully
-consistent with every migration applied so far in this project.
+**The residual's sign flips (negative in FY2021, positive every year
+since) and its magnitude is not stable as a share of debt.** This rules out
+a simple, one-directional explanation like "the note schedule states gross
+principal and the balance sheet nets out issuance costs" (which would
+predict a consistently positive, roughly stable residual). No
+`DebtInstrumentUnamortizedDiscount...`/`...IssuanceCosts`-family tag exists
+in any of the five filings to resolve this directly. **This reconciliation
+gap is reported as `UNAVAILABLE`, not explained away.**
+
+Also confirmed: the text "net debt" does not appear anywhere in any of the
+five filings — Target discloses no net-debt measure of its own.
+
+**Proposed metrics (added to `config/metrics.csv` this milestone, all
+`candidate_unverified`, none marking a policy decision yet):**
+
+| Metric | Definition | Source |
+|---|---|---|
+| `debt_balance_sheet_carrying_value` | (documented via the existing `long_term_debt` row) BS "Long-term debt and other borrowings" line, current + noncurrent | `LongTermDebtAndCapitalLeaseObligations` (+`...Current`) |
+| `finance_lease_obligations` | Finance lease liability, current + noncurrent | `FinanceLeaseLiability` |
+| `debt_principal_or_note_schedule` | Debt-maturity-schedule note total | `LongTermDebt` |
+| `total_interest_bearing_debt` | **Derived — definition undecided.** Option (a): `long_term_debt` (full BS carrying value including finance leases). Option (b): `long_term_debt − finance_lease_obligations` (debt excluding finance leases). | — |
+
+The dry-run table in §6 uses **Option (a)** (`long_term_debt` = full BS
+carrying value including finance leases) for `net_debt` and the
+debt-to-CFO/net-debt-to-CFO drivers, since it is the only option directly
+reconcilable to the audited balance sheet without an unresolved residual.
+**This is a placeholder choice, not a recommendation** — reviewer decision
+requested. Under Option (b), every net-debt and debt-to-CFO figure in §6
+would be roughly $2.0-2.2B lower each year (subtracting finance leases);
+the DCF/capacity model (a later milestone) must not mix a principal-basis
+figure with a GAAP-carrying-value figure silently, whichever option is
+chosen.
+
+**Operating lease liabilities** (`OperatingLeaseLiability` /
+`...Current` / `...Noncurrent`) exist as separately tagged concepts in
+every filing but are **not** included in any debt definition above — GAAP
+does not classify operating leases as debt, and no metrics.csv row is
+proposed for them in this milestone. Flagged as a possible future
+"leverage including operating leases" variant, not built here.
+
+---
+
+## 8. Driver dictionary
+
+Unchanged in structure from the first version; values now extend to all
+five years (§6) rather than four. The nine requested operational drivers
+and the core margin/rate metrics retain their formulas, units, frequency,
+sign interpretation, limitations, and forecast relevance exactly as
+originally documented — only the underlying values changed (see §6), plus
+two additions:
+
+- **`debt_to_cfo` / `net_debt_to_cfo`** limitation updated: both drivers'
+  values now depend on the Option (a)/(b) debt-definition choice in §7,
+  not yet finalized.
+- **`distributions_pct_fcf`** limitation updated: confirmed to also require
+  a NOT_APPLICABLE branch even in a *positive*-FCF year if distributions
+  and FCF combine to produce a ratio well above 100% that could otherwise
+  read as an error (FY2021 = 175%) — the driver's documentation must state
+  explicitly that a distributions/FCF ratio above 100% is a valid,
+  meaningful value (funded from cash reserves or prior-year FCF), not a
+  computation bug, alongside the existing NOT_APPLICABLE-on-negative-FCF
+  rule.
+
+Every driver remains a purely historical, backward-looking observation; no
+driver value here is a forecast input or assumption.
+
+---
+
+## 9. Proposed analytical schema, including `period_facts_unified`
+
+**Not implemented.** Presented for review per the instruction.
+
+### Option A (recommended, safe-additive): `annual_facts` / `annual_lineage` / `annual_fact_observations`
+
+Unchanged from the first version's Option A — a parallel table set
+mirroring the existing `quarterly_facts`/`lineage`/`instant_facts` pattern,
+implemented as `TableMigration`s (`CREATE TABLE IF NOT EXISTS`, no `ALTER`
+of any existing table):
 
 ```sql
 CREATE TABLE IF NOT EXISTS annual_facts (
     annual_fact_id     TEXT PRIMARY KEY,
-    metric             TEXT NOT NULL,                  -- key into config/metrics.csv
+    metric             TEXT NOT NULL,
     fiscal_year        INTEGER NOT NULL,
     period_start       TEXT NOT NULL,
     period_end         TEXT NOT NULL,
-    days_in_period     INTEGER NOT NULL,                -- 364 or 371 (53wk) -- makes the week-count explicit and queryable
+    days_in_period     INTEGER NOT NULL,               -- 364 or 371 (53wk)
     value_original     REAL NOT NULL,
     original_unit      TEXT NOT NULL,
     value_normalized   REAL NOT NULL,
@@ -351,8 +445,6 @@ CREATE TABLE IF NOT EXISTS annual_facts (
                         ),
     fact_status        TEXT NOT NULL DEFAULT 'authoritative'
                             CHECK (fact_status IN ('authoritative', 'corroborating_only')),
-                        -- 'corroborating_only' = no filing whose own period_of_report
-                        -- equals this fact's period exists yet (e.g. FY2022 today; FY2023 permanently)
     analytical_view    TEXT NOT NULL DEFAULT 'as_originally_filed'
                             CHECK (analytical_view IN ('as_originally_filed', 'latest_restated')),
     accession_number   TEXT NOT NULL REFERENCES filings(accession_number),
@@ -366,7 +458,7 @@ CREATE TABLE IF NOT EXISTS annual_lineage (
     annual_lineage_id  TEXT PRIMARY KEY,
     derived_fact_id    TEXT NOT NULL REFERENCES annual_facts(annual_fact_id),
     input_fact_id      TEXT NOT NULL REFERENCES raw_facts(fact_id),
-    operation          TEXT NOT NULL                     -- 'direct', 'corroborating', 'derived_subtraction', etc.
+    operation          TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS annual_fact_observations (
@@ -381,173 +473,229 @@ CREATE TABLE IF NOT EXISTS annual_fact_observations (
 );
 ```
 
-Point-in-time annual facts (balance-sheet lines as of a 10-K's fiscal
-year-end) need **no schema change at all** — `instant_facts` is already
-keyed by `as_of_date`, not by fiscal quarter, so it already supports annual
-instants; the FY2022/FY2023 balance-sheet gaps in §5 are a *source*
-limitation, not a schema limitation.
+The `annual_facts.analytical_view` column now has a **concrete, real use
+case** confirmed this milestone: FY2022 and FY2023 `gross_profit` (and
+their component `cost_of_sales`/`operating_expenses`) each need exactly two
+rows — one `as_originally_filed`, one `latest_restated` — per the
+reclassification found in §5. `annual_fact_observations.relationship =
+'conflicting'` is the natural home for the restated COGS/SG&A/repurchase
+values relative to the as-filed `selected` value.
 
-**Metric-definition versioning:** `mapping_version` (already present on
-every fact table) already serves this role — a definition change (e.g. if
-`net_debt` were later redefined to include operating lease liabilities) is
-captured by minting a new `mapping_version` string, exactly as the existing
-`quarterly_facts`/`instant_facts` tables already do.
+### A companion column migration, newly identified this milestone: `quarterly_facts.analytical_view`
 
-**Deterministic rebuild:** unaffected — the existing clean-room-rebuild and
-canonical-export methodology (`scripts/clean_room_rebuild.py`,
-`scripts/compare_databases.py`) extends to `annual_facts`/`annual_lineage`
-by adding two more `SELECT ... ORDER BY` export functions following the
-exact same pattern already used for `quarterly_facts`/`lineage`.
+Building the `period_facts_unified` view below (needed to satisfy this
+message's schema requirement) exposed a real gap: **`quarterly_facts` has
+no `analytical_view` column at all** — it was never needed in Milestone 1
+because no restatement had been encountered yet. It is needed now, since a
+future quarterly restatement (not yet observed, but the COGS/SG&A case
+proves it can happen) would have nowhere to record `as_originally_filed`
+vs. `latest_restated` on the quarterly grain. Proposed as a second,
+independent `ColumnMigration` (the same safe-additive pattern already used
+for `filings.document_signature_date`, etc.):
 
-### Option B: a single unified `period_facts` table
+```sql
+ALTER TABLE quarterly_facts
+    ADD COLUMN analytical_view TEXT NOT NULL DEFAULT 'as_originally_filed';
+```
 
-A more literal reading of "unified... architecture" would replace both
-`quarterly_facts` and the proposed `annual_facts` with one table carrying a
-`frequency` discriminator (`'quarterly' | 'annual'`) and a nullable
-`fiscal_quarter`. This is **not recommended**: every migration applied in
-this project so far (`ColumnMigration`, `TableMigration`) has been
-deliberately restricted to additive, non-breaking changes that never alter
-an existing table's constraints or require moving existing rows. Unifying
-`quarterly_facts` into a new table would require migrating all 28 existing
-`quarterly_facts` rows and their 45 `lineage` rows into a new structure,
-relaxing `quarterly_facts.fiscal_quarter`'s `NOT NULL CHECK (BETWEEN 1 AND
-4)` constraint, and retiring or aliasing the existing `views.sql` and
-`compare_databases.py` exports that key on the current shape — a
-non-additive, higher-risk change with no compensating analytical benefit
-over Option A, whose two tables can be queried together trivially with a
-`UNION ALL` view if a single logical view is ever wanted.
+### A second gap identified while designing `period_facts_unified`: `instant_facts` fiscal-year labeling
 
-**Recommendation: Option A.** Reviewer decision requested before any
-implementation.
+`instant_facts` has no `fiscal_year` column — only `as_of_date`. Target's
+fiscal year label does **not** equal the calendar year of its January/
+February year-end date (e.g. `as_of_date = 2026-01-31` is **FY2025**, not
+FY2026), so a naive `strftime('%Y', as_of_date)` in the view would be
+**wrong**. This project already solves the same problem for balance-sheet
+instants going into `quarterly_facts` via an explicit, curated
+`INSTANT_QUARTER_MAP` in `src/target_cash/derive.py` (date → (fiscal_year,
+fiscal_quarter), not a date-arithmetic formula, precisely because Target's
+52/53-week calendar makes a formula unreliable at the edges). The same
+approach is proposed here — not a new invention:
+
+```sql
+ALTER TABLE instant_facts ADD COLUMN fiscal_year INTEGER;
+```
+
+populated at write time from the same kind of explicit, curated mapping
+already used for `quarterly_facts`'s point-in-time rows, extended to
+annual-only instants (10-K-only balance-sheet dates that never appear in a
+10-Q). **Not implemented** — presented here because the view below cannot
+be written correctly without it, and it seemed more honest to surface the
+gap than to paper over it with an incorrect date-arithmetic expression.
+
+### `period_facts_unified` (read-only view, depends on the two migrations above)
+
+```sql
+CREATE VIEW IF NOT EXISTS period_facts_unified AS
+SELECT
+    metric,
+    'quarterly'                                    AS frequency,
+    fiscal_year,
+    fiscal_quarter,
+    period_start                                   AS start_date,
+    period_end                                      AS end_date,
+    value_normalized                                AS value,
+    normalized_unit                                 AS unit,
+    CASE basis WHEN 'point_in_time' THEN 'direct'
+               WHEN 'direct_quarterly' THEN 'direct'
+               ELSE 'derived' END                   AS direct_or_derived,
+    analytical_view,
+    NULL                                             AS validation_status  -- see note below
+FROM quarterly_facts
+WHERE is_current_view = 1
+
+UNION ALL
+
+SELECT
+    metric,
+    'annual'                                        AS frequency,
+    fiscal_year,
+    NULL                                             AS fiscal_quarter,
+    period_start                                     AS start_date,
+    period_end                                       AS end_date,
+    value_normalized                                 AS value,
+    normalized_unit                                  AS unit,
+    CASE basis WHEN 'direct_annual' THEN 'direct' ELSE 'derived' END AS direct_or_derived,
+    analytical_view,
+    fact_status                                      AS validation_status  -- 'authoritative' | 'corroborating_only'
+FROM annual_facts                                    -- proposed in this section, not yet created
+WHERE is_current_view = 1
+
+UNION ALL
+
+SELECT
+    metric,
+    'instant'                                        AS frequency,
+    fiscal_year,                                     -- requires the instant_facts.fiscal_year column proposed above
+    NULL                                              AS fiscal_quarter,
+    NULL                                              AS start_date,
+    as_of_date                                        AS end_date,
+    value_normalized                                  AS value,
+    normalized_unit                                   AS unit,
+    'direct'                                          AS direct_or_derived,  -- instant_facts are always direct-selected today
+    analytical_view,
+    selection_status                                  AS validation_status  -- 'safe' | 'corroborated' | 'conflicted_unresolved'
+FROM instant_facts
+WHERE is_current_view = 1;
+```
+
+**Honest limitation on the `validation_status` column:** neither
+`quarterly_facts` nor the proposed `annual_facts` stores a per-fact
+validation outcome today — `validate` computes check results at query time
+from current facts, it does not write a status back onto the fact row. The
+view above returns `NULL` for `quarterly_facts` rows rather than inventing
+a column that does not exist; `annual_facts.fact_status` and
+`instant_facts.selection_status` are repurposed for this column because
+they are the closest existing per-fact status fields, not because they are
+a perfect match for "validation status" in the sense item 5 of the original
+request meant. Closing this gap properly (a real per-fact validation-status
+column, populated by `validate`) is a larger design question deferred to
+when this view's actual query patterns are known — not decided here.
+
+**Recommendation, unchanged: Option A** for `annual_facts`, plus the two
+companion column migrations above (`quarterly_facts.analytical_view`,
+`instant_facts.fiscal_year`) needed to make `period_facts_unified`
+correct. Reviewer decision requested before any implementation.
 
 ---
 
-## 8. Validation plan and dry-run results
+## 10. Validation plan and dry-run results
 
-Classification per item 8: **PASS** / **FAIL** / **BLOCKED** (required input
-unavailable) / **UNAVAILABLE** (independent evidence structurally doesn't
-exist) / **NOT_APPLICABLE**.
+Reassessed against the newly authoritative sources. Classification:
+**PASS** / **FAIL** / **BLOCKED** / **UNAVAILABLE** / **NOT_APPLICABLE**.
 
-| # | Validation | FY2022 | FY2023 | FY2024 | FY2025 |
-|---|---|---|---|---|---|
-| 1 | Income-statement arithmetic (Revenue−COGS−SG&A−D&A=OpInc) | PASS (corroborating-only input) | PASS | PASS | PASS |
-| 2 | Pretax-income bridge (OpInc−Interest+Other=Pretax) | PASS (corrob.-only) | PASS | PASS | PASS |
-| 3 | Effective tax rate reasonableness (0-40% band) | PASS (18.67%) | PASS (21.88%) | PASS (22.24%) | PASS (22.28%) |
-| 4 | Gross-profit derivation consistency (no direct tag ever competes) | PASS | PASS | PASS | PASS |
-| 5 | CFO reconciliation (indirect method, full) | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE |
-| 6 | FCF calculation (CFO−CapEx) | PASS | PASS | PASS | PASS |
-| 7a | Cash movement (beginning+net change=ending) | BLOCKED (BS cash blocked) | PASS | PASS | PASS |
-| 7b | Cash-flow composition (CFO+CFI+CFF=net change) | PASS (corrob.-only, exact) | PASS (exact) | PASS (exact) | PASS (exact) |
-| 8 | Debt roll-forward (beginning+proceeds−repayments≈ending) | BLOCKED | UNAVAILABLE (reasonableness-only, not exact) | UNAVAILABLE | UNAVAILABLE |
-| 9 | Annual-vs-quarter agreement, FY2025 | PASS (CFO/CFI/CFF/net-change, from Milestone 1) / UNAVAILABLE (IS lines, not yet quarterized) | N/A | N/A | see left |
-| 10 | Balance-sheet instant authority | BLOCKED (no filing yet) | UNAVAILABLE (permanently comparative-only — see §1) | PASS | PASS |
-| 11 | Direct-vs-derived status recorded per metric | PASS (§5 table complete) | PASS | PASS | PASS |
-| 12 | Lineage completeness (every fact traces to ≥1 raw fact) | N/A — nothing persisted yet | N/A | N/A | N/A |
-| 13 | 53-week-year disclosure present and no invented adjustment | N/A | PASS (verbatim disclosure recorded, §4) | N/A | N/A |
+| # | Validation | FY2021 | FY2022 | FY2023 | FY2024 | FY2025 |
+|---|---|---|---|---|---|---|
+| 1 | Income-statement arithmetic | PASS | PASS (as-filed) | PASS (as-filed) | PASS | PASS |
+| 2 | Pretax-income bridge | PASS | PASS | PASS | PASS | PASS |
+| 3 | Effective tax rate reasonableness | PASS (22.02%) | PASS (18.67%) | PASS (21.88%) | PASS (22.24%) | PASS (22.28%) |
+| 4 | Gross-profit derivation consistency | PASS | PASS (two valid values, both retained) | PASS (two valid values, both retained) | PASS | PASS |
+| 5 | CFO reconciliation (full indirect method) | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE |
+| 6 | FCF calculation | PASS | PASS | PASS | PASS | PASS |
+| 7a | Cash movement (beginning+net change=ending) | PASS | PASS | PASS | PASS | PASS |
+| 7b | Cash-flow composition | PASS (exact) | PASS (exact) | PASS (exact) | PASS (exact) | PASS (exact) |
+| 8 | Debt roll-forward (exact) | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE | UNAVAILABLE |
+| 8b | Debt reconciliation (BS vs. note-schedule vs. finance leases) | **FAIL** (unexplained -77 residual) | **FAIL** (+74) | **FAIL** (+126) | **FAIL** (+125) | **FAIL** (+55) |
+| 9 | Annual-vs-quarter agreement, FY2025 | — | — | — | — | PASS (CFO/CFI/CFF/net-change, from Milestone 1) / UNAVAILABLE (IS lines) |
+| 10 | Balance-sheet instant authority | PASS (authoritative) | PASS (authoritative) | PASS (authoritative) | PASS | PASS |
+| 11 | Direct-vs-derived status recorded | PASS | PASS | PASS | PASS | PASS |
+| 12 | Lineage completeness | N/A — nothing persisted | N/A | N/A | N/A | N/A |
+| 13 | 53-week-year disclosure, no invented adjustment | N/A | N/A | PASS (verbatim, now from primary source) | N/A | N/A |
+| 14 (new) | Restatement/reclassification identified and both values retained | N/A | PASS (COGS/SG&A, repurchases) | PASS (COGS/SG&A) | N/A | N/A |
+| 15 (new) | Authority correctly attributed (not comparative-only) | PASS | PASS | PASS | PASS | PASS |
 
-**Notes on the UNAVAILABLE items:**
-
-- **#5 (full CFO reconciliation):** a complete indirect-method proof needs
-  every reconciling line item Target reports between net income and CFO
-  (stock-based compensation, deferred income taxes, impairments, other
-  non-cash items, and the full working-capital line set) — only
-  D&A-addback, and (candidate, not yet reviewed) inventory/AP adjustments
-  are currently mapped. This becomes a PASS/FAIL check once those additional
-  tags are mapped and reviewed in a future pass; until then it is honestly
-  UNAVAILABLE, not silently skipped.
-- **#8 (debt roll-forward):** `ProceedsFromIssuanceOfLongTermDebt` −
-  `RepaymentsOfLongTermDebt` does not exactly bridge the balance-sheet
-  long-term-debt change, because the balance-sheet line includes capital/
-  finance lease obligations (which have their own non-cash roll-forward not
-  reflected in the two cash-flow-statement debt lines) and because of the
-  current/noncurrent reclassification each year. A reasonableness check
-  (same-order-of-magnitude, same-direction) could be built, but an exact
-  roll-forward is not supportable with the currently-mapped tags.
-- **#9 IS-line annual-vs-quarter agreement:** the income-statement metrics
-  (revenue, COGS, SG&A, etc.) are not part of Milestone 1's quarterized set
-  (only the four cash-flow totals and instant cash balances were
-  quarterized) — so there is no independent quarterly figure to check the
-  FY2025 annual figure against yet for these lines.
-
----
-
-## Unresolved mappings and accounting limitations
-
-1. **`long_term_debt` competing candidate** (§5): `us-gaap:LongTermDebt`
-   (note-schedule total) vs. `us-gaap:LongTermDebtAndCapitalLeaseObligations`
-   (statement-of-financial-position line) disagree numerically (FY2025:
-   14,398M vs. 14,326M). Needs reviewer decision on which is the correct
-   "interest-bearing debt" input to `net_debt` before that mapping can be
-   marked `reviewed`.
-2. **`net_income` statement-location ambiguity** carried over from
-   Milestone 1: multiple identically-valued contexts exist for
-   `NetIncomeLoss`; the consolidated no-segment context is used, but this
-   was documented as unresolved in Milestone 1 and remains so.
-3. **Operating lease liabilities** ("when supportable" per item 2) — not
-   evaluated in this milestone; no candidate tag has been checked yet. If
-   material to net debt, this is a further mapping-review item for a future
-   pass, not resolved here.
-4. **Point-in-time vs. annual-flow ratio convention** (`inventory_pct_revenue`,
-   `ap_pct_cogs`): using year-end (not average) inventory/AP against a
-   full-year flow is a convention choice flagged in the driver dictionary
-   (§7), not yet reviewer-confirmed.
-5. **FY2023 permanent corroborating-only status** (§1): a structural
-   limitation of the available filing set, not fixable by any single
-   additional filing request.
-6. **FY2022 balance-sheet items and FY2021 in full**: BLOCKED pending the
-   requested FY2022 10-K.
+**Item 8b is a new, explicit `FAIL`** — this milestone's most important
+validation-plan change. The debt reconciliation does not close in any
+year, and unlike the CFO-reconciliation `UNAVAILABLE` items (where the
+needed tags simply are not mapped yet), this is a case where **all the
+relevant tags are mapped and the numbers still do not reconcile**,
+warranting a `FAIL` rather than `UNAVAILABLE` per the validation-status
+taxonomy's own distinction (`UNAVAILABLE` = independent evidence doesn't
+exist; `FAIL` = it exists and disagrees).
 
 ---
 
 ## Tests executed
 
-The existing 148-test Milestone 1 suite was re-run to confirm this
-milestone's read-only research and `config/metrics.csv` tag corrections
-introduced no regression (no code in `src/target_cash/` was modified this
-milestone — only `config/metrics.csv` candidate tag values, which the test
-suite does not hardcode):
-
 ```
 python -m pytest tests/ -q
 ```
 
-Result: **148 passed**, 0 failed. (No new tests were added this milestone —
-no new code was written; the schema in §6 is a proposal, not an
-implementation, so there is nothing new to unit-test yet.)
+Result: **148 passed**, 0 failed — both before and after this milestone's
+`config/metrics.csv` additions (three new candidate debt rows) and the
+three-filing ingestion. `normalize` (dry-run) re-run after every change;
+`quarterly_facts_in_db`/`instant_facts_in_db` unchanged at 28/10 throughout,
+confirming nothing was persisted. Idempotency re-confirmed: a second
+`fetch` for an already-registered accession is refused; a second
+`normalize` inserts zero new raw facts.
 
 ---
 
 ## Git diff summary
 
-Files changed this milestone (all documentation and mapping-config; no
-`src/target_cash/` code, no database, no schema migration):
+Files changed this correction pass:
 
-- `config/metrics.csv` — three `candidate_xbrl_tag` corrections
-  (`operating_expenses`, `long_term_debt`, `gross_profit` note), all kept at
-  `mapping_status=candidate_unverified`.
-- `docs/decisions.md` — new append-only entry recording this milestone's
-  findings (tag corrections, source-authority gaps, bridge verification,
-  53-week disclosure).
-- `docs/limitations.md` — new entry recording the FY2022-pending and
-  permanent-FY2023-comparative-only limitations.
-- `docs/milestone_2_proposal.md` — this document (new file).
+- `config/metrics.csv` — tag-migration notes added to `interest_expense`,
+  `net_income`; reclassification note added to `share_repurchases`;
+  full reconciliation note added to `long_term_debt`; three new candidate
+  rows added (`finance_lease_obligations`, `debt_principal_or_note_schedule`,
+  `total_interest_bearing_debt`). All rows remain `candidate_unverified`.
+- `docs/sources.csv` — three new filing records (FY2023, FY2022, FY2021
+  10-Ks), appended via `target_cash.cli fetch --mode manual`, not by hand.
+- `data/raw/` — three new cached source files (`tgt-20240203.htm`,
+  `tgt-20230128.htm`, `tgt-20220129.htm`). Not committed to git (gitignored,
+  same as every other cached filing).
+- `data/curated/target_cash.db` (gitignored, not committed) — `raw_facts`
+  grew from 688 to 1113; `quarterly_facts`/`instant_facts`/`lineage` are
+  **unchanged** (28/10/45 respectively) — nothing new was persisted.
+- `docs/decisions.md` — methodology-correction entry (striking the FY2023
+  permanence error) and a full findings entry (reclassifications, tag
+  migrations, debt reconciliation).
+- `docs/limitations.md` — corrected to remove the erroneous FY2023-permanent
+  claim; new entries for the reclassifications, tag migrations, and debt
+  reconciliation gap.
+- `docs/milestone_2_proposal.md` — this document, substantially revised.
 
-No file under `data/raw/`, `data/curated/`, or any database was created,
-modified, or committed.
+No schema was implemented. No annual analytical fact was persisted.
 
 ---
 
 ## Summary and stop point
 
-Per the governing instruction: **no annual analytical fact has been
-persisted, no schema has been implemented, no mapping has been marked
-reviewed, and no forecasting/DCF/Excel/Power BI/website work has begun.**
-This document, together with the `config/metrics.csv` and `docs/decisions.md`
-updates, is the complete Milestone 2 deliverable package. Awaiting:
+The full five-year authoritative filing set is now in hand. This document
+corrects the FY2023 chronology error, reclassifies every FY2021-FY2023
+finding from "comparative-only" to "authoritative," and surfaces four new,
+real findings (two reclassifications, two tag migrations, one unresolved
+debt-reconciliation gap) that only became visible once each year was
+checked against its own primary filing. **Still nothing has been persisted,
+no schema has been implemented, and no mapping has been marked reviewed.**
+Awaiting reviewer decisions on:
 
-1. The FY2022 10-K (requested in §1), and
-2. Reviewer approval of the mapping matrix (§5), the proposed schema (§6,
-   Option A recommended), and the validation plan (§8) — including a
-   decision on the unresolved `long_term_debt` competing-candidate question
-   (§9) — before any schema implementation or analytical persistence
-   proceeds.
+1. Which COGS/SG&A split (`as_originally_filed` vs. `latest_restated`) is
+   the project's default view for FY2022/FY2023 `gross_profit` (both are
+   retained either way).
+2. The `total_interest_bearing_debt` definition (Option (a) vs. (b), §7).
+3. The proposed schema (`annual_facts`/`annual_lineage`/
+   `annual_fact_observations`, plus the two companion column migrations
+   needed for `period_facts_unified`).
+
+No forecasting, DCF, Excel, Power BI, or website work has begun.

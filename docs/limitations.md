@@ -41,24 +41,50 @@ implements a genuine HTTP client for environments where SEC access is open.
 
 ## Data coverage (Milestone 2)
 
-- FY2021 and FY2022 balance-sheet items (inventory, accounts payable,
-  long-term debt, balance-sheet cash) are **BLOCKED** pending the FY2022
-  10-K (accession `0000027419-23-000015`, period 2023-01-28), requested from
-  the project owner — see `docs/milestone_2_proposal.md` §1. FY2022
-  income-statement and cash-flow figures are available only as
-  corroborating (not authoritative) observations from the FY2024 10-K's own
-  comparative context.
-- **Structural limitation, not resolvable by requesting a further filing:**
-  no filing among current or planned holdings will ever have FY2023 as its
-  own primary period of report. FY2023 appears only as a comparative in the
-  FY2024 10-K and FY2025 10-K. Every FY2023 figure in this project is,
-  and will remain, corroborating-only under the authoritative-source-filing
-  policy, even after the FY2022 10-K is obtained.
+**Correction, 2026-09-15:** an earlier version of this section stated that
+FY2021/FY2022 balance-sheet items were blocked pending the FY2022 10-K, and
+that FY2023 would *permanently* lack a filing with its own primary-period
+authority, including the chronologically impossible claim that FY2023 would
+appear as a comparative in the FY2022 10-K (a filing that predates FY2023
+and cannot contain it). Both statements were methodology errors, corrected
+in `docs/decisions.md`'s 2026-09-15 methodology-correction entry. The actual
+five-year authoritative filing set (FY2021-FY2025 10-Ks) is now fully
+ingested; see below for what remains open.
+
+- The full five-year authoritative filing set (FY2021 through FY2025
+  10-Ks) is now ingested and hash-verified — see `docs/sources.csv` and
+  `docs/milestone_2_proposal.md` §1 for the complete inventory.
 - Two `config/metrics.csv` candidate tags were found to be incorrect and
-  corrected this milestone (`operating_expenses`, `long_term_debt`); neither
-  is marked `reviewed`. `gross_profit` has no direct XBRL tag in either
-  cached filing and must always be derived. See
-  `docs/milestone_2_proposal.md` §5 and §9 for full detail.
+  corrected in this milestone's first pass (`operating_expenses`,
+  `long_term_debt`); neither is marked `reviewed`. `gross_profit` has no
+  direct XBRL tag in any of the five cached filings and must always be
+  derived.
+- **Genuine restatements/reclassifications found** (not tag errors —
+  real changes in how Target's own comparatives are presented across filing
+  vintages): a COGS/SG&A reclassification affecting FY2022 ($77M) and
+  FY2023 ($92M), and a share-repurchase reclassification affecting FY2022
+  ($180M). Operating income, pretax income, and net income are unaffected
+  in every case; derived `gross_profit` for FY2022/FY2023 depends on which
+  filing vintage's split is used. Both the as-originally-filed and
+  latest-restated values are retained — see `docs/decisions.md` and
+  `docs/milestone_2_proposal.md` §5 for the full detail and exact figures.
+- **Tag migrations found** (value continuous, no restatement): `interest_expense`
+  is tagged `us-gaap:InterestExpense` in the FY2021-FY2023 10-Ks and
+  `us-gaap:InterestExpenseNonoperating` from the FY2024 10-K onward;
+  `net_income` is tagged `us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic`
+  in the FY2021 10-K only and `us-gaap:NetIncomeLoss` from the FY2022 10-K
+  onward. `config/metrics.csv`'s single-tag-per-metric column cannot express
+  this; the vintage-dependent tag is documented in the mapping matrix
+  instead.
+- **Debt reconciliation gap, unresolved:** subtracting Target's disclosed
+  finance-lease liability from the balance-sheet long-term-debt-and-capital-lease
+  line does not exactly equal the separate note-schedule debt total in any
+  year, and the residual's sign flips across years (not explainable as a
+  simple unamortized-discount/issuance-cost effect). No tag exists in any
+  filing to resolve this directly. See `docs/milestone_2_proposal.md` §6.
+  Confirmed separately: Target discloses no "net debt" measure of its own
+  anywhere in any of the five filings — this project's `net_debt` is
+  entirely this project's own construction.
 
 ## Not yet built
 

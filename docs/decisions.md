@@ -1490,3 +1490,145 @@ FY2022 = 52 weeks, FY2023 = 53 weeks, FY2024 = 52 weeks, FY2025 = 52 weeks.
 No 52-week-adjusted figure has been invented anywhere in this project; the
 annual dry-run table in `docs/milestone_2_proposal.md` carries the raw
 reported figures plus an explicit week-count footnote.
+
+## 2026-09-15 — Methodology correction: FY2023 is not permanently corroborating-only; three missing 10-Ks ingested
+
+**Correction.** The prior entry above, and `docs/milestone_2_proposal.md` §1
+as originally written, incorrectly concluded that FY2023 could never have
+primary-filing authority under this project's own filing set, and — more
+seriously — stated that FY2023 "would appear only as a *prior-year*
+comparative in the FY2022 10-K." That second claim is chronologically
+impossible: the FY2022 10-K (period end 2023-01-28) was filed before FY2023
+existed and cannot contain any FY2023 data, comparative or otherwise. This
+was an error in reasoning, not a data error — no fact in the database or in
+`config/metrics.csv` was affected, since nothing has been persisted. The
+actual cause of the gap was narrower and correctable: this project's source
+manifest was simply missing the FY2023 10-K itself, not evidence that no
+such filing exists. It does — Target files one 10-K per fiscal year, so a
+five-year window has a five-filing authoritative set, full stop. Both
+statements are struck from the record here rather than silently edited out,
+per this project's append-only decision-log discipline.
+
+**Correction applied.** The FY2023 10-K (accession `0000027419-24-000032`,
+primary document `tgt-20240203.htm`, period of report 2024-02-03) was
+supplied by the project owner and ingested, along with the previously
+requested FY2022 10-K (accession `0000027419-23-000015`,
+`tgt-20230128.htm`, period 2023-01-28) and the FY2021 10-K (accession
+`0000027419-22-000007`, `tgt-20220129.htm`, period 2022-01-29) — the
+project owner supplied all three at once, closing the full five-year
+authoritative window (FY2021 through FY2025) in a single step. All three
+were verified before ingestion (dei:EntityRegistrantName,
+dei:EntityCentralIndexKey=0000027419, dei:DocumentType=10-K,
+dei:DocumentFiscalYearFocus matching the expected year, dei:AmendmentFlag=
+FALSE, dei:TradingSymbol=TGT, dei:EntityFileNumber=1-6049,
+dei:DocumentPeriodEndDate matching the expected date via its nested
+`CurrentFiscalYearEndDate` span), hash-verified, and registered in
+`docs/sources.csv` via `target_cash.cli fetch --mode manual` (not by
+hand-editing the CSV) so the existing tested append/duplicate-refusal path
+was exercised rather than bypassed. Idempotency was confirmed: a repeat
+`fetch` call for the FY2023 accession was correctly refused
+("already has a record for accession ... refusing to create a duplicate
+row"), and a repeat `normalize` call inserted zero new raw facts
+(`raw_facts_newly_inserted: 0`, `raw_facts_stored: 1035` unchanged).
+`normalize` (dry-run, no `--persist-derived`) was then run once to extract
+raw facts only: `raw_facts_stored` went from 688 (Milestone 1's final count)
+to 1035; `quarterly_facts_in_db` and `instant_facts_in_db` are unchanged at
+28 and 10 respectively (`derivation_persisted: false` throughout — nothing
+new was persisted). Full 148-test suite re-run clean after ingestion.
+
+**All FY2022-FY2025 findings in `docs/milestone_2_proposal.md`'s first
+version are downgraded to PROVISIONAL as of this entry**, per the
+instruction to reassess authority classification rather than discard the
+arithmetic (which mostly still holds — see the next entry for the specific
+places it does not).
+
+## 2026-09-15 — Authority reassessment: real restatements/reclassifications and tag migrations found using the newly-authoritative filings
+
+With FY2021, FY2022, and FY2023 now each backed by a filing whose own
+period of report equals that fiscal year, three genuine, previously
+invisible issues were found by comparing each year's *own* primary filing
+against how later filings' comparative columns present the same year. None
+of these were visible in Milestone 2's first pass, because that pass had
+only ever seen each of FY2022 and FY2023 through a *later* filing's
+comparative lens — exactly the failure mode the authoritative-source-filing
+policy exists to catch, now caught.
+
+**1. COGS/SG&A reclassification (real, disclosed nowhere as a restatement
+label, found only by comparing filings).** For FY2023, the FY2023 10-K's
+own primary statement reports Cost of sales = 77,736 and SG&A = 21,554. The
+FY2024 10-K's FY2023 comparative column (carried unchanged into the FY2025
+10-K's FY2023 comparative) instead reports Cost of sales = 77,828 and SG&A
+= 21,462 — a $92 million shift from SG&A into Cost of sales. The identical
+pattern recurs for FY2022 at a $77 million magnitude: the FY2022 10-K and
+the FY2023 10-K's own FY2022 comparative agree exactly (Cost of sales =
+82,229, SG&A = 20,658), but the FY2024 10-K's FY2022 comparative shows Cost
+of sales = 82,306, SG&A = 20,581. In both years the combined COGS+SG&A
+total, revenue, D&A, and operating income are byte-identical across every
+vintage — this is a pure reclassification between two expense lines with
+zero effect on operating income, pretax income, or net income. It does,
+however, change the derived `gross_profit` and gross margin for FY2022 and
+FY2023 depending on which vintage's split is used. This is precisely the
+`as_originally_filed` vs. `latest_restated` distinction the `instant_facts`
+schema's `analytical_view` column was designed for in Milestone 1 — the
+first real-world case where that design choice earns its keep. Both values
+are retained; neither is discarded.
+
+**2. Share-repurchase reclassification.** FY2022's
+`PaymentsForRepurchaseOfCommonStock`: the FY2022 10-K itself reports 2,826;
+the FY2023 10-K's FY2022 comparative (carried forward unchanged into the
+FY2024 10-K's FY2022 comparative) reports 2,646 — a $180 million
+difference, first appearing between the FY2022 and FY2023 10-Ks (one filing
+cycle earlier than the COGS/SG&A shift above). No mechanism is asserted
+here (a plausible candidate is the 1% federal excise tax on share
+repurchases enacted by the Inflation Reduction Act, first applicable to
+fiscal 2023, prompting a look-back reclassification of accrued excise tax
+out of the repurchases line — but this is speculation, not evidenced by any
+tag in the filings, and is not asserted as fact). Both values are retained.
+
+**3. Interest-expense tag migration (value continuous, tag name changed,
+not a restatement).** `us-gaap:InterestExpenseNonoperating` — the tag this
+project mapped `interest_expense` to — does not exist anywhere in the
+FY2021, FY2022, or FY2023 10-Ks. The concept was tagged
+`us-gaap:InterestExpense` in all three of those filings. Values are fully
+continuous across the tag change: FY2021 = 421 (FY2021 10-K, confirmed
+again as FY2022 10-K's own comparative), FY2022 = 478 (FY2022 10-K,
+reconfirmed in FY2023 10-K's and FY2024 10-K's comparatives), FY2023 = 502
+(FY2023 10-K, reconfirmed in FY2024 10-K's and FY2025 10-K's comparatives).
+Every value reproduces the pretax-income bridge exactly for every year.
+This is a pure tag rename between filing vintages (introduced with the
+FY2024 10-K), not a restatement.
+
+**4. Net-income tag migration (value continuous, tag name changed).**
+`us-gaap:NetIncomeLoss` does not exist in the FY2021 10-K. That filing tags
+the "Net earnings" statement line as
+`us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic` (value 6,946,
+exactly reproducing the pretax-income bridge; Target has no preferred stock
+or noncontrolling interest in this period, so this basic-EPS-numerator tag
+and the headline net-income concept are identical here). `NetIncomeLoss`
+appears starting with the FY2022 10-K and continues through FY2025.
+
+**Implication for `config/metrics.csv`:** the single `candidate_xbrl_tag`
+column cannot cleanly express "this concept's tag depends on filing
+vintage." `interest_expense` and `net_income`'s existing rows are left
+pointing at the tag that is correct for FY2024/FY2025 (already the case);
+the vintage-dependent alternate tags are documented in the five-year mapping
+matrix in `docs/milestone_2_proposal.md` instead of in `config/metrics.csv`
+itself. Neither row is marked `reviewed`.
+
+**Debt reconciliation** (per the explicit instruction not to select the
+larger/more-detailed note-schedule figure by default): see
+`docs/milestone_2_proposal.md` §6 for the full, multi-year table. Summary:
+subtracting `us-gaap:FinanceLeaseLiability` from the balance-sheet
+`LongTermDebtAndCapitalLeaseObligations` total (current+noncurrent) and
+comparing to the note-schedule `us-gaap:LongTermDebt` total leaves an
+unexplained residual that varies by year (FY2025: +55M; FY2024: +125M;
+FY2023: +126M; FY2022: +74M; FY2021: **-77M**, sign-flipped). No
+`DebtInstrumentUnamortizedDiscount...`/`...IssuanceCosts` tag exists in any
+of the five filings to explain this directly. The residual's sign flip
+across years means it is **not** simply "unamortized discount and issuance
+costs" (which would not normally change sign), and is reported as an
+unresolved, `UNAVAILABLE`-classified reconciliation gap rather than
+explained away. Confirmed separately: the text string "net debt" does not
+appear anywhere in any of the five cached filings — Target discloses no net
+debt measure of its own, so this project's `net_debt` is entirely this
+project's own construction, never a Target-defined figure.
