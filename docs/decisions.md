@@ -1632,3 +1632,167 @@ explained away. Confirmed separately: the text string "net debt" does not
 appear anywhere in any of the five cached filings — Target discloses no net
 debt measure of its own, so this project's `net_debt` is entirely this
 project's own construction, never a Target-defined figure.
+
+## 2026-09-15 — Analytical-view policy formalized; concept equivalences investigated and approved; debt classification corrected
+
+The reviewer accepted the five-year ingestion and reclassification findings
+and directed six corrections before any schema implementation: formalize
+the AS_ORIGINALLY_FILED/LATEST_RESTATED policy; investigate (not assume)
+the interest-expense and net-income tag equivalences with full evidence;
+correct an over-broad debt validation FAIL to the correct
+NOT_APPLICABLE/BLOCKED classification; rename net-debt metrics away from
+any implication that Target itself reports them; and refine the schema
+(a `period_facts_unified` view backed by an explicit fiscal-calendar table,
+not calendar-year inference). Full detail, evidence tables, and the
+regenerated dry-run are in `docs/milestone_2_proposal.md`; this entry
+records the decisions and the evidence chain behind them.
+
+**Analytical-view policy, formalized:**
+- `AS_ORIGINALLY_FILED`: the metric value in the filing for which that
+  fiscal year was its own primary reporting period. Preserves management's
+  original classification at that information date.
+- `LATEST_RESTATED`: the value from the most recent verified later filing
+  that presents the same prior year under a revised classification.
+  Becomes the default comparison/forecast-training view once a forecasting
+  milestone exists. **Never overwrites the original observation** — both
+  rows persist side by side, linked by `relationship = 'conflicting'` in
+  the proposed `annual_fact_observations` table.
+
+**Second review round found a THIRD reclassification instance,** missed in
+the first pass because it only compared FY2022's two vintages: FY2021's
+`PaymentsForRepurchaseOfCommonStock` is *also* reclassified. As-originally-filed
+(FY2021 10-K, fact_id
+`0000027419-22-000007:us-gaap:PaymentsForRepurchaseOfCommonStock:ia69484dcd4e4439791020018d198f9dd_D20210131-20220129`)
+= 7,356M, corroborated unchanged by the FY2022 10-K's own FY2021 comparative.
+Latest-restated (FY2023 10-K, fact_id
+`0000027419-24-000032:us-gaap:PaymentsForRepurchaseOfCommonStock:c-11`) =
+7,188M — a $168M difference. Both the FY2021 ($168M) and FY2022 ($180M)
+share-repurchase reclassifications first appear in the *same* filing (the
+FY2023 10-K), applied retrospectively to both open comparative years at
+once. This timing is consistent with a systematic classification-method
+change applied prospectively to that filing's presentation of prior years —
+but is **not proof** of one. Both filings' full text were searched for
+"excise tax" and "accelerated share repurchase" near the relevant figures;
+no dollar-amount-specific explanation was found. **Classified as an
+unexplained reclassification, not labeled an error, per the explicit
+instruction not to assert a cause without evidence.**
+
+**Interest-expense concept equivalence — investigated and approved as a
+versioned rule, not a destructive tag replacement.**
+
+| Year | Filing | Fact ID | Value | Statement location |
+|---|---|---|---:|---|
+| FY2021 | FY2021 10-K (own) | `0000027419-22-000007:us-gaap:InterestExpense:ia69484dcd4e4439791020018d198f9dd_D20210131-20220129` | 421M | Statement of Operations, "Net interest expense" |
+| FY2022 | FY2022 10-K (own) | `0000027419-23-000015:us-gaap:InterestExpense:icce5194b17ef459680012472bdec4a34_D20220130-20230128` | 478M | same |
+| FY2023 | FY2023 10-K (own) | `0000027419-24-000032:us-gaap:InterestExpense:c-1` | 502M | same |
+| FY2024 | FY2024 10-K (own) | `0000027419-25-000018:us-gaap:InterestExpenseNonoperating:c-1` | 411M | same |
+| FY2025 | FY2025 10-K (own) | `0000027419-26-000016:us-gaap:InterestExpenseNonoperating:c-1` | 445M | same |
+
+Accounting definition (unchanged across the rename, per Target's own line
+label in every filing): net interest expense on outstanding debt,
+presented net of capitalized interest and interest income, as a single
+line between Operating income and Net other income on the Statement of
+Operations. Competing concepts checked in every filing and rejected in
+every case: `FinanceLeaseInterestExpense` (a narrower, lease-specific
+interest sub-component, not the aggregate line) and `InterestPaidNet` (a
+cash-paid supplemental-disclosure figure, not the accrual-basis income
+statement expense). **Arithmetic role, verified exact in all 5 years:**
+Operating income − [this concept] + Net other income = Pretax income
+(zero residual every year, both under `InterestExpense` and
+`InterestExpenseNonoperating`). **Equivalence approved**: same statement
+line, same definition, same arithmetic role, continuous values across the
+rename. Recorded as a versioned `concept_equivalence_rule` (see schema
+proposal, `docs/milestone_2_proposal.md` Section 7) rather than by editing
+`interest_expense`'s single `candidate_xbrl_tag` cell to silently prefer
+one tag over the other.
+
+**Net-income concept equivalence — investigated, NOT auto-equated;
+approved only as a FY2021-scoped, Target-specific equivalence with a
+documented limitation.**
+
+`us-gaap:NetIncomeLoss` has zero occurrences in the FY2021 10-K; that
+filing tags the headline "Net earnings" line as
+`us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic`
+(fact_id `0000027419-22-000007:us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic:ia69484dcd4e4439791020018d198f9dd_D20210131-20220129`,
+value 6,946M). This tag is, by definition, net income *after* four possible
+adjustments relative to headline net income: preferred dividends,
+noncontrolling interests, discontinued operations, and participating
+securities. Each was checked directly against the FY2021 10-K's own tagged
+facts, not assumed:
+
+- **Preferred dividends**: `us-gaap:PreferredStockSharesOutstanding` and
+  `us-gaap:PreferredStockSharesIssued` are both tagged `format="ixt:fixed-zero"`
+  (zero shares issued and outstanding) as of 2022-01-29. Zero preferred
+  shares outstanding means zero preferred dividends are possible.
+- **Noncontrolling interests**: the string "noncontrolling" occurs exactly
+  once in the entire FY2021 10-K, and only as a substring inside the
+  pretax-income concept's own full taxonomy name
+  (`IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterestNoncontrollingInterest`,
+  a standard US-GAAP tag name, not a Target-specific disclosure). No
+  separate NCI value or line item exists anywhere in the filing.
+- **Discontinued operations**: `us-gaap:IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity`
+  is tagged and reported for FY2021 as `—` (zero). A genuine, immaterial
+  $12M discontinued-operations item exists for FY2019 (outside this
+  project's five-year window) — proving the tag is a real, non-boilerplate
+  concept Target does use when applicable, which strengthens confidence
+  that its explicit zero for FY2021 is a real reported zero, not an
+  artifact of non-use.
+- **Participating securities**: no tag or text match for "participating
+  securit*" found anywhere in the FY2021 10-K.
+
+**All four possible adjustments are independently confirmed zero for
+FY2021.** Equivalence between `NetIncomeLossAvailableToCommonStockholdersBasic`
+and the headline net-income concept is therefore **approved for FY2021
+only**, as a Target-specific, evidence-backed exception — not a general
+rule that these two XBRL concepts are always interchangeable (they are not,
+in general; a company with preferred stock or NCI would show a real
+difference). The limitation is documented explicitly: this equivalence
+holds because of Target's specific capital structure in FY2021, verified
+fact-by-fact, not because the two concepts share a definition.
+
+**Debt classification corrected.** The prior entry's `FAIL` classification
+for "note-schedule debt total vs. GAAP carrying value" was over-broad. Per
+the reviewer's correction: **direct equality between
+`debt_principal_schedule` (the note-schedule total) and
+`long_term_debt_gaap_carrying_value` (the balance-sheet carrying value) is
+`NOT_APPLICABLE`** — they are definitionally different figures (contractual
+principal vs. GAAP carrying value), not a validation target. The actual
+bridge — `debt_principal_schedule` ± unamortized premium/discount −
+unamortized issuance costs ± other disclosed adjustments = GAAP carrying
+value before finance leases — cannot be evaluated at all, because
+`unamortized_discount_premium_and_issuance_cost` has **zero** disclosure
+anywhere in any of the 5 filings (exhaustive tag scan for every
+`DebtInstrumentUnamortized*`/`UnamortizedDebt*` concept, and a text search
+for "unamortized" near the debt disclosures, both came back empty). Per the
+stated bridge-status rules, this is **`BLOCKED`** (a required adjustment is
+unavailable), not `FAIL` (which requires all components to exist and
+disagree). The residual is reported, not plugged: see
+`docs/milestone_2_proposal.md` Section 7 for the full year-by-year table.
+Current/noncurrent classification *within* what is disclosed reconciles
+exactly in every year (finance-lease current+noncurrent sums to the
+finance-lease total; the balance-sheet line's current+noncurrent sums to
+its own total) — that piece is `PASS`.
+
+**Net-debt naming corrected.** No formula in this project is labeled
+"Target-reported Net Debt" or similar — confirmed again that Target
+discloses no net-debt measure of its own. Two explicitly-scoped, clearly
+this-project's-own labels are used instead: `valuation_net_debt`
+(interest-bearing debt excluding finance leases, minus cash) and
+`adjusted_net_debt_including_finance_leases` (the same, with finance leases
+added back — an adjusted, ratings-agency-style leverage view). A
+`target_defined_net_debt` label is documented as **structurally empty** —
+there is nothing to populate it with, since Target defines no such measure.
+
+**Schema refinement:** `instant_facts.fiscal_year` (proposed in the first
+correction pass) is withdrawn per the reviewer's direction not to infer
+Target fiscal years from calendar years even via a stored column. Replaced
+with a proposed `fiscal_calendar` reference table (`fiscal_year,
+fiscal_quarter, period_start, period_end, week_count, is_53_week_year,
+authority_accession`), populated with real, confirmed data for FY2019-FY2025
+at the annual grain (quarterly grain is populated for FY2025 only, from the
+already-ingested 10-Qs; FY2021-FY2024 quarterly rows are left `BLOCKED`
+pending those years' 10-Qs, not fabricated from a formula). The unified view
+joins to this table rather than computing a fiscal year from `as_of_date`.
+See `docs/milestone_2_proposal.md` Section 7 for the full DDL and migration
+order. **None of this is implemented** — schema and migrations are
+presented for review only.
