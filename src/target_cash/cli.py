@@ -21,6 +21,7 @@ import yaml
 
 from target_cash import __version__
 from target_cash.fetch import append_source_manifest, fetch_via_http, ingest_manual_file
+from target_cash.migrations import apply_safe_migrations
 from target_cash.validation import run_validation
 
 DEFAULT_PATHS = {
@@ -52,11 +53,20 @@ def _resolve_path(config: dict, key: str) -> Path:
 
 
 def _connect_db(config: dict) -> sqlite3.Connection:
+    """Open (or create) the curated database, safely bringing its schema up to date.
+
+    Never drops or recreates a table: sql/schema.sql only ever CREATEs
+    tables that don't yet exist, and apply_safe_migrations only ever ADDs
+    columns that don't yet exist. A populated database is never at risk from
+    either step — see src/target_cash/migrations.py and docs/decisions.md,
+    2026-09-15 "Database safety".
+    """
     db_path = _resolve_path(config, "curated_dir") / config.get("paths", {}).get("db_filename", DEFAULT_PATHS["db_filename"])
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(_resolve_path(config, "schema_sql").read_text())
     conn.executescript(_resolve_path(config, "views_sql").read_text())
+    apply_safe_migrations(conn)
     return conn
 
 

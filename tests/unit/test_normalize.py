@@ -5,11 +5,14 @@ import pytest
 from target_cash.normalize import (
     NormalizationError,
     PeriodSpec,
+    RawFactCandidate,
+    SelectionError,
     build_point_in_time_fact,
     derive_q2,
     derive_q3,
     derive_q4,
     normalize_unit,
+    select_consolidated_fact,
     to_decimal,
 )
 
@@ -153,3 +156,74 @@ def test_point_in_time_fact_is_never_a_difference():
     assert fact.basis == "point_in_time"
     assert fact.period_start is None
     assert fact.value_normalized == Decimal("500.00")
+
+
+# --- select_consolidated_fact: dimensional facts must never substitute for,
+# or be summed into, the consolidated total. -----------------------------
+
+def test_select_consolidated_fact_picks_the_only_consolidated_candidate():
+    # Modeled on the real FY2025 revenue-by-category disclosure: several
+    # dimensional (product-category) facts alongside one consolidated total.
+    # The dimensional facts do NOT sum to the consolidated value in this
+    # fixture on purpose, so a bug that summed them instead of selecting
+    # would be caught, not accidentally validated by coincidentally-correct
+    # real-world arithmetic.
+    candidates = [
+        RawFactCandidate("rf_consolidated", None, Decimal("104780000000")),
+        RawFactCandidate("rf_apparel", "tgt:ApparelAndAccessoriesMember", Decimal("15737000000")),
+        RawFactCandidate("rf_beauty", "tgt:BeautyMember", Decimal("13214000000")),
+    ]
+    selected = select_consolidated_fact(candidates)
+    assert selected.fact_id == "rf_consolidated"
+    assert selected.value == Decimal("104780000000")
+
+
+def test_select_consolidated_fact_never_returns_a_sum_of_dimensional_facts():
+    candidates = [
+        RawFactCandidate("rf_apparel", "tgt:ApparelAndAccessoriesMember", Decimal("15737000000")),
+        RawFactCandidate("rf_beauty", "tgt:BeautyMember", Decimal("13214000000")),
+    ]
+    with pytest.raises(SelectionError):
+        select_consolidated_fact(candidates)  # must not silently return 15737000000 + 13214000000
+
+
+def test_select_consolidated_fact_raises_when_no_consolidated_candidate_exists():
+    candidates = [
+        RawFactCandidate("rf_segment", "tgt:ReportableSegmentMember", Decimal("3705000000")),
+    ]
+    with pytest.raises(SelectionError, match="No consolidated"):
+        select_consolidated_fact(candidates)
+
+
+def test_select_consolidated_fact_raises_on_ambiguous_duplicates_with_differing_values():
+    candidates = [
+        RawFactCandidate("rf_a", None, Decimal("100")),
+        RawFactCandidate("rf_b", None, Decimal("105")),
+    ]
+    with pytest.raises(SelectionError, match="Ambiguous"):
+        select_consolidated_fact(candidates)
+
+
+def test_select_consolidated_fact_raises_on_ambiguous_duplicates_even_if_values_agree():
+    # Two distinct consolidated contexts that happen to carry the same value --
+    # still not resolved automatically; agreement is not evidence of which is authoritative.
+    candidates = [
+        RawFactCandidate("rf_a", None, Decimal("100")),
+        RawFactCandidate("rf_b", None, Decimal("100")),
+    ]
+    with pytest.raises(SelectionError, match="Ambiguous"):
+        select_consolidated_fact(candidates)
+
+
+def test_select_consolidated_fact_ignores_dimensional_facts_entirely_when_disambiguating():
+    # Multiple dimensional facts alongside exactly one consolidated fact must
+    # still resolve cleanly -- the dimensional count must not affect the
+    # ambiguity check, which only concerns consolidated candidates.
+    candidates = [
+        RawFactCandidate("rf_consolidated", None, Decimal("500")),
+        RawFactCandidate("rf_dim_1", "tgt:SegmentAMember", Decimal("300")),
+        RawFactCandidate("rf_dim_2", "tgt:SegmentBMember", Decimal("200")),
+        RawFactCandidate("rf_dim_3", "us-gaap:RetainedEarningsMember", Decimal("500")),
+    ]
+    selected = select_consolidated_fact(candidates)
+    assert selected.fact_id == "rf_consolidated"

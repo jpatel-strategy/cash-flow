@@ -22,6 +22,50 @@ class NormalizationError(ValueError):
     """Raised when facts cannot be safely combined or converted."""
 
 
+class SelectionError(ValueError):
+    """Raised when raw facts cannot be safely narrowed to one analytical fact."""
+
+
+@dataclass(frozen=True)
+class RawFactCandidate:
+    """The minimal shape select_consolidated_fact needs from a raw_facts row."""
+
+    fact_id: str
+    dimensional_context: Optional[str]  # None = consolidated
+    value: Decimal
+
+
+def select_consolidated_fact(candidates: list[RawFactCandidate]) -> RawFactCandidate:
+    """Narrow a pool of same-concept, same-period raw facts to the one
+    consolidated (dimensionless) analytical fact.
+
+    Dimensional facts (segment, product-category, equity-rollforward member,
+    etc.) are excluded outright — they are never summed together as a
+    substitute for a missing consolidated total, and never silently combined
+    with a consolidated fact. If more than one consolidated candidate
+    remains — even if their values happen to agree — this raises rather than
+    picking one, since "which one is authoritative" is a judgment for a
+    human reviewer, not a default. Callers must already have scoped
+    `candidates` to one target period (e.g. one fiscal_year + scope); this
+    function only resolves the dimensional-vs-consolidated axis within that
+    scope.
+    """
+    consolidated = [c for c in candidates if c.dimensional_context is None]
+    if len(consolidated) == 0:
+        raise SelectionError(
+            "No consolidated (dimensionless) candidate fact found among "
+            f"{[c.fact_id for c in candidates]}; refusing to select or sum dimensional "
+            "facts as a substitute for a missing consolidated total."
+        )
+    if len(consolidated) > 1:
+        raise SelectionError(
+            f"Ambiguous: {len(consolidated)} consolidated candidate facts found "
+            f"({[c.fact_id for c in consolidated]}); human resolution required, not "
+            "silently selecting one, even where their values agree."
+        )
+    return consolidated[0]
+
+
 @dataclass(frozen=True)
 class PeriodSpec:
     fiscal_year: int

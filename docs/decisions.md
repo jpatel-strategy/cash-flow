@@ -378,6 +378,60 @@ pending the project owner's own confirmation):
 
 Confirms explicitly: the tag **is** `us-gaap:OtherNonoperatingIncomeExpense` — no other concept is in contention.
 
+## 2026-09-15 — Pre-10-Q-ingestion corrections (project owner directive)
+
+Four corrections required before ingesting the FY2025 10-Qs:
+
+1. **Net other income → reviewed.** Project owner confirmed raw-fact
+   `0000027419-26-000016:us-gaap:OtherNonoperatingIncomeExpense:c-1` is the
+   consolidated FY2025 Statement of Operations fact with no dimensional
+   members (context c-1, no `dimensional_context`), per the evidence record
+   already gathered. `config/metrics.csv`'s `net_other_income` row moved to
+   `reviewed`.
+2. **Interest expense tag corrected.** `interest_expense`'s
+   `candidate_xbrl_tag` changed from `InterestExpense` (confirmed absent
+   anywhere in accession 0000027419-26-000016 by exhaustive tag scan) to
+   `InterestExpenseNonoperating` (the actual "Net interest expense" line;
+   context c-1 = $445M FY2025). Competing candidates considered and
+   rejected: `FinanceLeaseInterestExpense` (narrower, lease-specific) and
+   `InterestPaidNet` (cash-paid supplemental disclosure, not the
+   accrual-basis income-statement expense). Left `candidate_unverified` —
+   not reviewed until cross-checked against the FY2025 10-Qs too, as
+   instructed. Re-ran `normalize` against the already-cached 10-K afterward
+   to backfill the 6 `InterestExpenseNonoperating` raw_facts this correction
+   now finds (`raw_facts_stored` 115 → 121); this reran extraction against
+   an already-registered filing, not a new fetch, so no manifest or
+   `filings` duplication resulted.
+3. **Database safety.** New `src/target_cash/migrations.py`:
+   `apply_safe_migrations` tracks applied migrations in a
+   `_schema_migrations` table and applies only additive `ALTER TABLE ...
+   ADD COLUMN` changes, each idempotent and safe against a populated table.
+   A migration marked `is_safe_additive=False`, or one whose target table
+   doesn't exist, raises `UnsafeMigrationError` with instructions rather
+   than guessing. `cli.py: _connect_db` now calls this after running
+   `schema.sql`/`views.sql`, on every connection — a stale schema (like the
+   one that caused the earlier `fetch` failure) is now fixed automatically
+   and safely instead of requiring a manual database recreate. Reproduced
+   the exact failure scenario in `tests/unit/test_migrations.py` (a
+   `filings` table built without `cached_filename`, populated with a row)
+   and confirmed the migration adds the column and preserves the row.
+4. **Consolidated fact selection.** New `normalize.select_consolidated_fact`
+   (plus `RawFactCandidate`, `SelectionError`): given a pool of same-concept,
+   same-period raw facts, returns the one consolidated
+   (`dimensional_context is None`) candidate, or raises if zero or more than
+   one exist — even when multiple consolidated candidates agree in value,
+   since agreement isn't evidence of which is authoritative. Dimensional
+   facts (segment, product-category, equity-rollforward member) are
+   excluded outright and never summed as a substitute for a missing
+   consolidated total. Tested against a fixture modeled on the real FY2025
+   revenue-by-category disclosure, deliberately constructed so the
+   dimensional facts do NOT sum to the consolidated value — catching a
+   summing bug that coincidentally-correct real data wouldn't have caught.
+   Not yet wired into any CLI command: there is nothing to derive yet, since
+   `quarterly_facts` population remains unauthorized this round.
+
+Test suite after these four changes: 104 passed, 0 failed.
+
 ## Pending decisions (not yet made — recorded so they aren't quietly defaulted)
 
 - **Findings A, B are activated** (`cash_and_equivalents_balance_sheet`,
