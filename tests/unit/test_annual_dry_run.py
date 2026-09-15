@@ -1,15 +1,10 @@
-"""Unit tests for scripts/annual_dry_run.py's pure logic (tag resolution,
-value scaling, derived-metric computation) -- not the database queries,
-which are exercised end-to-end by running the script itself against the
-real database (see docs/milestone_2_proposal.md for the verified output).
+"""Unit tests for target_cash.annual's pure logic (tag resolution, value
+scaling, derived-metric computation) -- not the database queries, which are
+exercised end-to-end by running scripts/annual_dry_run.py (a thin wrapper
+around this module) against the real database, and by the validate_annual
+integration tests in test_annual_validation.py.
 """
-import sys
-from decimal import Decimal
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
-
-from annual_dry_run import derive, q6, resolve_tag  # noqa: E402
+from target_cash.annual import derive, q6, resolve_tag
 
 
 def test_q6_scales_dollar_metrics_by_one_million():

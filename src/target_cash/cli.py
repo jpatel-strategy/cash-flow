@@ -438,6 +438,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     ]
     lineage_rows = conn.execute("SELECT derived_fact_id, input_fact_id, operation FROM lineage").fetchall()
     lineage_links = [LineageLink(r["derived_fact_id"], r["input_fact_id"], r["operation"]) for r in lineage_rows]
+
+    from target_cash.annual import summarize_annual_validation, validate_annual
+    annual_results = validate_annual(conn)
+    annual_summary = summarize_annual_validation(annual_results)
+    annual_summary["checks"] = [
+        {"category": r.category, "fiscal_year": r.fiscal_year, "view": r.view, "status": r.status, "detail": r.detail}
+        for r in annual_results
+    ]
     conn.close()
 
     summary = run_validation(
@@ -457,8 +465,16 @@ def cmd_validate(args: argparse.Namespace) -> int:
             "config/metrics.csv reviewed-mapping state, so the first data gate cannot pass. "
             "See derivation_errors_by_metric for why."
         )
+    # Annual (FY2021-FY2025) validation is part of the standard gate, kept in
+    # its own section rather than merged into the quarterly counts above --
+    # the two operate at different grains and mixing them would obscure which
+    # period a failure belongs to. A FAIL here fails the overall gate exactly
+    # like a quarterly FAIL does; BLOCKED/UNAVAILABLE/NOT_APPLICABLE do not
+    # (annual_summary["policy"] states the one exemption: target_defined_net_debt).
+    output["annual_validation"] = annual_summary
+    gate_passed = summary.passed and annual_summary["gate_passed"]
     print(json.dumps(output, default=str))
-    return 0 if summary.passed else 1
+    return 0 if gate_passed else 1
 
 
 def cmd_seed_reference_data(args: argparse.Namespace) -> int:

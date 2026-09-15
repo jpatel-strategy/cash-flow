@@ -427,3 +427,22 @@ def test_seed_reference_data_populates_calendar_and_rules_but_not_annual_facts(i
     assert second_output["fiscal_calendar_rows_inserted"] == 0
     assert second_output["concept_equivalence_rules_inserted"] == 0
     assert second_output["annual_analytical_tables_remain_empty"] is True
+
+
+def test_validate_includes_annual_validation_section(isolated_project, capsys):
+    # Unseeded isolated project: annual checks should all be BLOCKED/
+    # UNAVAILABLE/NOT_APPLICABLE (no fiscal_calendar or raw_facts), never
+    # FAIL. The overall exit code is still 1 here -- same as the pre-existing
+    # quarterly-only behavior in test_fetch_manual_then_normalize_then_validate
+    # above (checks_run == 0 is never treated as a silent pass) -- this test
+    # only asserts the annual section's own, independent gate.
+    exit_code = main(["validate", "--config", "config/model.yml"])
+    output = json.loads(capsys.readouterr().out)
+
+    assert "annual_validation" in output
+    annual = output["annual_validation"]
+    assert annual["checks_run"] > 0
+    assert annual["by_status"]["FAIL"] == 0
+    assert annual["gate_passed"] is True
+    assert "target_defined_net_debt" in annual["allowed_permanently_unavailable_metrics"]
+    assert exit_code == 1  # the quarterly gate's own checks_run == 0 still fails the overall command

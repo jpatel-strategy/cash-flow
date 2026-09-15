@@ -1,23 +1,46 @@
 #!/usr/bin/env python3
-"""Clean-room reproducibility proof for Milestone 1.
+"""Clean-room reproducibility proof for Milestone 1 AND Milestone 2.
 
 Builds a brand-new target_cash.db in an isolated temporary directory, from
 nothing but: the project's own code (schema.sql, views.sql,
-config/metrics.csv, config/model.yml), the registered source manifest
-(docs/sources.csv), and the cached source documents (data/raw/*.htm --
-the same files a manual re-upload would produce; this script never reads
-or copies the active database at data/curated/target_cash.db).
+config/metrics.csv, config/model.yml, and every migration in
+src/target_cash/migrations.py, applied automatically by every CLI command's
+_connect_db call), the registered source manifest (docs/sources.csv), and
+the cached source documents (data/raw/*.htm -- the same files a manual
+re-upload would produce; this script never reads or copies the active
+database at data/curated/target_cash.db).
 
 Usage (from the repository root):
     .venv/bin/python scripts/clean_room_rebuild.py [--keep]
+
+Steps, in order: fetch every registered source -> normalize (dry-run) ->
+validate (dry-run, includes the annual_validation section) -> normalize
+--persist-derived (Milestone 1: quarterly_facts/instant_facts) ->
+seed-reference-data (Milestone 2: fiscal_calendar/concept_equivalence_rules
+only) -> validate (final).
+
+**Annual analytical persistence is NOT part of this script yet** --
+persisting annual_facts/annual_lineage/annual_fact_observations is not
+authorized as of this milestone (see docs/milestone_2_schema_and_dry_run.md).
+Once a `normalize --persist-annual` (or equivalent) command exists and is
+authorized, add it here, immediately after seed-reference-data and before
+the final validate call, so this script continues to prove the ENTIRE
+database -- Milestone 1's quarterly/instant facts and Milestone 2's annual
+facts alike -- rebuilds byte-for-byte-equivalent (via canonical export
+hashing, scripts/compare_databases.py) from source documents alone. The
+expected post-persistence counts that step should reproduce are the
+persistence manifest in docs/milestone_2_schema_and_dry_run.md (35
+annual_facts, 35 annual_lineage, 84 annual_fact_observations, as of the
+7-metric reviewed-only manifest computed there).
 
 Prints the resulting table counts and validate totals, then (unless
 --keep is passed) deletes the temporary directory. Exit code is nonzero
 if any step fails or a source file's hash doesn't match the manifest.
 
-See docs/milestone_1_evidence.md for the expected counts and the
-independent comparison against the active database
-(scripts/compare_databases.py).
+See docs/milestone_1_evidence.md for the Milestone 1 expected counts and
+docs/milestone_2_schema_and_dry_run.md for the Milestone 2 schema/seed
+counts, both compared against the active database via
+scripts/compare_databases.py.
 """
 from __future__ import annotations
 
@@ -124,6 +147,10 @@ def main() -> int:
         normalize_dry = run_cli(tmp_dir, "normalize", "--config", "config/model.yml")
         validate_dry = run_cli(tmp_dir, "validate", "--config", "config/model.yml")
         normalize_persisted = run_cli(tmp_dir, "normalize", "--config", "config/model.yml", "--persist-derived")
+        seed_reference = run_cli(tmp_dir, "seed-reference-data", "--config", "config/model.yml")
+        # TODO (once authorized and implemented): annual persistence step goes here,
+        # e.g. run_cli(tmp_dir, "normalize", "--config", "config/model.yml", "--persist-annual")
+        # -- see the module docstring for the expected post-persistence counts.
         validate_final = run_cli(tmp_dir, "validate", "--config", "config/model.yml")
 
         db_path = tmp_dir / "data" / "curated" / "target_cash.db"
@@ -133,8 +160,15 @@ def main() -> int:
         print(f"raw_facts_stored: {normalize_dry['raw_facts_stored']}")
         print(f"quarterly_facts (persisted): {normalize_persisted['quarterly_facts_in_db']}")
         print(f"instant_facts (persisted): {normalize_persisted['instant_facts_in_db']}")
+        print(f"fiscal_calendar_rows_total: {seed_reference['fiscal_calendar_rows_total']}")
+        print(f"concept_equivalence_rules_total: {seed_reference['concept_equivalence_rules_total']}")
+        print(f"annual_analytical_tables_remain_empty: {seed_reference['annual_analytical_tables_remain_empty']}")
         for k in ("gate_passed", "checks_run", "checks_passed", "checks_failed", "checks_blocked", "checks_unavailable"):
             print(f"validate.{k}: {validate_final[k]}")
+        annual = validate_final.get("annual_validation", {})
+        print(f"validate.annual_validation.checks_run: {annual.get('checks_run')}")
+        print(f"validate.annual_validation.gate_passed: {annual.get('gate_passed')}")
+        print(f"validate.annual_validation.by_status: {annual.get('by_status')}")
         print(f"database: {db_path}")
         return 0
     finally:
