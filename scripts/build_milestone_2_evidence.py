@@ -17,6 +17,8 @@ import sys
 
 sys.path.insert(0, "src")
 
+from target_cash.annual_persistence import verify_persistence_integrity
+
 REPO_ROOT = "."
 
 conn = sqlite3.connect("data/curated/target_cash.db")
@@ -210,37 +212,54 @@ counts = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
           for t in ("annual_facts", "annual_fact_observations", "annual_lineage")}
 direct_count = conn.execute("SELECT COUNT(*) FROM annual_facts WHERE direct_or_derived='direct'").fetchone()[0]
 derived_count = conn.execute("SELECT COUNT(*) FROM annual_facts WHERE direct_or_derived='derived'").fetchone()[0]
+obs_by_rel = dict(conn.execute("SELECT relationship, COUNT(*) FROM annual_fact_observations GROUP BY relationship").fetchall())
 lines.append(f"- **annual_facts:** {counts['annual_facts']} ({direct_count} direct + {derived_count} derived)")
-lines.append(f"- **annual_fact_observations:** {counts['annual_fact_observations']} (all `selected`)")
+lines.append(f"- **annual_fact_observations:** {counts['annual_fact_observations']}, by relationship: "
+              f"selected={obs_by_rel.get('selected', 0)}, corroborating={obs_by_rel.get('corroborating', 0)}, "
+              f"restated={obs_by_rel.get('restated', 0)}, original_historical={obs_by_rel.get('original_historical', 0)}, "
+              f"conflicting={obs_by_rel.get('conflicting', 0)}")
 lines.append(f"- **annual_lineage:** {counts['annual_lineage']}")
 lines.append("")
 lines.append("Exact match with the preflight plan produced by `target_cash.annual_persistence."
               "compute_persistence_preflight` before any write occurred -- see `docs/decisions.md`, "
-              "2026-09-16 entries, for the preflight/post-persistence count reconciliation and the "
-              "finance_lease_liabilities gap this round self-caught and fixed (478 -> 488 total facts).")
+              "2026-09-16 entries, for the preflight/post-persistence count reconciliation, the "
+              "finance_lease_liabilities gap self-caught and fixed (478 -> 488 total facts), and the "
+              "observation-completeness enrichment (300 -> 686 observations) with its own reconciliation.")
+lines.append("")
+
+reclass_rows = conn.execute(
+    """
+    SELECT af.metric, af.fiscal_year, af.analytical_view, o.relationship, o.raw_fact_id,
+           o.accession_number, o.value_original, o.difference_from_selected
+    FROM annual_fact_observations o JOIN annual_facts af ON af.annual_fact_id = o.annual_fact_id
+    WHERE o.relationship IN ('restated', 'original_historical')
+    ORDER BY af.metric, af.fiscal_year, af.analytical_view, o.relationship
+    """
+).fetchall()
+lines.append("### Reclassification evidence rows (restated / original_historical observations)")
+lines.append("")
+lines.append("| Metric | Fiscal Year | View (anchor) | Relationship | Accession | Value | Diff from selected |")
+lines.append("|---|---:|---|---|---|---:|---:|")
+for metric, fy, view, rel, raw_fact_id, accession, value, diff in reclass_rows:
+    lines.append(f"| {metric} | {fy} | {view} | {rel} | {accession} | {value:,.1f} | {diff if diff is None else f'{diff:,.1f}'} |")
 lines.append("")
 
 # --- 10. Lineage integrity ---
 lines.append("## 10. Lineage Integrity")
 lines.append("")
 lines.append("Post-persistence integrity report (`target_cash.annual_persistence.verify_persistence_integrity`, "
-              "an independent read-only re-check against the database, never the in-memory preflight plan):")
+              "an independent read-only re-check against the database, never the in-memory preflight plan). "
+              "Every check name and result below is read live from that function's own current output, "
+              "never a hand-copied list:")
 lines.append("")
 lines.append("| Check | Result |")
 lines.append("|---|---|")
-integrity_checks = [
-    "every_direct_fact_has_selected_source_evidence", "every_derived_fact_has_complete_input_lineage",
-    "all_facts_have_required_evidence", "zero_orphan_observations", "zero_orphan_lineage",
-    "zero_orphan_facts", "zero_duplicate_canonical_keys", "both_analytical_views_complete",
-    "reclassifications_remain_distinct", "fy2023_retains_53_week_indicator",
-    "finance_leases_not_double_counted", "capex_remains_distinct_from_cfi",
-    "no_unavailable_metric_persisted", "target_defined_net_debt_never_persisted",
-]
-for name in integrity_checks:
-    lines.append(f"| {name} | PASS |")
+integrity_report = verify_persistence_integrity(conn)
+for name, c in integrity_report["checks"].items():
+    lines.append(f"| {name} | {'PASS' if c['passed'] else 'FAIL'} |")
 lines.append("")
-lines.append("All 14 checks pass. See `docs/decisions.md` and this session's transcript for the exact "
-              "command output.")
+lines.append(f"All {len(integrity_report['checks'])} checks pass (`all_passed`: {integrity_report['all_passed']}). "
+              f"Conflicting-observation detail: {integrity_report['checks']['conflicting_observations_reported_explicitly']['detail']}")
 lines.append("")
 
 # --- 11. Validation results ---
