@@ -148,6 +148,234 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
                 ON instant_fact_observations(instant_fact_id);
         """,
     ),
+    TableMigration(
+        migration_id="0006_fiscal_calendar",
+        description=(
+            "Create fiscal_calendar (empty; populated only by "
+            "target_cash.reference_data.seed_fiscal_calendar, never by this migration). "
+            "An explicit, curated fiscal-year/quarter reference table -- replaces an "
+            "earlier, withdrawn proposal to add a fiscal_year column to instant_facts "
+            "computed from calendar dates, which the reviewer correctly rejected: "
+            "Target's fiscal year-end (52 or 53 weeks, late Jan/early Feb) cannot be "
+            "derived from a calendar date by formula. fiscal_quarter=0 is the sentinel "
+            "for an annual-grain row (SQLite does not enforce uniqueness across NULLs "
+            "in a composite primary key, so NULL is not used here). See "
+            "docs/decisions.md, 2026-09-15 schema-implementation entry."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS fiscal_calendar (
+                cik                  TEXT NOT NULL,
+                company_name         TEXT NOT NULL,
+                fiscal_year          INTEGER NOT NULL,
+                fiscal_quarter       INTEGER NOT NULL DEFAULT 0
+                                         CHECK (fiscal_quarter BETWEEN 0 AND 4),
+                period_start         TEXT NOT NULL,
+                period_end           TEXT NOT NULL,
+                week_count           INTEGER NOT NULL,
+                is_53_week_year      INTEGER NOT NULL DEFAULT 0,
+                authority_accession  TEXT REFERENCES filings(accession_number),
+                PRIMARY KEY (cik, fiscal_year, fiscal_quarter)
+            );
+            CREATE INDEX IF NOT EXISTS idx_fiscal_calendar_period_end ON fiscal_calendar(period_end);
+        """,
+    ),
+    TableMigration(
+        migration_id="0007_concept_equivalence_rules",
+        description=(
+            "Create concept_equivalence_rules (empty; populated only by "
+            "target_cash.reference_data.seed_concept_equivalence_rules). Records a "
+            "tag-vintage equivalence (e.g. us-gaap:InterestExpense == "
+            "us-gaap:InterestExpenseNonoperating) as a versioned, evidenced rule "
+            "instead of a destructive edit to config/metrics.csv's single "
+            "candidate_xbrl_tag cell. See docs/decisions.md, 2026-09-15 entries."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS concept_equivalence_rules (
+                rule_id                TEXT PRIMARY KEY,
+                rule_version           TEXT NOT NULL,
+                company_scope          TEXT NOT NULL,
+                canonical_metric       TEXT NOT NULL,
+                source_concept         TEXT NOT NULL,
+                canonical_concept      TEXT NOT NULL,
+                effective_fiscal_years TEXT NOT NULL,
+                accounting_rationale   TEXT NOT NULL,
+                evidence_reference     TEXT NOT NULL,
+                review_status          TEXT NOT NULL DEFAULT 'proposed'
+                                           CHECK (review_status IN ('proposed', 'reviewed', 'rejected')),
+                mapping_version        TEXT NOT NULL,
+                superseded_by_rule_id  TEXT REFERENCES concept_equivalence_rules(rule_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_concept_equivalence_rules_metric
+                ON concept_equivalence_rules(canonical_metric);
+        """,
+    ),
+    TableMigration(
+        migration_id="0008_annual_facts",
+        description=(
+            "Create annual_facts (empty; not populated by this migration or by any "
+            "code shipped this milestone -- persistence of annual analytical facts "
+            "is not yet authorized). Mirrors the quarterly_facts/instant_facts "
+            "pattern for the annual grain, with an explicit validation_status column "
+            "(quarterly_facts and instant_facts compute validation status at query "
+            "time; this table can store a result once one exists). See "
+            "docs/decisions.md, 2026-09-15 entries."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS annual_facts (
+                annual_fact_id       TEXT PRIMARY KEY,
+                metric               TEXT NOT NULL,
+                fiscal_year          INTEGER NOT NULL,
+                period_start         TEXT NOT NULL,
+                period_end           TEXT NOT NULL,
+                days_in_period       INTEGER NOT NULL,
+                analytical_view      TEXT NOT NULL DEFAULT 'as_originally_filed'
+                                         CHECK (analytical_view IN ('as_originally_filed', 'latest_restated')),
+                value_original       REAL NOT NULL,
+                original_unit        TEXT NOT NULL,
+                value_normalized     REAL NOT NULL,
+                normalized_unit      TEXT NOT NULL DEFAULT 'USD_millions',
+                direct_or_derived    TEXT NOT NULL CHECK (direct_or_derived IN ('direct', 'derived')),
+                fact_status          TEXT NOT NULL DEFAULT 'authoritative'
+                                         CHECK (fact_status IN ('authoritative', 'corroborating_only')),
+                validation_status    TEXT NOT NULL DEFAULT 'unvalidated'
+                                         CHECK (validation_status IN
+                                             ('pass', 'fail', 'blocked', 'unavailable', 'not_applicable', 'unvalidated')),
+                accession_number     TEXT NOT NULL REFERENCES filings(accession_number),
+                filed_at             TEXT NOT NULL,
+                mapping_version      TEXT NOT NULL,
+                information_cutoff   TEXT NOT NULL,
+                is_current_view      INTEGER NOT NULL DEFAULT 1,
+                UNIQUE (metric, fiscal_year, analytical_view)
+            );
+            CREATE INDEX IF NOT EXISTS idx_annual_facts_metric_year ON annual_facts(metric, fiscal_year);
+        """,
+    ),
+    TableMigration(
+        migration_id="0009_annual_lineage",
+        description=(
+            "Create annual_lineage (empty). Generalizes quarterly_facts' lineage "
+            "table: an annual fact's input may be a raw_fact OR another annual_fact "
+            "(e.g. gross_profit's lineage points at revenue's and cost_of_sales' own "
+            "annual_facts rows, not at raw XBRL facts directly), so exactly one of "
+            "input_raw_fact_id/input_annual_fact_id is set per row."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS annual_lineage (
+                annual_lineage_id     TEXT PRIMARY KEY,
+                derived_fact_id       TEXT NOT NULL REFERENCES annual_facts(annual_fact_id),
+                input_raw_fact_id     TEXT REFERENCES raw_facts(fact_id),
+                input_annual_fact_id  TEXT REFERENCES annual_facts(annual_fact_id),
+                operation             TEXT NOT NULL,
+                sequence              INTEGER NOT NULL,
+                coefficient           REAL,
+                CHECK ((input_raw_fact_id IS NOT NULL) <> (input_annual_fact_id IS NOT NULL))
+            );
+            CREATE INDEX IF NOT EXISTS idx_annual_lineage_derived ON annual_lineage(derived_fact_id);
+        """,
+    ),
+    TableMigration(
+        migration_id="0010_annual_fact_observations",
+        description="Create annual_fact_observations (empty). Same relationship vocabulary as instant_fact_observations, plus 'restated' for a same-metric-different-value corroboration (e.g. the COGS/SG&A reclassification), distinct from 'conflicting' (a genuine, unresolved disagreement).",
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS annual_fact_observations (
+                observation_id            TEXT PRIMARY KEY,
+                annual_fact_id            TEXT NOT NULL REFERENCES annual_facts(annual_fact_id),
+                raw_fact_id               TEXT NOT NULL REFERENCES raw_facts(fact_id),
+                accession_number          TEXT NOT NULL REFERENCES filings(accession_number),
+                filed_at                  TEXT NOT NULL,
+                relationship              TEXT NOT NULL
+                                              CHECK (relationship IN ('selected', 'corroborating', 'restated', 'conflicting')),
+                value_original            REAL NOT NULL,
+                difference_from_selected  REAL,
+                classification_rationale  TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_annual_fact_observations_annual
+                ON annual_fact_observations(annual_fact_id);
+        """,
+    ),
+    ColumnMigration(
+        migration_id="0011_quarterly_facts_analytical_view",
+        description=(
+            "Add quarterly_facts.analytical_view, mirroring instant_facts' column of "
+            "the same name. No quarterly restatement has been observed yet (the "
+            "COGS/SG&A reclassification found this milestone is annual-grain only), "
+            "but the column must exist before one can be recorded."
+        ),
+        table="quarterly_facts",
+        column="analytical_view",
+        column_def="TEXT NOT NULL DEFAULT 'as_originally_filed'",
+    ),
+    TableMigration(
+        migration_id="0012_period_facts_unified",
+        description=(
+            "Create the read-only period_facts_unified view, unioning quarterly_facts, "
+            "annual_facts, and instant_facts into one reporting interface. Instant "
+            "facts' fiscal year/quarter come from an explicit join to fiscal_calendar "
+            "on period_end -- never inferred from as_of_date's calendar year, per the "
+            "reviewer's explicit direction. A fiscal year-end date is simultaneously "
+            "that year's annual period_end AND its Q4 period_end (Target's fiscal Q4 "
+            "ends exactly at fiscal year-end); the join deliberately picks the lowest "
+            "fiscal_quarter match (the annual sentinel 0 beats 1-4) so one instant fact "
+            "never fans out into two output rows. See docs/decisions.md, 2026-09-15 entries."
+        ),
+        create_sql="""
+            CREATE VIEW IF NOT EXISTS period_facts_unified AS
+            SELECT
+                qf.metric,
+                'quarterly'                                    AS frequency,
+                qf.fiscal_year,
+                qf.fiscal_quarter,
+                qf.period_start                                AS start_date,
+                qf.period_end                                   AS end_date,
+                qf.value_normalized                             AS value,
+                qf.normalized_unit                              AS unit,
+                CASE qf.basis WHEN 'point_in_time' THEN 'direct'
+                              WHEN 'direct_quarterly' THEN 'direct'
+                              ELSE 'derived' END                AS direct_or_derived,
+                qf.analytical_view                              AS analytical_view,
+                NULL                                            AS validation_status
+            FROM quarterly_facts qf
+            WHERE qf.is_current_view = 1
+
+            UNION ALL
+
+            SELECT
+                af.metric,
+                'annual'                                        AS frequency,
+                af.fiscal_year,
+                NULL                                             AS fiscal_quarter,
+                af.period_start                                  AS start_date,
+                af.period_end                                     AS end_date,
+                af.value_normalized                               AS value,
+                af.normalized_unit                                 AS unit,
+                af.direct_or_derived                                AS direct_or_derived,
+                af.analytical_view                                  AS analytical_view,
+                af.validation_status                                 AS validation_status
+            FROM annual_facts af
+            WHERE af.is_current_view = 1
+
+            UNION ALL
+
+            SELECT
+                inf.metric,
+                'instant'                                         AS frequency,
+                fc.fiscal_year,
+                NULLIF(fc.fiscal_quarter, 0)                       AS fiscal_quarter,
+                NULL                                                AS start_date,
+                inf.as_of_date                                       AS end_date,
+                inf.value_normalized                                  AS value,
+                inf.normalized_unit                                    AS unit,
+                'direct'                                                AS direct_or_derived,
+                inf.analytical_view                                      AS analytical_view,
+                inf.selection_status                                      AS validation_status
+            FROM instant_facts inf
+            LEFT JOIN fiscal_calendar fc
+                ON fc.period_end = inf.as_of_date
+                AND fc.fiscal_quarter = (
+                    SELECT MIN(fc2.fiscal_quarter) FROM fiscal_calendar fc2 WHERE fc2.period_end = inf.as_of_date
+                );
+        """,
+    ),
 )
 
 

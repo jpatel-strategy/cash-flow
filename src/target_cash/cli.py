@@ -22,6 +22,7 @@ import yaml
 from target_cash import __version__
 from target_cash.fetch import append_source_manifest, fetch_via_http, ingest_manual_file
 from target_cash.migrations import apply_safe_migrations
+from target_cash.reference_data import seed_concept_equivalence_rules, seed_fiscal_calendar
 from target_cash.validation import run_validation
 
 DEFAULT_PATHS = {
@@ -460,6 +461,47 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0 if summary.passed else 1
 
 
+def cmd_seed_reference_data(args: argparse.Namespace) -> int:
+    """Apply pending schema migrations, then seed ONLY reference metadata:
+    fiscal_calendar and concept_equivalence_rules. Never writes to
+    annual_facts/annual_lineage/annual_fact_observations -- persisting an
+    annual analytical fact is a separate, not-yet-authorized action. Reports
+    before/after counts for every annual-family table so the caller can
+    confirm they remain empty.
+    """
+    config = load_config(Path(args.config))
+    conn = _connect_db(config)
+
+    before = {
+        table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in ("annual_facts", "annual_lineage", "annual_fact_observations")
+    }
+
+    fiscal_calendar_inserted = seed_fiscal_calendar(conn)
+    concept_equivalence_rules_inserted = seed_concept_equivalence_rules(conn)
+
+    after = {
+        table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in ("annual_facts", "annual_lineage", "annual_fact_observations")
+    }
+    fiscal_calendar_count = conn.execute("SELECT COUNT(*) FROM fiscal_calendar").fetchone()[0]
+    concept_equivalence_rules_count = conn.execute("SELECT COUNT(*) FROM concept_equivalence_rules").fetchone()[0]
+    conn.close()
+
+    print(json.dumps({
+        "command": "seed-reference-data",
+        "status": "ok",
+        "fiscal_calendar_rows_inserted": fiscal_calendar_inserted,
+        "fiscal_calendar_rows_total": fiscal_calendar_count,
+        "concept_equivalence_rules_inserted": concept_equivalence_rules_inserted,
+        "concept_equivalence_rules_total": concept_equivalence_rules_count,
+        "annual_analytical_tables_before": before,
+        "annual_analytical_tables_after": after,
+        "annual_analytical_tables_remain_empty": all(v == 0 for v in after.values()),
+    }))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="target-cash", description="Target Cash Flow and Investment Capacity model")
     parser.add_argument("--version", action="version", version=__version__)
@@ -485,6 +527,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser = subparsers.add_parser("validate", help="Run the reconciliation / lineage validation gate.")
     validate_parser.add_argument("--config", required=True)
     validate_parser.set_defaults(func=cmd_validate)
+
+    seed_parser = subparsers.add_parser(
+        "seed-reference-data",
+        help="Apply pending schema migrations and seed fiscal_calendar / concept_equivalence_rules only "
+             "(never annual_facts/annual_lineage/annual_fact_observations).",
+    )
+    seed_parser.add_argument("--config", required=True)
+    seed_parser.set_defaults(func=cmd_seed_reference_data)
 
     return parser
 

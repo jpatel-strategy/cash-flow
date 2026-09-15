@@ -36,6 +36,30 @@ def make_stale_db():
         )
         """
     )
+    # quarterly_facts exactly as schema.sql created it, before analytical_view
+    # (migration 0011) existed -- needed so that ColumnMigration can find its
+    # target table.
+    conn.execute(
+        """
+        CREATE TABLE quarterly_facts (
+            quarterly_fact_id TEXT PRIMARY KEY,
+            metric            TEXT NOT NULL,
+            fiscal_year       INTEGER NOT NULL,
+            fiscal_quarter    INTEGER NOT NULL,
+            period_start      TEXT,
+            period_end        TEXT NOT NULL,
+            days_in_period    INTEGER,
+            value_original    REAL NOT NULL,
+            original_unit     TEXT NOT NULL,
+            value_normalized  REAL NOT NULL,
+            normalized_unit   TEXT NOT NULL DEFAULT 'USD_millions',
+            basis             TEXT NOT NULL,
+            as_of_date        TEXT NOT NULL,
+            mapping_version   TEXT NOT NULL,
+            is_current_view   INTEGER NOT NULL DEFAULT 1
+        )
+        """
+    )
     return conn
 
 
@@ -195,3 +219,137 @@ def test_migration_against_missing_table_refuses_rather_than_guesses(monkeypatch
     conn = sqlite3.connect(":memory:")  # no filings table at all
     with pytest.raises(UnsafeMigrationError):
         apply_safe_migrations(conn)
+
+
+# --- fiscal_calendar / concept_equivalence_rules / annual_facts family (2026-09-15) ------
+
+
+def test_new_tables_and_view_created_empty():
+    conn = make_stale_db()
+    apply_safe_migrations(conn)
+    for table in (
+        "fiscal_calendar", "concept_equivalence_rules",
+        "annual_facts", "annual_lineage", "annual_fact_observations",
+    ):
+        assert conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone(), f"{table} was not created"
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='view' AND name='period_facts_unified'"
+    ).fetchone()
+    # The view is queryable (returns zero rows against empty source tables) --
+    # proves the UNION ALL and the fiscal_calendar join are syntactically sound.
+    assert conn.execute("SELECT COUNT(*) FROM period_facts_unified").fetchone()[0] == 0
+
+
+def test_quarterly_facts_analytical_view_column_added_with_default():
+    conn = make_stale_db()
+    conn.execute(
+        "INSERT INTO quarterly_facts VALUES "
+        "('qf_1', 'operating_cash_flow', 2025, 1, '2025-02-02', '2025-05-03', 91, "
+        "2100.0, 'USD_millions', 2100.0, 'USD_millions', 'direct_quarterly', "
+        "'2025-05-30T00:00:00Z', 'v0', 1)"
+    )
+    conn.commit()
+    apply_safe_migrations(conn)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(quarterly_facts)")}
+    assert "analytical_view" in columns
+    value = conn.execute("SELECT analytical_view FROM quarterly_facts WHERE quarterly_fact_id = 'qf_1'").fetchone()[0]
+    assert value == "as_originally_filed"  # pre-existing row backfilled with the default, not NULL
+
+
+def test_all_new_migrations_idempotent_on_rerun():
+    conn = make_stale_db()
+    first = apply_safe_migrations(conn)
+    for mid in (
+        "0006_fiscal_calendar", "0007_concept_equivalence_rules", "0008_annual_facts",
+        "0009_annual_lineage", "0010_annual_fact_observations",
+        "0011_quarterly_facts_analytical_view", "0012_period_facts_unified",
+    ):
+        assert mid in first
+    second = apply_safe_migrations(conn)
+    assert second == []
+
+
+def test_fiscal_calendar_primary_key_rejects_duplicate_year_quarter():
+    conn = make_stale_db()
+    apply_safe_migrations(conn)
+    row = ("0000027419", "Target Corporation", 2025, 0, "2025-02-02", "2026-01-31", 52, 0, None)
+    conn.execute(
+        "INSERT INTO fiscal_calendar "
+        "(cik, company_name, fiscal_year, fiscal_quarter, period_start, period_end, "
+        " week_count, is_53_week_year, authority_accession) VALUES (?,?,?,?,?,?,?,?,?)",
+        row,
+    )
+    conn.commit()
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO fiscal_calendar "
+            "(cik, company_name, fiscal_year, fiscal_quarter, period_start, period_end, "
+            " week_count, is_53_week_year, authority_accession) VALUES (?,?,?,?,?,?,?,?,?)",
+            row,
+        )
+
+
+def test_annual_facts_canonical_uniqueness():
+    conn = make_stale_db()
+    apply_safe_migrations(conn)
+    row = (
+        "af_1", "revenue", 2025, "2025-02-02", "2026-01-31", 364, "as_originally_filed",
+        104780000000.0, "USD", 104780.0, "USD_millions", "direct", "authoritative",
+        "unvalidated", "0000027419-26-000016", "2026-03-11", "v0", "2026-09-15T00:00:00Z", 1,
+    )
+    conn.execute(
+        "INSERT INTO annual_facts "
+        "(annual_fact_id, metric, fiscal_year, period_start, period_end, days_in_period, "
+        " analytical_view, value_original, original_unit, value_normalized, normalized_unit, "
+        " direct_or_derived, fact_status, validation_status, accession_number, filed_at, "
+        " mapping_version, information_cutoff, is_current_view) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        row,
+    )
+    conn.commit()
+    duplicate = ("af_2",) + row[1:]
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO annual_facts "
+            "(annual_fact_id, metric, fiscal_year, period_start, period_end, days_in_period, "
+            " analytical_view, value_original, original_unit, value_normalized, normalized_unit, "
+            " direct_or_derived, fact_status, validation_status, accession_number, filed_at, "
+            " mapping_version, information_cutoff, is_current_view) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            duplicate,
+        )
+
+
+def test_annual_lineage_requires_exactly_one_input_kind():
+    conn = make_stale_db()
+    apply_safe_migrations(conn)
+    conn.execute(
+        "INSERT INTO annual_facts "
+        "(annual_fact_id, metric, fiscal_year, period_start, period_end, days_in_period, "
+        " analytical_view, value_original, original_unit, value_normalized, normalized_unit, "
+        " direct_or_derived, fact_status, validation_status, accession_number, filed_at, "
+        " mapping_version, information_cutoff, is_current_view) VALUES "
+        "('af_gp', 'gross_profit', 2025, '2025-02-02', '2026-01-31', 364, 'as_originally_filed', "
+        " 29269000000.0, 'USD', 29269.0, 'USD_millions', 'derived', 'authoritative', 'unvalidated', "
+        " '0000027419-26-000016', '2026-03-11', 'v0', '2026-09-15T00:00:00Z', 1)"
+    )
+    conn.commit()
+    # Neither input set -- must fail the CHECK.
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO annual_lineage (annual_lineage_id, derived_fact_id, operation, sequence) "
+            "VALUES ('al_1', 'af_gp', 'subtract', 1)"
+        )
+    # Both inputs set -- must also fail the CHECK.
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO annual_lineage "
+            "(annual_lineage_id, derived_fact_id, input_raw_fact_id, input_annual_fact_id, operation, sequence) "
+            "VALUES ('al_2', 'af_gp', 'rf_1', 'af_gp', 'subtract', 1)"
+        )
+    # Exactly one set -- succeeds.
+    conn.execute(
+        "INSERT INTO annual_lineage (annual_lineage_id, derived_fact_id, input_annual_fact_id, operation, sequence) "
+        "VALUES ('al_3', 'af_gp', 'af_gp', 'subtract', 1)"
+    )

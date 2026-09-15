@@ -379,3 +379,51 @@ def test_validate_wires_real_checks_for_a_reviewed_flow_metric(isolated_project,
     exit_code_normalize_check = main(["normalize", "--config", "config/model.yml"])
     still_dry = json.loads(capsys.readouterr().out)
     assert still_dry["quarterly_facts_in_db"] == 0
+
+
+def test_seed_reference_data_populates_calendar_and_rules_but_not_annual_facts(isolated_project, capsys):
+    # fiscal_calendar.authority_accession is a real FK into filings -- register
+    # minimal synthetic rows for every accession the reference data cites, so
+    # this isolated (never-fetched-anything) database's FK enforcement doesn't
+    # reject the seed. Mirrors how filings rows are always created via `fetch`
+    # in production before anything references them.
+    import sqlite3
+    (isolated_project / "data" / "curated").mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(isolated_project / "data" / "curated" / "target_cash.db")
+    conn.executescript((Path("sql") / "schema.sql").read_text())
+    for accession in (
+        "0000027419-22-000007", "0000027419-23-000015", "0000027419-24-000032",
+        "0000027419-25-000018", "0000027419-25-000101", "0000027419-25-000118",
+        "0000027419-25-000126", "0000027419-26-000016",
+    ):
+        conn.execute(
+            "INSERT INTO filings (accession_number, cik, company_name, form_type, filed_at, "
+            "period_of_report, primary_document_url, ingestion_method) VALUES (?,?,?,?,?,?,?,?)",
+            (accession, "0000027419", "Target Corporation", "10-K", "2024-01-01",
+             "2024-01-01", "https://example.invalid", "manual_upload"),
+        )
+    conn.commit()
+    conn.close()
+
+    exit_code = main(["seed-reference-data", "--config", "config/model.yml"])
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["status"] == "ok"
+    assert output["fiscal_calendar_rows_inserted"] > 0
+    assert output["concept_equivalence_rules_inserted"] == 2
+    assert output["annual_analytical_tables_before"] == {
+        "annual_facts": 0, "annual_lineage": 0, "annual_fact_observations": 0,
+    }
+    assert output["annual_analytical_tables_after"] == {
+        "annual_facts": 0, "annual_lineage": 0, "annual_fact_observations": 0,
+    }
+    assert output["annual_analytical_tables_remain_empty"] is True
+
+    # Idempotent: a second run inserts nothing new and still reports empty annual tables.
+    second_exit_code = main(["seed-reference-data", "--config", "config/model.yml"])
+    second_output = json.loads(capsys.readouterr().out)
+    assert second_exit_code == 0
+    assert second_output["fiscal_calendar_rows_inserted"] == 0
+    assert second_output["concept_equivalence_rules_inserted"] == 0
+    assert second_output["annual_analytical_tables_remain_empty"] is True

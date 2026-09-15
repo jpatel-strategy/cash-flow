@@ -25,8 +25,19 @@ corrections, all applied here:
 5. **Debt classification corrected**: the prior blanket `FAIL` is wrong.
    Direct note-schedule-vs-carrying-value equality is `NOT_APPLICABLE`; the
    real bridge is `BLOCKED` (a required disclosure doesn't exist), not
-   `FAIL` (§5). Nine explicitly-named debt metrics replace the prior
-   ambiguous ones.
+   `FAIL` (§5). **Correction (next round): eight explicitly-named,
+   constructed debt metrics** replace the prior ambiguous ones, **plus a
+   ninth row, `target_defined_net_debt`, which is a definition placeholder
+   only** (status `UNAVAILABLE`/`NOT_REPORTED` — Target discloses no
+   net-debt measure of its own, so this row is never populated with a
+   zero, an inferred value, or a value copied from any other metric). An
+   earlier draft of this document miscounted these as "nine" without
+   listing the ninth; see `docs/milestone_2_schema_and_dry_run.md` for the
+   corrected inventory and the (also corrected) finding that the debt
+   bridge itself actually reconciles exactly in all 5 years once Target's
+   own "Swap valuation adjustments" line is included — the `BLOCKED`
+   status above was itself a search-completeness error, not a property of
+   Target's disclosures.
 6. **Net-debt relabeled** — no formula here is called "Target-reported,"
    since Target discloses no net-debt measure of its own (§6).
 7. **Schema refined**: `instant_facts.fiscal_year` withdrawn per the

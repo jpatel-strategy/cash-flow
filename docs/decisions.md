@@ -1796,3 +1796,89 @@ joins to this table rather than computing a fiscal year from `as_of_date`.
 See `docs/milestone_2_proposal.md` Section 7 for the full DDL and migration
 order. **None of this is implemented** — schema and migrations are
 presented for review only.
+
+## 2026-09-15 — Schema implemented; debt bridge correction found (the BLOCKED classification was itself a search-completeness error)
+
+The reviewer accepted the accounting-policy corrections and authorized
+schema implementation plus the complete five-year dry run, still without
+persisting any annual analytical fact. This entry records both.
+
+**Schema implemented.** All 7 migrations from the previous entry
+(`0006_fiscal_calendar` through `0012_period_facts_unified`) were applied
+to the real database via a new `target_cash.cli seed-reference-data`
+command (`src/target_cash/reference_data.py`, wired into `cli.py`).
+Idempotency confirmed by a second run (0 new rows). `annual_facts`,
+`annual_lineage`, `annual_fact_observations` are confirmed empty both
+before and after seeding — only `fiscal_calendar` (11 rows) and
+`concept_equivalence_rules` (2 rows) were populated, exactly as
+authorized. Every pre-existing table's row count is unchanged
+(`filings=8, raw_facts=1147, quarterly_facts=28, lineage=45,
+instant_facts=10, instant_fact_observations=18`). Database backed up
+before migration (see `docs/milestone_1_evidence.md`-style backup
+discipline) to `db_backups/target_cash.db.before-milestone2-schema.<timestamp>`.
+
+**A real bug was found and fixed before this reached the real database**:
+the first draft of `period_facts_unified` joined `instant_facts` to
+`fiscal_calendar` on `period_end` alone. A fiscal year-end date (e.g.
+2026-01-31) is *simultaneously* that year's own annual `period_end` and its
+Q4 `period_end` (Target's fiscal Q4 always ends exactly at fiscal
+year-end), so the naive join fanned one instant fact out into two output
+rows — a duplicate-canonical-fact violation of the reviewer's own
+requirement. Fixed by preferring the lowest `fiscal_quarter` match (the
+annual sentinel `0` beats `1`-`4`) in the join predicate; two new tests
+(`test_period_facts_unified_does_not_duplicate_an_instant_at_a_fiscal_year_end`,
+`test_period_facts_unified_never_duplicates_any_instant_fact`) guard this.
+Since this was caught before commit, `migrations.py`'s `0012` definition
+was corrected in place rather than shipping the bug and patching it with a
+`0013` — the append-only-migrations rule protects a database that has
+already taken on a migration's *effect*, not a bug never released.
+
+**Debt bridge correction — the earlier `BLOCKED` classification was
+itself incomplete, not a property of Target's disclosures.** Building the
+reviewer's literal bridge template (principal ± premium/discount −
+issuance costs ± other adjustments = carrying value) required actually
+reading Target's own debt-maturity-schedule note table line by line,
+rather than re-running the same tag-name pattern search as before. That
+note reads, in order: "Total notes and debentures" (14,398 for FY2025) →
+"**Swap valuation adjustments**" ((55)) → "Finance lease liabilities"
+(2,113) → "Less: Amounts due within one year" ((2,130)) → "Long-term debt
+and other borrowings" (14,326, the noncurrent balance-sheet figure). The
+middle line is tagged `tgt:SwapValuationAdjustments` — a **company-
+extension taxonomy tag**, not `us-gaap:*` — which is exactly why the
+earlier exhaustive scan (which checked only `us-gaap:DebtInstrumentUnamortized*`/
+`UnamortizedDebt*` concepts and the word "unamortized") never found it. It
+is a fair-value-hedge accounting adjustment from interest-rate swaps on
+the debt, not an amortized-issuance-cost line — a different bridge
+component than the one originally hypothesized, but the real one Target
+actually discloses.
+
+**The bridge reconciles exactly in all 5 years** (`debt_principal_schedule`
++ `debt_fair_value_hedge_adjustment` [signed] + `finance_lease_liabilities`
+− current portion of the combined balance-sheet line =
+`long_term_debt_gaap_carrying_value`, noncurrent portion):
+
+| FY | Principal | Swap adj. | Fin. leases | − Current | = Noncurrent BS line | Reported |
+|---|---:|---:|---:|---:|---:|---:|
+| 2021 | 11,568 | +77 | 2,075 | −171 | 13,549 | 13,549 ✓ |
+| 2022 | 14,141 | −74 | 2,072 | −130 | 16,009 | 16,009 ✓ |
+| 2023 | 14,151 | −126 | 2,013 | −1,116 | 14,922 | 14,922 ✓ |
+| 2024 | 13,904 | −125 | 2,161 | −1,636 | 14,304 | 14,304 ✓ |
+| 2025 | 14,398 | −55 | 2,113 | −2,130 | 14,326 | 14,326 ✓ |
+
+Every one of these five values exactly matches the residual this project
+had earlier flagged as "unexplained" and classified `BLOCKED` — confirming
+the residual was never arithmetic noise, only a missing search term.
+**FY2021's swap adjustment is the only year with no `sign="-"` attribute
+(i.e. positive, +77, additive rather than subtractive)** — a fair-value
+hedge adjustment can genuinely flip sign with interest-rate movements
+between years, so this is reported as a real, disclosed fact, not treated
+as an anomaly requiring further investigation.
+
+**Debt bridge validation status corrected: `PASS` in all 5 years**,
+superseding the prior `BLOCKED` classification entirely. `debt_principal_schedule`
+(`LongTermDebt`) is reconfirmed correct — it is literally labeled "Total
+notes and debentures" in Target's own note, the top line of this exact
+bridge. `unamortized_discount_premium_and_issuance_cost` remains a
+genuinely empty row (Target's bridge does not use a component by that
+name), kept only as a record that the GAAP-standard concept was checked
+and is not what explains the schedule.
