@@ -28,13 +28,21 @@ the subtraction runs — same entity (CIK), same fiscal year, same XBRL concept
 substitution of a similarly-named tag), same unit and scale, same accounting
 basis, same consolidated (non-dimensional) scope, exact matching start date,
 correct end-date ordering ("period adjacency": the shorter period must end
-strictly before the longer one, given both share the same start), same
-filing vintage (neither input superseded by a later restatement while the
-other is current), and same sign convention. See
-`reconcile.check_source_compatibility` — this precondition is a gate, not a
-tolerance: any failed dimension blocks the derivation outright rather than
-producing a slightly-off number, and every failed dimension is reported at
-once rather than stopping at the first one found.
+strictly before the longer one, given both share the same start), the
+correct expected duration for each period's declared classification (Q1 /
+six-month YTD / nine-month YTD / annual — catching a period mislabeled
+relative to what its own dates actually span), same filing vintage (neither
+input superseded by a later restatement while the other is current), and
+same sign convention. See `reconcile.check_source_compatibility` — this
+precondition is a gate, not a tolerance: any failed dimension blocks the
+derivation outright rather than producing a slightly-off number, and every
+failed dimension is reported at once rather than stopping at the first one
+found. For a two-fact pairwise comparison sharing a start date, "no
+unexplained gap" and "no unexplained overlap" follow automatically once the
+start-date and period-adjacency checks both pass — there is no third time
+boundary for a gap or overlap to hide behind. Detecting a gap or overlap
+across a full chain of quarters is a property of that whole chain, checked
+once quarterly facts exist, not of a single pairwise precondition.
 
 Overlapping quarterly and YTD facts for the same period are never summed.
 Every derived value is stored with `basis = 'derived_ytd_subtraction'` and a

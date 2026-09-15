@@ -110,8 +110,19 @@ def fetch_via_http(url: str, cache_dir: Path, dest_filename: str, user_agent_con
 
 def append_source_manifest(manifest_csv_path: Path, record: dict) -> None:
     """Append one filing's provenance to the source manifest, creating the
-    header if the file is new. Never rewrites or drops existing rows.
+    header if the file is new. Never rewrites or drops existing rows, and
+    never creates a duplicate record for an accession already present.
     """
+    accession_number = record.get("accession_number", "")
+    if manifest_csv_path.exists():
+        with open(manifest_csv_path, newline="") as f:
+            existing_accessions = {row.get("accession_number", "") for row in csv.DictReader(f)}
+        if accession_number in existing_accessions:
+            raise FileExistsError(
+                f"Source manifest already has a record for accession {accession_number!r}; "
+                f"refusing to create a duplicate row in {manifest_csv_path}."
+            )
+
     row = {field: record.get(field, "") for field in MANIFEST_FIELDS}
     file_exists = manifest_csv_path.exists()
     with open(manifest_csv_path, "a", newline="") as f:

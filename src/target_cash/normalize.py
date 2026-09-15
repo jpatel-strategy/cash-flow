@@ -91,6 +91,7 @@ def _assert_compatible(a: PeriodSpec, b: PeriodSpec) -> None:
         dimensional_context_a=a.dimensional_context, dimensional_context_b=b.dimensional_context,
         start_date_a=a.start_date, start_date_b=b.start_date,
         end_date_a=a.end_date, end_date_b=b.end_date,  # by convention a=minuend (longer), b=subtrahend (shorter)
+        scope_a=a.scope, scope_b=b.scope,
         accession_a=a.accession_number, accession_b=b.accession_number,
         is_superseded_a=a.is_superseded, is_superseded_b=b.is_superseded,
         sign_as_reported_a=a.sign_as_reported, sign_as_reported_b=b.sign_as_reported,

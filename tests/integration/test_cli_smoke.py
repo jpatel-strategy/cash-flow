@@ -5,6 +5,7 @@ docs/sources.csv, or SQLite db) so pytest never mutates real project state.
 Uses only synthetic data — see tests/fixtures/README.md.
 """
 
+import csv
 import json
 import shutil
 from pathlib import Path
@@ -113,6 +114,52 @@ def test_fetch_manual_then_normalize_then_validate(isolated_project, capsys, tmp
     assert validate_output["checks_run"] == 0
 
 
+def test_fetch_manual_then_normalize_extracts_raw_facts_from_real_html(isolated_project, capsys, tmp_path):
+    """Exercises the actual inline-XBRL extraction path through the CLI --
+    the other normalize test above uses a plain .json fixture, which the
+    HTML-suffix guard skips, so it never touches parse_inline_xbrl_facts.
+    """
+    synthetic_10k_html = """
+    <xbrli:context id="c-1">
+      <xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">9999999</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:startDate>2024-02-04</xbrli:startDate><xbrli:endDate>2025-02-01</xbrli:endDate></xbrli:period>
+    </xbrli:context>
+    <span><ix:nonFraction unitRef="usd" contextRef="c-1" name="us-gaap:Revenues" scale="6" id="f-1">1,234</ix:nonFraction></span>
+    """
+    source_file = tmp_path / "uploaded_synthetic.htm"
+    source_file.write_text(synthetic_10k_html)
+
+    descriptor = {
+        "source_path": str(source_file),
+        "dest_filename": "synthetic-10k.htm",
+        "accession_number": "0000000000-24-000009",
+        "cik": "9999999",
+        "company_name": "SYNTHETIC TEST CORP",
+        "form_type": "10-K",
+        "filed_at": "2024-03-15",
+        "period_of_report": "2024-02-03",
+    }
+    descriptor_path = tmp_path / "descriptor.json"
+    descriptor_path.write_text(json.dumps(descriptor))
+
+    main(["fetch", "--config", "config/model.yml", "--mode", "manual", "--descriptor", str(descriptor_path)])
+    capsys.readouterr()
+
+    exit_code = main(["normalize", "--config", "config/model.yml"])
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output["raw_facts_newly_inserted"] == 1
+    assert output["raw_facts_extracted_by_concept"] == {"us-gaap:Revenues": 1}
+    assert output["filings_processed"][0]["accession_number"] == "0000000000-24-000009"
+
+    # Running normalize again must not duplicate the row (same concept+context+accession).
+    exit_code_2 = main(["normalize", "--config", "config/model.yml"])
+    output_2 = json.loads(capsys.readouterr().out)
+    assert exit_code_2 == 0
+    assert output_2["raw_facts_newly_inserted"] == 0
+    assert output_2["raw_facts_stored"] == 1
+
+
 def test_fetch_manual_rejects_missing_source_file(isolated_project, capsys, tmp_path):
     descriptor = {
         "source_path": str(tmp_path / "does_not_exist.json"),
@@ -160,3 +207,35 @@ def test_fetch_manual_refuses_duplicate_accession_with_different_hash(isolated_p
     output = json.loads(capsys.readouterr().out)
     assert exit_code == 1
     assert output["status"] == "error"
+
+
+def test_fetch_manual_refuses_duplicate_accession_even_with_same_hash(isolated_project, capsys, tmp_path):
+    # Same accession, same file content (same hash) -- still must not create a second
+    # manifest/database record for an accession that's already registered.
+    source = tmp_path / "same.json"
+    source.write_text('{"version": "same"}')
+    descriptor = {
+        "source_path": str(source),
+        "dest_filename": "same-name.json",
+        "accession_number": "acc-dup",
+        "cik": "9999999",
+        "company_name": "SYNTHETIC TEST CORP",
+        "form_type": "10-K",
+        "filed_at": "2024-03-15",
+        "period_of_report": "2024-02-03",
+    }
+    descriptor_path = tmp_path / "descriptor.json"
+    descriptor_path.write_text(json.dumps(descriptor))
+
+    exit_code_1 = main(["fetch", "--config", "config/model.yml", "--mode", "manual", "--descriptor", str(descriptor_path)])
+    capsys.readouterr()
+    assert exit_code_1 == 0
+
+    exit_code_2 = main(["fetch", "--config", "config/model.yml", "--mode", "manual", "--descriptor", str(descriptor_path)])
+    output_2 = json.loads(capsys.readouterr().out)
+    assert exit_code_2 == 1
+    assert output_2["status"] == "error"
+
+    with open(tmp_path / "docs" / "sources.csv", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 1

@@ -114,6 +114,39 @@ def test_source_compatibility_period_adjacency_fails_when_reversed():
     assert "period_adjacency" in result.failed_dimensions
 
 
+def test_source_compatibility_period_classification_passes_for_correctly_labeled_quarter():
+    # Q1 FY2025: 2025-02-02 to 2025-05-03 is 91 days, within the Q1 range.
+    result = check_source_compatibility(
+        "test",
+        **compat_kwargs(
+            start_date_a="2025-02-02", end_date_a="2025-08-02", scope_a="six_month_YTD",
+            start_date_b="2025-02-02", end_date_b="2025-05-03", scope_b="Q1",
+        ),
+    )
+    assert result.passed
+
+
+def test_source_compatibility_period_classification_fails_when_label_does_not_match_dates():
+    # Labeled 'Q1' but actually spans six months' worth of days.
+    result = check_source_compatibility(
+        "test",
+        **compat_kwargs(
+            start_date_a="2025-02-02", end_date_a="2025-11-01", scope_a="nine_month_YTD",
+            start_date_b="2025-02-02", end_date_b="2025-08-02", scope_b="Q1",
+        ),
+    )
+    assert not result.passed
+    assert "period_classification" in result.failed_dimensions
+
+
+def test_source_compatibility_period_classification_skipped_when_scope_not_given():
+    # No scope_a/scope_b passed at all (e.g. point-in-time facts) -> not checked, not a failure.
+    result = check_source_compatibility(
+        "test", **compat_kwargs(end_date_a="2025-08-02", end_date_b="2025-02-02")
+    )
+    assert "period_classification" not in result.failed_dimensions
+
+
 def test_source_compatibility_reports_every_failure_not_just_the_first():
     result = check_source_compatibility(
         "test", **compat_kwargs(cik_b="0000320193", unit_b="USD_millions", fiscal_year_b=2024)

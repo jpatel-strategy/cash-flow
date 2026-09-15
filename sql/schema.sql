@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS filings (
     primary_document_url   TEXT NOT NULL,
     downloaded_at          TEXT,                         -- ISO datetime this session cached it
     file_hash              TEXT,                         -- sha256 of the cached file
+    cached_filename        TEXT,                         -- filename under data/raw/ holding the cached document
     ingestion_method       TEXT NOT NULL CHECK (ingestion_method IN ('http_fetch', 'manual_upload')),
     notes                  TEXT
 );
@@ -36,8 +37,9 @@ CREATE TABLE IF NOT EXISTS raw_facts (
     end_date             TEXT NOT NULL,
     context_ref          TEXT,                           -- XBRL context id from the filing
     dimensional_context  TEXT,                           -- segment/member axis, if any; NULL = consolidated
-    value                TEXT NOT NULL,                  -- stored as text, parsed with Decimal downstream
-    sign_as_reported     INTEGER NOT NULL DEFAULT 1,      -- +1 or -1, as tagged in the filing
+    value                TEXT NOT NULL,                  -- true value after scale is applied, as text (Decimal downstream)
+    scale                INTEGER,                        -- XBRL scale attribute as filed (e.g. 6 = millions); NULL if not scaled
+    sign_as_reported     INTEGER NOT NULL DEFAULT 1,      -- +1 or -1, as tagged in the filing (from ix:nonFraction sign="-")
     is_superseded        INTEGER NOT NULL DEFAULT 0,      -- 1 if a later filing restated this fact
     retrieved_at          TEXT NOT NULL
 );

@@ -43,6 +43,7 @@ within the allowed bound.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -137,6 +138,23 @@ class IndependentQuarterValidationResult:
         }
 
 
+# Expected duration ranges (inclusive, in days) per scope label, wide enough to
+# cover both Target's 52-week and 53-week fiscal years. A period whose actual
+# start/end dates don't fall in the range for its declared scope is either
+# mislabeled or spans an unexpected gap/overlap — either way, not safe to
+# combine under that label.
+EXPECTED_DURATION_DAYS: dict[str, tuple[int, int]] = {
+    "Q1": (85, 98),
+    "six_month_YTD": (175, 189),
+    "nine_month_YTD": (266, 280),
+    "annual": (357, 372),
+}
+
+
+def _duration_days(start_date: str, end_date: str) -> int:
+    return (date.fromisoformat(end_date) - date.fromisoformat(start_date)).days + 1
+
+
 def check_source_compatibility(
     check_name: str,
     *,
@@ -158,6 +176,8 @@ def check_source_compatibility(
     start_date_b: Optional[str],
     end_date_a: Optional[str] = None,
     end_date_b: Optional[str] = None,
+    scope_a: Optional[str] = None,
+    scope_b: Optional[str] = None,
     accession_a: str,
     accession_b: str,
     is_superseded_a: bool,
@@ -187,6 +207,22 @@ def check_source_compatibility(
     update). The default is empty: no concept substitution is permitted
     without a documented, reviewed exception, per the project's standing
     rule against substituting similarly-named tags without review.
+
+    When `scope_a`/`scope_b` are given (one of 'Q1', 'six_month_YTD',
+    'nine_month_YTD', 'annual'), each period's actual duration
+    (end - start + 1 day) is checked against `EXPECTED_DURATION_DAYS` for its
+    declared scope — failing `period_classification` means the label doesn't
+    match what the dates actually span (e.g. a fact labeled 'Q1' whose dates
+    cover five months), which would silently corrupt a derivation relying on
+    that label. Note that for a two-fact pairwise comparison sharing a start
+    date, "no unexplained gap" and "no unexplained overlap" between the
+    covered period and its implied remainder are automatically guaranteed
+    once `start_date` matches and `period_adjacency` holds — there is no
+    third point in time for a gap or overlap to hide in with only two
+    boundaries and a shared origin. Detecting a gap or overlap in a chain of
+    more than two periods (e.g. all four quarters of a fiscal year) is a
+    property of that whole chain, checked separately once quarterly facts
+    exist, not of a single pairwise precondition.
     """
     failed: list[str] = []
     if cik_a != cik_b:
@@ -212,6 +248,16 @@ def check_source_compatibility(
         failed.append("start_date")
     if end_date_a is not None and end_date_b is not None and not (end_date_b < end_date_a):
         failed.append("period_adjacency")
+    for scope, start_date, end_date_ in ((scope_a, start_date_a, end_date_a), (scope_b, start_date_b, end_date_b)):
+        if scope is None or start_date is None or end_date_ is None:
+            continue
+        expected_range = EXPECTED_DURATION_DAYS.get(scope)
+        if expected_range is None:
+            continue  # e.g. 'point_in_time' has no duration to classify
+        actual_days = _duration_days(start_date, end_date_)
+        if not (expected_range[0] <= actual_days <= expected_range[1]):
+            if "period_classification" not in failed:
+                failed.append("period_classification")
     if is_superseded_a or is_superseded_b:
         failed.append("filing_version")
     if sign_as_reported_a != sign_as_reported_b:

@@ -70,3 +70,27 @@ def test_append_source_manifest_creates_header_once(tmp_path):
     assert len(rows) == 2
     assert rows[0]["accession_number"] == "0000000000-24-000004"
     assert rows[1]["accession_number"] == "0000000000-24-000005"
+
+
+def test_append_source_manifest_refuses_duplicate_accession(tmp_path):
+    manifest_path = tmp_path / "sources.csv"
+    row = {
+        "accession_number": "0000000000-24-000004",
+        "cik": "9999999",
+        "company_name": "SYNTHETIC TEST CORP",
+        "form_type": "10-K",
+        "filed_at": "2024-03-15",
+        "period_of_report": "2024-02-03",
+        "primary_document_url": "https://example.invalid/doc.htm",
+        "downloaded_at": "2024-03-16T00:00:00Z",
+        "file_hash": "deadbeef",
+        "ingestion_method": "manual_upload",
+        "notes": "",
+    }
+    append_source_manifest(manifest_path, row)
+    with pytest.raises(FileExistsError):
+        append_source_manifest(manifest_path, row)
+
+    with open(manifest_path, newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 1  # the rejected second call must not have appended anything

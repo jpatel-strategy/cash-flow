@@ -14,6 +14,7 @@ import csv
 import json
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -106,22 +107,37 @@ def cmd_fetch(args: argparse.Namespace) -> int:
         "ingestion_method": ingestion_method,
         "notes": descriptor.get("notes", ""),
     }
-    append_source_manifest(manifest_path, manifest_row)
+    try:
+        append_source_manifest(manifest_path, manifest_row)
+    except FileExistsError as exc:
+        print(json.dumps({"command": "fetch", "status": "error", "detail": str(exc)}))
+        return 1
 
     conn = _connect_db(config)
     with conn:
+        existing = conn.execute(
+            "SELECT 1 FROM filings WHERE accession_number = ?", (manifest_row["accession_number"],)
+        ).fetchone()
+        if existing:
+            conn.close()
+            print(json.dumps({
+                "command": "fetch",
+                "status": "error",
+                "detail": f"Database already has a filings row for accession {manifest_row['accession_number']!r}; refusing to create a duplicate.",
+            }))
+            return 1
         conn.execute(
             """
-            INSERT OR IGNORE INTO filings
+            INSERT INTO filings
                 (accession_number, cik, company_name, form_type, filed_at, period_of_report,
-                 primary_document_url, downloaded_at, file_hash, ingestion_method, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 primary_document_url, downloaded_at, file_hash, cached_filename, ingestion_method, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 manifest_row["accession_number"], manifest_row["cik"], manifest_row["company_name"],
                 manifest_row["form_type"], manifest_row["filed_at"], manifest_row["period_of_report"],
                 manifest_row["primary_document_url"], manifest_row["downloaded_at"], manifest_row["file_hash"],
-                manifest_row["ingestion_method"], manifest_row["notes"],
+                descriptor["dest_filename"], ingestion_method, manifest_row["notes"],
             ),
         )
     conn.close()
@@ -138,34 +154,98 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 
 def cmd_normalize(args: argparse.Namespace) -> int:
+    """Extract candidate raw facts from cached HTML/inline-XBRL filings.
+
+    Populates only `raw_facts` — the broad, unreviewed candidate layer. Never
+    derives or writes `quarterly_facts` (the analytical layer): that
+    requires a human-reviewed mapping plus, for any period derived by YTD
+    subtraction, more than one filing (this command runs against whatever
+    is cached, which may be a single annual filing with no quarters to
+    derive at all).
+    """
+    from target_cash.xbrl import parse_inline_xbrl_facts
+
     config = load_config(Path(args.config))
-    conn = _connect_db(config)
-
-    filings_count = conn.execute("SELECT COUNT(*) FROM filings").fetchone()[0]
-    raw_facts_count = conn.execute("SELECT COUNT(*) FROM raw_facts").fetchone()[0]
-    quarterly_facts_count = conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0]
-    conn.close()
-
+    cache_dir = _resolve_path(config, "cache_dir")
     metrics_path = _resolve_path(config, "metrics_csv")
+
     with open(metrics_path, newline="") as f:
         metrics = list(csv.DictReader(f))
     reviewed = [m["metric"] for m in metrics if m["mapping_status"] == "reviewed"]
     pending = [m["metric"] for m in metrics if m["mapping_status"] != "reviewed"]
+    concepts = sorted({
+        f"{m['candidate_xbrl_taxonomy']}:{m['candidate_xbrl_tag']}"
+        for m in metrics
+        if m.get("candidate_xbrl_taxonomy") and m.get("candidate_xbrl_tag")
+    })
+
+    conn = _connect_db(config)
+    conn.row_factory = sqlite3.Row
+    filings_count = conn.execute("SELECT COUNT(*) FROM filings").fetchone()[0]
+
+    facts_extracted_by_concept: dict[str, int] = {}
+    facts_inserted = 0
+    filings_processed = []
+    for filing in conn.execute("SELECT * FROM filings WHERE cached_filename IS NOT NULL").fetchall():
+        doc_path = cache_dir / filing["cached_filename"]
+        if not doc_path.exists() or doc_path.suffix.lower() not in (".htm", ".html"):
+            continue
+        html_content = doc_path.read_text(errors="ignore")
+        inline_facts = parse_inline_xbrl_facts(html_content, concepts)
+
+        inserted_for_this_filing = 0
+        with conn:
+            for fact in inline_facts:
+                facts_extracted_by_concept[fact.concept] = facts_extracted_by_concept.get(fact.concept, 0) + 1
+                taxonomy, tag = fact.concept.split(":", 1)
+                fact_id = f"{filing['accession_number']}:{fact.concept}:{fact.context_id}"
+                cursor = conn.execute(
+                    """
+                    INSERT OR IGNORE INTO raw_facts
+                        (fact_id, accession_number, taxonomy, tag, unit, start_date, end_date,
+                         context_ref, dimensional_context, value, scale, sign_as_reported,
+                         is_superseded, retrieved_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                    """,
+                    (
+                        fact_id, filing["accession_number"], taxonomy, tag,
+                        fact.unit_ref.upper(), fact.context.start_date, fact.context.end_date,
+                        fact.context_id, fact.context.dimensional_context,
+                        str(fact.value), fact.scale, fact.sign_as_reported,
+                        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    ),
+                )
+                if cursor.rowcount:
+                    inserted_for_this_filing += 1
+        facts_inserted += inserted_for_this_filing
+        filings_processed.append({
+            "accession_number": filing["accession_number"],
+            "cached_filename": filing["cached_filename"],
+            "facts_found": len(inline_facts),
+            "facts_newly_inserted": inserted_for_this_filing,
+        })
+
+    raw_facts_count = conn.execute("SELECT COUNT(*) FROM raw_facts").fetchone()[0]
+    quarterly_facts_count = conn.execute("SELECT COUNT(*) FROM quarterly_facts").fetchone()[0]
+    conn.close()
 
     summary = {
         "command": "normalize",
         "status": "ok",
         "mapping_version": config.get("mapping_version"),
         "filings_cached": filings_count,
+        "filings_processed": filings_processed,
+        "concepts_searched": concepts,
+        "raw_facts_extracted_by_concept": facts_extracted_by_concept,
+        "raw_facts_newly_inserted": facts_inserted,
         "raw_facts_stored": raw_facts_count,
         "quarterly_facts_derived": quarterly_facts_count,
         "metrics_reviewed": reviewed,
         "metrics_pending_review": pending,
         "detail": (
-            "No metric mappings are marked 'reviewed' yet, so no quarterly_facts were derived. "
-            "This is expected until filing statements have been inspected and config/metrics.csv updated."
-            if not reviewed else
-            f"{len(reviewed)} metric(s) reviewed and available for derivation."
+            "quarterly_facts is intentionally untouched by this command: deriving analytical "
+            "quarters requires a human-reviewed mapping plus, for YTD-subtraction metrics, more "
+            "than one filing's worth of raw_facts. Raw extraction never selects or derives on its own."
         ),
     }
     print(json.dumps(summary))

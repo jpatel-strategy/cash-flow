@@ -286,25 +286,142 @@ its `<ix:nonFraction>` element (displayed magnitude 501, true value −501),
 confirming the sign-reading approach must use the XBRL `sign` attribute
 directly rather than infer polarity from context.
 
+## 2026-09-15 — FY2025 10-K preserved, hashed, registered, and raw-ingested
+
+Per the project owner's explicit, itemized authorization ("Proceed with a
+controlled continuation of Milestone 1 under the following authorization").
+
+**Source preservation check performed first**, as required, before any
+action: file existence (`data/raw/` held only `.gitkeep` — not yet copied),
+`git status` (clean, nothing pending), source manifest (`docs/sources.csv`
+header row only, 0 data rows), database (`filings`/`raw_facts`/
+`quarterly_facts`/`lineage`/`assumptions`/`forecasts` all 0 rows). Confirmed
+the file had genuinely not yet been preserved, matching the prior session's
+stated status.
+
+**Preservation**: `data/raw/tgt-20260131.htm` (2,059,294 bytes), SHA-256
+`20bc4552dcb1df7c0bbd837f721de931e2ab4cdd2cb2e3c147f335d41eb68a52`,
+independently re-verified with `sha256sum` after ingestion (matches the
+manifest exactly). Registered once in `docs/sources.csv` and the `filings`
+table — `append_source_manifest` and the `fetch` CLI command were both
+hardened this session to raise/refuse rather than silently duplicate a
+record for an accession already registered (see below). A first `fetch`
+attempt partially completed (file copied, CSV manifest row written) before
+failing on a stale database schema missing the new `cached_filename` column
+(added this session — see "Validation methodology extended" pattern of
+schema evolution while `raw_facts`/`quarterly_facts` were still 0 rows, so
+no migration was needed, just a clean recreate). Remediated by recreating
+the database against the corrected schema and inserting the matching
+`filings` row directly from the already-correct CSV manifest — **no second
+manifest row or duplicate database record was created**.
+
+**Raw ingestion**: `src/target_cash/xbrl.py` gained `parse_xbrl_contexts`
+and `parse_inline_xbrl_facts`, extracting `<ix:nonFraction>` facts and
+resolving their `<xbrli:context>` definitions (entity, start/end or instant
+date, dimensional segment) directly from the cached HTML — this is what let
+this session distinguish the two same-valued cash concepts and confirm the
+D&A split by inspecting actual markup rather than Company Facts values.
+`cli.py`'s `normalize` command now runs this extraction against every
+cached filing with a recorded `cached_filename`, for every concept named in
+`config/metrics.csv` (all 24 rows' candidate tags, not only reviewed ones —
+raw ingestion is deliberately broad). Result: **115 raw_facts rows** across
+19 distinct concepts (5 of the 24 configured candidate tags — `GrossProfit`,
+`OperatingExpenses`, `InterestExpense`, `PaymentsOfDividends`,
+`LongTermDebtNoncurrent` — have zero matches in this filing, consistent
+with this session's earlier finding that Target does not use those exact
+tags; `interest_expense`'s row is now annotated that the real tag is
+`InterestExpenseNonoperating`, not corrected in this round as it was outside
+the authorized scope). Every candidate context and dimension was preserved,
+including genuine dimensional facts (e.g. revenue by merchandise category,
+D&A/tax/net-income also tagged under Target's formal single-`ReportableSegmentMember`
+axis, net income under `RetainedEarningsMember` from the equity roll-forward) —
+none discarded. Repeated identical `(accession, concept, context)` triples
+from the same fact being rendered in multiple statements collapse to one
+`raw_facts` row each (`fact_id = accession:concept:context`, `INSERT OR
+IGNORE`) — this is deduplication of the *same* fact appearing verbatim
+multiple times in the document, not selection between *competing* candidates,
+which remain fully separate rows. **`quarterly_facts` stays at 0 rows** —
+not touched, per explicit instruction; a single annual filing has no
+quarters to derive.
+
+**Mappings activated** (`config/metrics.csv`, `mapping_status: reviewed`),
+split into distinct metrics exactly as instructed, never merged:
+- `cash_and_equivalents_balance_sheet` → `us-gaap:CashCashEquivalentsAndShortTermInvestments`
+- `cash_and_equivalents_rollforward` → `us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents`
+- `depreciation_amortization_opex` → `us-gaap:DepreciationAndAmortization`
+- `depreciation_amortization_cfo_addback` → `us-gaap:DepreciationDepletionAndAmortization`
+
+Each row's `notes` field carries the full confirming evidence (context,
+values, statement location) inline, cross-referencing this entry.
+
+**Net-other-income evidence** (conditionally approved; **not** marked
+reviewed — added to `config/metrics.csv` as a new `candidate_unverified` row
+pending the project owner's own confirmation):
+
+| Field | Value |
+|---|---|
+| Taxonomy | us-gaap |
+| Tag | OtherNonoperatingIncomeExpense |
+| Context ID | c-1 |
+| Start date | 2025-02-02 |
+| End date | 2026-01-31 |
+| Unit | USD (unitRef="usd") |
+| Scale | 6 |
+| Fiscal year / period | FY2025 (Target's internal label), full year (364-day, 52-week year) |
+| Accession | 0000027419-26-000016 |
+| Statement location | Consolidated Statements of Operations, "Net other income" line, between "Net interest expense" and "Earnings before income taxes" |
+| Raw tagged value | 95 (true value after scale: 95,000,000) |
+| Presentation sign | Displayed in parentheses, "(95)", on the rendered statement |
+| Internal normalized sign | **Positive / additive.** The `<ix:nonFraction>` element carries **no** `sign="-"` attribute (unlike `IncreaseDecreaseInAccountsPayable`'s explicit `sign="-"` on this same statement) — the raw tagged value is already +95,000,000. The parentheses are a presentation/typographic convention in Target's rendering, not a sign-attribute-driven negation. Confirmed independently by exact reproduction of the reported bridge: Operating income 5,117 − Net interest expense 445 + Net other income 95 − Provision for income taxes 1,062 = Net earnings 3,705 (exact). |
+| Competing candidates | Only `us-gaap:InterestExpenseNonoperating` (already the separate confirmed "Net interest expense" line) and `us-gaap:RentalIncomeNonoperating` (a narrower, unrelated note-level concept) appear anywhere in the document under a similarly-scoped name; neither is a genuine competitor. |
+| Selection rationale | (a) tag appears exactly once at the precise statement location, confirmed by direct markup offset; (b) its context matches the FY2025 annual period already confirmed for every neighboring line on the same statement; (c) its value combines with every neighboring confirmed line to reproduce reported Net earnings exactly. |
+
+Confirms explicitly: the tag **is** `us-gaap:OtherNonoperatingIncomeExpense` — no other concept is in contention.
+
 ## Pending decisions (not yet made — recorded so they aren't quietly defaulted)
 
-- **Findings A, B, C are resolved** (see the 2026-09-15 "Real FY2025 10-K
-  obtained and verified" entry above) but **not yet activated** in
-  `config/metrics.csv` — every row there still reads `candidate_unverified`.
-  Moving a row to `reviewed` is ingestion work, deliberately held until the
-  project owner authorizes resuming it (per "do not begin the remaining
-  ingestion work until I approve that plan").
-- **Accounts payable gap** (finding D): the annual FY2025 gap is
-  substantially (not fully) explained by disclosed book overdrafts embedded
-  in the Accounts Payable balance (residual narrowed from $70M to $6M — see
-  above). The **Q1 and Q3 FY2025 interim gaps remain unresolved**: this
-  10-K only discloses book-overdraft balances at fiscal year-end dates, not
-  at 2025-05-03 or 2025-11-01. Confirming the interim gaps requires the
-  corresponding 10-Q filings and their own Note disclosures — not yet
-  obtained. Still explicitly **not** attributed to the purchases-proxy
-  approximation.
+- **Findings A, B are activated** (`cash_and_equivalents_balance_sheet`,
+  `cash_and_equivalents_rollforward`, `depreciation_amortization_opex`,
+  `depreciation_amortization_cfo_addback` all `reviewed` — see "FY2025 10-K
+  preserved, hashed, registered, and raw-ingested" above). **Finding C
+  (net-other-income) stays `candidate_unverified`** — evidence gathered and
+  recorded, but the project owner has not yet confirmed it for review.
+- **Accounts payable — explicitly NOT approved for review.** The annual
+  FY2025 gap is substantially (not fully) explained by disclosed book
+  overdrafts embedded in the Accounts Payable balance (residual narrowed
+  from $70M to $6M — see above). The **Q1 and Q3 FY2025 interim gaps remain
+  unresolved**: this 10-K only discloses book-overdraft balances at fiscal
+  year-end dates, not at 2025-05-03 or 2025-11-01. Confirming the interim
+  gaps requires the corresponding 10-Q filings and their own Note
+  disclosures — not yet obtained. Still explicitly **not** attributed to
+  the purchases-proxy approximation.
+- **No quarterly (Q1–Q4) analytical results exist.** `quarterly_facts` is
+  and remains empty — a single annual filing has no quarters to derive, and
+  populating them from the annual filing alone was explicitly disallowed.
+  Deriving real quarters requires the three FY2025 10-Qs (see "Next source
+  step" below).
+- **The four-quarter proof / first data gate is NOT complete.** Only raw,
+  unreviewed-except-for-four-metrics candidate facts from one annual filing
+  exist. No reconciliation check has run against real data yet.
 - **Net income method** (explicit interest/tax vs. net-margin simplification):
   deferred to the driver-model milestone. Finding C's confirmed bridge
   (operating income − net interest expense + net other income − taxes = net
   earnings, exact) supports using the explicit-interest-and-tax method, but
   the choice itself is still deferred to that milestone, not decided here.
+
+## 2026-09-15 — Next source step: FY2025 interim 10-Q download list
+
+To derive any real Q1–Q3 figures (Q4 remains derivable only as annual minus
+9-month YTD) and to resolve the open accounts-payable interim gaps, the
+following three filings are needed next — accession numbers and primary
+document filenames already confirmed against the SEC submissions inventory
+(see the 2026-09-14 filing-matrix entry above):
+
+| Quarter | Accession | Filed | Period end | Primary document URL |
+|---|---|---|---|---|
+| Q1 FY2025 | 0000027419-25-000101 | 2025-05-30 | 2025-05-03 | `https://www.sec.gov/Archives/edgar/data/27419/000002741925000101/tgt-20250503.htm` |
+| Q2 FY2025 | 0000027419-25-000118 | 2025-08-29 | 2025-08-02 | `https://www.sec.gov/Archives/edgar/data/27419/000002741925000118/tgt-20250802.htm` |
+| Q3 FY2025 | 0000027419-25-000126 | 2025-11-26 | 2025-11-01 | `https://www.sec.gov/Archives/edgar/data/27419/000002741925000126/tgt-20251101.htm` |
+
+Not yet requested from the project owner as a formal upload ask in this
+entry — that request is made in this session's response, not repeated here.
