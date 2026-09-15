@@ -23,7 +23,7 @@ from target_cash import __version__
 from target_cash.fetch import append_source_manifest, fetch_via_http, ingest_manual_file
 from target_cash.migrations import apply_safe_migrations
 from target_cash.reference_data import seed_concept_equivalence_rules, seed_fiscal_calendar
-from target_cash.validation import run_validation
+from target_cash.validation import compute_overall_gate_passed, run_validation
 
 DEFAULT_PATHS = {
     "cache_dir": "data/raw",
@@ -479,44 +479,48 @@ def cmd_validate(args: argparse.Namespace) -> int:
         ytd_consistency_results=ytd_consistency_results,
         cash_rollforward_results=cash_rollforward_results,
     )
-    output = summary.to_dict()
-    output["command"] = "validate"
-    output["derivation_errors_by_metric"] = {metric: outcome.errors for metric, outcome in outcomes.items()}
-    if output["checks_run"] == 0:
-        output["detail"] = (
+    milestone_1_validation = summary.to_dict()
+    milestone_1_validation["derivation_errors_by_metric"] = {metric: outcome.errors for metric, outcome in outcomes.items()}
+    if milestone_1_validation["checks_run"] == 0:
+        milestone_1_validation["detail"] = (
             "No applicable validation checks were computable from the current raw_facts and "
             "config/metrics.csv reviewed-mapping state, so the first data gate cannot pass. "
             "See derivation_errors_by_metric for why."
         )
-    # Annual (FY2021-FY2025) validation is part of the standard gate, kept in
-    # its own section rather than merged into the quarterly counts above --
-    # the two operate at different grains and mixing them would obscure which
-    # period a failure belongs to. A FAIL here fails the overall gate exactly
-    # like a quarterly FAIL does; BLOCKED/UNAVAILABLE/NOT_APPLICABLE do not
-    # (annual_summary["policy"] states the one exemption: target_defined_net_debt).
-    output["annual_validation"] = annual_summary
-    # mapping_evidence_gate is reported as its own section, never merged into
-    # gate_passed below (2026-09-15 item 2: "Do not present candidate-based
-    # arithmetic validation as final approval"). analytical_validation_gate
-    # (annual_validation.gate_passed) can legitimately pass while most metrics
-    # are still mapping_evidence BLOCKED -- that is expected mid-milestone
-    # state, not a validate failure. Annual persistence eligibility (both
-    # gates required) is reported explicitly via
-    # mapping_evidence_gate.persistence_eligible_metrics, not via this
-    # command's exit code.
-    output["mapping_evidence_gate"] = mapping_gate_summary
-    gate_passed = summary.passed and annual_summary["gate_passed"]
+
+    # 2026-09-16 "overall-gate enforcement" round: three gates are always
+    # reported separately (milestone_1_validation, mapping_evidence_gate,
+    # annual_analytical_validation) -- item 2's original instruction not to
+    # present candidate-based arithmetic validation AS final approval still
+    # holds, and still means never collapsing the three into one figure that
+    # hides which gate is the actual blocker. But the earlier round's
+    # decision to never let mapping_evidence_gate affect this command's exit
+    # code was itself the defect being fixed here: an operator could not
+    # previously tell, from the exit code alone, that most metrics were still
+    # BLOCKED. overall_gate_passed is the explicit, computed AND of all three
+    # gate_passed booleans, and IS what governs this command's exit code --
+    # the composite enforcement, not each section's individual detail.
+    output = {
+        "command": "validate",
+        "milestone_1_validation": milestone_1_validation,
+        "mapping_evidence_gate": mapping_gate_summary,
+        "annual_analytical_validation": annual_summary,
+    }
+    output["overall_gate_passed"] = compute_overall_gate_passed(
+        milestone_1_validation["gate_passed"], mapping_gate_summary["gate_passed"], annual_summary["gate_passed"],
+    )
     print(json.dumps(output, default=str))
-    return 0 if gate_passed else 1
+    return 0 if output["overall_gate_passed"] else 1
 
 
 def cmd_seed_reference_data(args: argparse.Namespace) -> int:
     """Apply pending schema migrations, then seed ONLY reference metadata:
     fiscal_calendar and concept_equivalence_rules. Never writes to
     annual_facts/annual_lineage/annual_fact_observations -- persisting an
-    annual analytical fact is a separate, not-yet-authorized action. Reports
-    before/after counts for every annual-family table so the caller can
-    confirm they remain empty.
+    annual analytical fact is a separate action, handled only by the
+    `persist-annual` command's own conditional-authorization chain (see
+    target_cash.annual_persistence). Reports before/after counts for every
+    annual-family table so the caller can confirm they remain empty.
     """
     config = load_config(Path(args.config))
     conn = _connect_db(config)
@@ -548,6 +552,153 @@ def cmd_seed_reference_data(args: argparse.Namespace) -> int:
         "annual_analytical_tables_after": after,
         "annual_analytical_tables_remain_empty": all(v == 0 for v in after.values()),
     }))
+    return 0
+
+
+def cmd_persist_annual(args: argparse.Namespace) -> int:
+    """Conditionally authorized annual persistence (2026-09-16 approval
+    round, item 4). Runs every one of the item-4 conditions itself --
+    re-running `validate` as a subprocess (never a separate reimplementation
+    of gate logic), re-running the CapEx/debt-bridge regression tests, taking
+    and independently re-hashing a timestamped backup, and checking the git
+    working tree -- builds the resulting evidence into a GateAuthorization,
+    and only then calls persist_annual_facts. Any failed condition refuses
+    with a clear, itemized reason and writes nothing (persist_annual_facts's
+    own internal guard would refuse anyway, but this command fails fast
+    before even computing a preflight plan when the cheaper checks already
+    show refusal is certain).
+    """
+    import shutil
+    import subprocess
+    import sys as _sys
+    from datetime import datetime, timezone
+
+    from target_cash.annual import DURATION_METRICS, INSTANT_METRICS
+    from target_cash.annual_persistence import (
+        GateAuthorization,
+        compute_persistence_preflight,
+        persist_annual_facts,
+        sha256_of_file,
+        verify_persistence_integrity,
+    )
+
+    config = load_config(Path(args.config))
+    repo_root = Path(__file__).resolve().parents[2]
+
+    # 1. Re-run `validate` exactly as a user would -- the composite
+    # overall_gate_passed this command authorizes against is the SAME
+    # computation `target_cash validate` reports, never a parallel one.
+    validate_proc = subprocess.run(
+        [_sys.executable, "-m", "target_cash.cli", "validate", "--config", args.config],
+        cwd=str(Path.cwd()), capture_output=True, text=True,
+    )
+    if validate_proc.returncode not in (0, 1):
+        print(json.dumps({"command": "persist-annual", "status": "error", "detail": "validate subprocess crashed", "stderr": validate_proc.stderr}))
+        return 1
+    validate_output = json.loads(validate_proc.stdout)
+    m1 = validate_output["milestone_1_validation"]
+    mapping = validate_output["mapping_evidence_gate"]
+    annual = validate_output["annual_analytical_validation"]
+    overall_gate_passed = validate_output["overall_gate_passed"]
+
+    # 2. CapEx regression tests + debt bridge tests -- run for real, not
+    # merely assumed passing because they passed on some earlier commit.
+    regression_proc = subprocess.run(
+        [_sys.executable, "-m", "pytest", "tests/unit/test_annual_dry_run.py", "-q"],
+        cwd=str(repo_root), capture_output=True, text=True,
+    )
+    regression_tests_passed = regression_proc.returncode == 0
+
+    # 3. Working tree clean (after the gate-fix commit).
+    git_status = subprocess.run(["git", "status", "--porcelain"], cwd=str(repo_root), capture_output=True, text=True)
+    working_tree_clean = git_status.stdout.strip() == ""
+
+    # 4. Preflight plan -- computed regardless of the checks above, so a
+    # refusal report can still show the caller what WOULD have been planned.
+    with open(metrics_path := _resolve_path(config, "metrics_csv"), newline="") as f:
+        metrics_rows = list(csv.DictReader(f))
+    metric_definitions_path = _resolve_path(config, "metric_definitions_csv")
+    with open(metric_definitions_path, newline="") as f:
+        metric_definitions = {row["metric"]: row for row in csv.DictReader(f)}
+
+    conn = _connect_db(config)
+    # eligible_metrics reuses validate's own already-computed mapping_evidence_gate
+    # result (mapping["passed_metrics"]) rather than recomputing the gate a second
+    # time. This is exactly mapping_gate.persistence_eligible_metrics' own rule
+    # (both gates required): an empty set whenever the analytical gate did not
+    # pass, regardless of any individual metric's own mapping status.
+    eligible_metrics = set(mapping["passed_metrics"]) if annual["gate_passed"] else set()
+    preflight = compute_persistence_preflight(
+        conn, eligible_metrics, metric_definitions,
+        mapping_version=config.get("mapping_version", "v0-pending-verification"),
+        information_cutoff=config.get("information_cutoff", ""),
+    )
+
+    # 5. Timestamped backup + independent SHA-256 re-verification.
+    db_path = _resolve_path(config, "curated_dir") / config.get("paths", {}).get("db_filename", DEFAULT_PATHS["db_filename"])
+    backup_path = ""
+    backup_sha256 = ""
+    verified_backup_sha256 = ""
+    if db_path.exists():
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup_path_obj = db_path.parent / f"{db_path.name}.backup-{timestamp}"
+        shutil.copyfile(db_path, backup_path_obj)
+        backup_path = str(backup_path_obj)
+        backup_sha256 = sha256_of_file(str(db_path))
+        # Independent re-verification: re-hash the BACKUP COPY separately
+        # from the source hash above -- a mismatch here means the copy
+        # itself is corrupt or incomplete, not merely that the source
+        # changed between two reads of the same file.
+        verified_backup_sha256 = sha256_of_file(backup_path)
+
+    authorization = GateAuthorization(
+        milestone_1_gate_passed=m1["gate_passed"],
+        mapping_gate_passed=mapping["gate_passed"],
+        mapping_gate_pass_count=mapping["passed_count"],
+        mapping_gate_blocked_count=mapping["blocked_count"],
+        annual_gate_passed=annual["gate_passed"],
+        overall_gate_passed=overall_gate_passed,
+        capex_regression_tests_passed=regression_tests_passed,
+        debt_bridge_tests_passed=regression_tests_passed,
+        preflight_fact_count=preflight.total_annual_facts,
+        backup_path=backup_path, backup_sha256=backup_sha256, verified_backup_sha256=verified_backup_sha256,
+        working_tree_clean=working_tree_clean,
+    )
+
+    output = {
+        "command": "persist-annual",
+        "preflight": preflight.summary(),
+        "authorization_failures": authorization.failures(),
+        "backup_path": backup_path,
+        "backup_sha256": backup_sha256,
+    }
+
+    if not authorization.is_authorized():
+        conn.close()
+        output["status"] = "refused"
+        print(json.dumps(output, default=str))
+        return 1
+
+    result = persist_annual_facts(conn, preflight, authorization)
+    integrity_report = verify_persistence_integrity(conn)
+    conn.close()
+    output["status"] = result["status"]
+    output["written"] = result["written"]
+    output["integrity"] = integrity_report
+
+    # Re-run validate once more, now that annual_facts/annual_lineage/
+    # annual_fact_observations actually have rows -- reports the real
+    # post-persistence annual_analytical_validation section (item 5:
+    # lineage_readiness must now read PASS, not NOT_APPLICABLE) using the
+    # exact same computation as any other `validate` invocation.
+    post_validate_proc = subprocess.run(
+        [_sys.executable, "-m", "target_cash.cli", "validate", "--config", args.config],
+        cwd=str(Path.cwd()), capture_output=True, text=True,
+    )
+    if post_validate_proc.returncode in (0, 1):
+        output["post_persistence_validate"] = json.loads(post_validate_proc.stdout)
+
+    print(json.dumps(output, default=str))
     return 0
 
 
@@ -584,6 +735,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     seed_parser.add_argument("--config", required=True)
     seed_parser.set_defaults(func=cmd_seed_reference_data)
+
+    persist_annual_parser = subparsers.add_parser(
+        "persist-annual",
+        help="Conditionally authorized annual analytical fact persistence (2026-09-16 approval round). "
+             "Refuses unless every item-4 condition holds: composite gate, mapping gate exactly 48/0, "
+             "CapEx/debt-bridge regression tests, exact preflight count, verified backup, clean working tree.",
+    )
+    persist_annual_parser.add_argument("--config", required=True)
+    persist_annual_parser.set_defaults(func=cmd_persist_annual)
 
     return parser
 

@@ -14,7 +14,7 @@ Usage (from the repository root):
     .venv/bin/python scripts/clean_room_rebuild.py [--keep]
 
 Steps, in order: fetch every registered source -> normalize (dry-run) ->
-validate (dry-run, includes the annual_validation and mapping_evidence_gate
+validate (dry-run, includes the annual_analytical_validation and mapping_evidence_gate
 sections) -> normalize --persist-derived (Milestone 1: quarterly_facts/
 instant_facts) -> seed-reference-data (Milestone 2: fiscal_calendar/
 concept_equivalence_rules only) -> validate (final).
@@ -167,16 +167,19 @@ def main() -> int:
         print(f"fiscal_calendar_rows_total: {seed_reference['fiscal_calendar_rows_total']}")
         print(f"concept_equivalence_rules_total: {seed_reference['concept_equivalence_rules_total']}")
         print(f"annual_analytical_tables_remain_empty: {seed_reference['annual_analytical_tables_remain_empty']}")
+        m1 = validate_final.get("milestone_1_validation", {})
         for k in ("gate_passed", "checks_run", "checks_passed", "checks_failed", "checks_blocked", "checks_unavailable"):
-            print(f"validate.{k}: {validate_final[k]}")
-        annual = validate_final.get("annual_validation", {})
-        print(f"validate.annual_validation.checks_run: {annual.get('checks_run')}")
-        print(f"validate.annual_validation.gate_passed: {annual.get('gate_passed')}")
-        print(f"validate.annual_validation.by_status: {annual.get('by_status')}")
+            print(f"validate.milestone_1_validation.{k}: {m1.get(k)}")
+        annual = validate_final.get("annual_analytical_validation", {})
+        print(f"validate.annual_analytical_validation.checks_run: {annual.get('checks_run')}")
+        print(f"validate.annual_analytical_validation.gate_passed: {annual.get('gate_passed')}")
+        print(f"validate.annual_analytical_validation.by_status: {annual.get('by_status')}")
         mapping_gate = validate_final.get("mapping_evidence_gate", {})
         print(f"validate.mapping_evidence_gate.checks_run: {mapping_gate.get('checks_run')}")
         print(f"validate.mapping_evidence_gate.passed_count: {mapping_gate.get('passed_count')}")
         print(f"validate.mapping_evidence_gate.blocked_count: {mapping_gate.get('blocked_count')}")
+        print(f"validate.mapping_evidence_gate.gate_passed: {mapping_gate.get('gate_passed')}")
+        print(f"validate.overall_gate_passed: {validate_final.get('overall_gate_passed')}")
         print(f"database: {db_path}")
         return 0
     finally:

@@ -63,7 +63,7 @@ lines.append(
     "expected counts. Item 2's two distinct gates (mapping_evidence_gate, analytical_validation_gate) "
     "are kept structurally separate throughout -- a metric's row here records its MAPPING evidence; "
     "arithmetic/derivation validation is reported separately by `target_cash validate` "
-    "(annual_validation section) and is NOT restated here."
+    "(annual_analytical_validation section) and is NOT restated here."
 )
 lines.append("")
 

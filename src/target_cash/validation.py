@@ -108,6 +108,20 @@ class ValidationSummary:
         }
 
 
+def compute_overall_gate_passed(
+    milestone_1_gate_passed: bool, mapping_gate_passed: bool, annual_gate_passed: bool,
+) -> bool:
+    """The composite gate (2026-09-16 'overall-gate enforcement' round):
+    overall_gate_passed = milestone_1_validation.gate_passed AND
+    mapping_evidence_gate.gate_passed AND annual_analytical_validation.gate_passed.
+    A pure boolean AND with no exceptions or overrides -- any one of the
+    three being False makes the whole thing False. `cli.py`'s `validate`
+    command calls this exact function (never a separate inline reimplementation)
+    so its exit code and pytest's own assertions observe identical logic.
+    """
+    return bool(milestone_1_gate_passed) and bool(mapping_gate_passed) and bool(annual_gate_passed)
+
+
 def run_validation(
     derived_fact_ids: list[str],
     lineage_links: list[LineageLink],

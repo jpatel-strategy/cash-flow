@@ -3,12 +3,14 @@ views (AS_ORIGINALLY_FILED / LATEST_RESTATED).
 
 Reads ONLY raw_facts and fiscal_calendar -- writes nothing. No annual_facts/
 annual_lineage/annual_fact_observations row is ever created by this module;
-persisting an annual analytical fact is a separate, not-yet-authorized
-action. Used by both `scripts/annual_dry_run.py` (standalone JSON dump) and
-`target_cash.cli validate` (the `annual_validation` section of the standard
-validation gate) -- the CLI must observe the same computation this module
-performs, not a separate reimplementation, per the same principle
-`validation.py` documents for the quarterly gate.
+persisting an annual analytical fact is a separate action, gated by
+target_cash.annual_persistence's own conditional-authorization chain (see
+that module) -- this module never writes regardless of gate state. Used by
+both `scripts/annual_dry_run.py` (standalone JSON dump) and
+`target_cash.cli validate` (the `annual_analytical_validation` section of
+the standard validation gate) -- the CLI must observe the same computation
+this module performs, not a separate reimplementation, per the same
+principle `validation.py` documents for the quarterly gate.
 """
 from __future__ import annotations
 

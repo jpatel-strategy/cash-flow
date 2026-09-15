@@ -119,8 +119,9 @@ def test_fetch_manual_then_normalize_then_validate(isolated_project, capsys, tmp
     validate_output = json.loads(capsys.readouterr().out)
     # No quarterly facts exist yet, so the first data gate must not report a pass.
     assert exit_code == 1
-    assert validate_output["gate_passed"] is False
-    assert validate_output["checks_run"] == 0
+    assert validate_output["overall_gate_passed"] is False
+    assert validate_output["milestone_1_validation"]["gate_passed"] is False
+    assert validate_output["milestone_1_validation"]["checks_run"] == 0
 
 
 def test_fetch_manual_then_normalize_extracts_raw_facts_from_real_html(isolated_project, capsys, tmp_path):
@@ -366,16 +367,17 @@ def test_validate_wires_real_checks_for_a_reviewed_flow_metric(isolated_project,
 
     exit_code = main(["validate", "--config", "config/model.yml"])
     output = json.loads(capsys.readouterr().out)
+    m1 = output["milestone_1_validation"]
 
     # A real check ran -- this must never read 0 just because nothing was persisted.
-    assert output["checks_run"] > 0
-    assert len(output["source_compatibility_checks"]) == 1
-    assert output["source_compatibility_checks"][0]["passed"] is True
-    assert len(output["arithmetic_invariant_checks"]) == 1
-    assert output["arithmetic_invariant_checks"][0]["holds"] is True
+    assert m1["checks_run"] > 0
+    assert len(m1["source_compatibility_checks"]) == 1
+    assert m1["source_compatibility_checks"][0]["passed"] is True
+    assert len(m1["arithmetic_invariant_checks"]) == 1
+    assert m1["arithmetic_invariant_checks"][0]["holds"] is True
 
     q2_validation = next(
-        v for v in output["independent_quarter_validations"] if v["check_name"].endswith(":Q2")
+        v for v in m1["independent_quarter_validations"] if v["check_name"].endswith(":Q2")
     )
     assert q2_validation["status"] == "unavailable"
     assert q2_validation["detail"] == "arithmetic invariant passed; independent quarter validation unavailable"
@@ -383,7 +385,7 @@ def test_validate_wires_real_checks_for_a_reviewed_flow_metric(isolated_project,
     # No quarterly_facts/lineage were ever persisted, so the database's own
     # lineage-completeness check (which reads real DB state) trivially holds,
     # and validate must not have written anything either.
-    assert output["facts_missing_lineage"] == []
+    assert m1["facts_missing_lineage"] == []
     exit_code_normalize_check = main(["normalize", "--config", "config/model.yml"])
     still_dry = json.loads(capsys.readouterr().out)
     assert still_dry["quarterly_facts_in_db"] == 0
@@ -447,21 +449,33 @@ def test_validate_includes_annual_validation_section(isolated_project, capsys):
     exit_code = main(["validate", "--config", "config/model.yml"])
     output = json.loads(capsys.readouterr().out)
 
-    assert "annual_validation" in output
-    annual = output["annual_validation"]
+    assert "annual_analytical_validation" in output
+    annual = output["annual_analytical_validation"]
     assert annual["checks_run"] > 0
     assert annual["by_status"]["FAIL"] == 0
     assert annual["gate_passed"] is True
     assert "target_defined_net_debt" in annual["allowed_permanently_unavailable_metrics"]
     assert exit_code == 1  # the quarterly gate's own checks_run == 0 still fails the overall command
 
-    # mapping_evidence_gate (2026-09-15 item 2) is reported as its own section,
-    # kept separate from gate_passed above -- an isolated project's synthetic
-    # metrics.csv has no rows for target_cash.annual's canonical direct metrics,
-    # so every one of them is correctly reported "missing" -> BLOCKED, never
-    # silently skipped or silently passed.
+    # mapping_evidence_gate (2026-09-15 item 2) is reported as its own section --
+    # an isolated project's synthetic metrics.csv has no rows for
+    # target_cash.annual's canonical direct metrics, so every one of them is
+    # correctly reported "missing" -> BLOCKED, never silently skipped or passed.
     mapping_gate = output["mapping_evidence_gate"]
     assert mapping_gate["checks_run"] > 0
     assert mapping_gate["passed_count"] == 0
     assert mapping_gate["blocked_count"] == mapping_gate["checks_run"]
+    assert mapping_gate["gate_passed"] is False
     assert mapping_gate["persistence_eligible_metrics"] == []
+
+    # 2026-09-16 "overall-gate enforcement": composite AND of all three gates,
+    # and IS what the exit code reflects -- milestone_1 alone being the reason
+    # here does not make the other two gates' contribution untested elsewhere
+    # (see test_overall_gate_* in test_annual_validation.py for the full
+    # 2x2x2 matrix on the pure-function level).
+    assert output["overall_gate_passed"] is False
+    assert output["overall_gate_passed"] == (
+        output["milestone_1_validation"]["gate_passed"]
+        and mapping_gate["gate_passed"]
+        and annual["gate_passed"]
+    )

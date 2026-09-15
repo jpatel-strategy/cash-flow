@@ -87,7 +87,13 @@ def summarize_mapping_evidence_gate(results: list[MappingEvidenceResult]) -> dic
         "blocked_count": len(blocked),
         "passed_metrics": sorted(passed),
         "blocked_metrics": sorted(blocked),
-        "gate_passed_metrics": sorted(passed),  # eligible for persistence per this gate alone
+        # gate_passed (2026-09-16 "overall-gate enforcement" round): this gate
+        # has no FAIL status of its own (only PASS/BLOCKED), so it passes only
+        # when every checked metric is PASS and at least one check actually
+        # ran -- checks_run == 0 is never a silent pass, matching the
+        # milestone_1_validation and annual_analytical_validation gates'
+        # own convention.
+        "gate_passed": len(results) > 0 and len(blocked) == 0,
         "detail": [
             {"metric": r.metric, "kind": r.kind, "status": r.status, "mapping_status": r.mapping_status, "detail": r.detail}
             for r in results
