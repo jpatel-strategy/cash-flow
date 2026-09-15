@@ -18,6 +18,16 @@ key of metric + period already provides):
     balance_sheet_source/rollforward_source) -- the same random
     quarterly_fact_id, echoed into prose.
 
+annual_facts.annual_fact_id, annual_fact_observations.observation_id, and
+annual_lineage.annual_lineage_id are NOT excluded, and need no normalization
+regex: target_cash.annual_persistence builds them deterministically
+(f"annual:{metric}:{fiscal_year}:{analytical_view}", etc.), not from
+uuid.uuid4(), specifically so a clean-room rebuild produces byte-identical
+IDs, not just byte-identical content under a value-only comparison.
+annual_facts.information_cutoff is also NOT excluded -- it comes from
+config/model.yml's fixed `information_cutoff` field, not a wall-clock
+timestamp, so it is identical across any two runs against the same config.
+
 Usage: python compare_databases.py <db_a> <db_b> <validate_json_a> <validate_json_b>
 """
 import hashlib
@@ -75,6 +85,58 @@ def export_instant_fact_observations(conn):
     return [list(r) for r in rows]
 
 
+def export_annual_facts(conn):
+    rows = conn.execute(
+        """
+        SELECT annual_fact_id, metric, fiscal_year, period_start, period_end, days_in_period,
+               analytical_view, value_original, original_unit, value_normalized, normalized_unit,
+               direct_or_derived, fact_status, validation_status, accession_number, filed_at,
+               mapping_version, information_cutoff, is_current_view
+        FROM annual_facts ORDER BY metric, fiscal_year, analytical_view
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_annual_fact_observations(conn):
+    rows = conn.execute(
+        """
+        SELECT af.metric, af.fiscal_year, af.analytical_view, o.observation_id, o.raw_fact_id,
+               o.accession_number, o.filed_at, o.relationship, o.value_original,
+               o.difference_from_selected, o.classification_rationale
+        FROM annual_fact_observations o JOIN annual_facts af ON af.annual_fact_id = o.annual_fact_id
+        ORDER BY af.metric, af.fiscal_year, af.analytical_view, o.observation_id
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_annual_lineage(conn):
+    rows = conn.execute(
+        """
+        SELECT derived.metric, derived.fiscal_year, derived.analytical_view,
+               al.annual_lineage_id, al.input_raw_fact_id, input.metric, al.operation, al.sequence
+        FROM annual_lineage al
+        JOIN annual_facts derived ON derived.annual_fact_id = al.derived_fact_id
+        LEFT JOIN annual_facts input ON input.annual_fact_id = al.input_annual_fact_id
+        ORDER BY derived.metric, derived.fiscal_year, derived.analytical_view, al.sequence
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_period_facts_unified(conn):
+    rows = conn.execute(
+        """
+        SELECT metric, frequency, fiscal_year, fiscal_quarter, start_date, end_date, value, unit,
+               direct_or_derived, analytical_view, validation_status, reporting_period_role
+        FROM period_facts_unified
+        ORDER BY metric, frequency, fiscal_year, fiscal_quarter, analytical_view
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
 def canonical_json(obj) -> str:
     return json.dumps(obj, sort_keys=True, default=str, separators=(",", ":"))
 
@@ -90,6 +152,10 @@ def export_db(db_path):
         "lineage": export_lineage(conn),
         "instant_facts": export_instant_facts(conn),
         "instant_fact_observations": export_instant_fact_observations(conn),
+        "annual_facts": export_annual_facts(conn),
+        "annual_fact_observations": export_annual_fact_observations(conn),
+        "annual_lineage": export_annual_lineage(conn),
+        "period_facts_unified": export_period_facts_unified(conn),
     }
     conn.close()
     return {name: {"row_count": len(rows), "sha256": sha256_of(rows)} for name, rows in exports.items()}
