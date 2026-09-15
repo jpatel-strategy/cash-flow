@@ -2086,3 +2086,97 @@ of earlier rounds' figures, per this project's standing practice of never
 retroactively editing prior documentation -- only the live, regenerated
 `docs/milestone_2_mapping_approval_matrix.md` and this entry carry the
 corrected numbers going forward.
+
+---
+
+## 2026-09-16 (later) — Observation-completeness closeout
+
+Audited `annual_fact_observations` after the prior round's persistence:
+300 rows, all `relationship='selected'`, exactly matching the 300 direct
+`annual_facts` rows -- confirming compute_persistence_preflight had planned
+only the fact's own authoritative citation, never scanning for
+corroborating, restated, or historical evidence that genuinely exists in
+`raw_facts` across other filing vintages (e.g. FY2021/FY2022 share
+repurchases and FY2022/FY2023 COGS/SG&A are each reported with different
+values across 2-3 separate 10-Ks).
+
+**Vocabulary correction (item 3).** Added `original_historical` to
+`annual_fact_observations.relationship` via migration `0014` (a safe,
+transaction-wrapped table rebuild-with-copy — SQLite cannot ALTER a CHECK
+constraint in place; every existing row's values were preserved exactly).
+The pre-existing 4-value vocabulary could not distinguish "a later
+restatement exists" (correctly `'restated'` when attached to the
+AS_ORIGINALLY_FILED fact) from "this is the pre-restatement original"
+(attached to the LATEST_RESTATED fact, where reusing `'restated'` would be
+backwards and `'conflicting'` would misrepresent a documented, policy-
+explained reclassification as an unresolved disagreement).
+
+**Full-evidence classification.** `compute_persistence_preflight` now
+scans every raw fact any filing ever reported for each direct metric's
+exact annual period (never a quarterly sub-period), and classifies each
+value-based (never identity-based) relative to both view anchors:
+AS_ORIGINALLY_FILED (the year's own 10-K) and LATEST_RESTATED (the single
+most-recently-filed report of that period) — selected / corroborating
+(same value) / restated-or-original_historical (the other anchor's value)
+/ conflicting (a genuine, unexplained third value). Against the real
+database this produced exactly **686 observations** (300 selected, 368
+corroborating, 9 restated, 9 original_historical, **0 conflicting**) —
+covering exactly the 6 documented reclassification pairs
+(`share_repurchases` FY2021/FY2022, `cost_of_sales` and
+`operating_expenses` FY2022/FY2023) with both-sided evidence for every one
+and zero unexplained disagreements anywhere in the 30-metric x 5-year
+direct evidence set.
+
+**Self-caught bug, found by the clean-room comparison, not by inspection.**
+The first re-run of `persist-annual` with the enriched plan produced the
+correct row COUNT (686) in the active database but a canonical-export hash
+mismatch against the clean-room rebuild — `persist_annual_facts`'s
+`ON CONFLICT` clause updated only `value_original`, never
+`classification_rationale` or `difference_from_selected`, so 150
+already-existing `'selected'` observation rows kept stale rationale text
+from the original (pre-enrichment) persist run instead of picking up the
+current planner's text. A related, independent gap: `PlannedObservation`
+never carried its own computed `difference_from_selected` value at all —
+the classifier computed it locally and discarded it, so the column was
+always written as a literal `NULL`. Both fixed: the field was added to the
+dataclass and threaded through, and the `ON CONFLICT` clause now refreshes
+all three recomputable fields. Re-running `persist-annual` against the
+real database corrected the stale text; `annual_facts` (488) and
+`annual_lineage` (384) were independently confirmed byte-identical (same
+SHA-256 over their own canonical query results) before and after every
+step in this round — nothing but `annual_fact_observations` rows changed.
+
+**Post-enrichment validation (item 6).** `verify_persistence_integrity`
+gained four new checks — `every_direct_fact_has_exactly_one_selected_observation`,
+`zero_duplicate_observation_keys`,
+`every_reclassification_has_original_and_later_evidence`, and
+`conflicting_observations_reported_explicitly` (never itself a failure —
+exists purely to surface any genuine conflict, of which there are
+currently zero). All 18 checks pass against the real database.
+
+**Clean-room reproduction (item 7).** No changes were needed to
+`scripts/clean_room_rebuild.py` itself — it already runs `persist-annual`
+through the real CLI, so the enriched planning logic is exercised
+automatically. `scripts/compare_databases.py` needed no changes either
+(the annual_fact_observations export was already wired up). After the
+`ON CONFLICT` fix, a fresh clean-room rebuild reproduces the identical
+686-row enriched observation set, and all 9 canonical exports (including
+`annual_fact_observations`) are hash-identical between the clean-room
+build and the active database.
+
+**Terminology correction (item 8, applied going forward).** "Canonical
+exports are hash-identical" is the accurate claim throughout this
+project's evidence — never "the SQLite databases are byte-identical,"
+which independently-built database files are not (page layout, vacuum
+state, and other storage-level details differ even with identical
+logical content). The one legitimate exception is comparing the SAME
+database file to itself before and after a no-op (e.g. a rolled-back
+failed write) — that comparison genuinely is byte-for-byte, since it is
+the identical file, not two independent builds.
+
+`docs/milestone_2_mapping_approval_matrix.md` was not affected by this
+round (it reports mapping evidence and the pre-persistence manifest, not
+persisted observation content) and was not regenerated.
+`docs/milestone_2_evidence.md` was regenerated to reflect the enriched
+686-observation state, the reclassification-evidence table, and the full
+18-check integrity report.
