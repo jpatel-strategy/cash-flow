@@ -1429,3 +1429,64 @@ persisted row's lineage/observations were verified present below).
 (interim gaps unresolved), and every other `candidate_unverified` metric.
 The instant-fact `latest_restated` analytical view remains unused — no
 restated filing has been encountered.
+
+## 2026-09-15 — Milestone 2 opened: mapping-tag corrections, source-authority gap, income-statement bridge verified
+
+Milestone 1 is frozen at commit `879ac2d` (phrasing corrected at `c9f11ed`).
+Milestone 2 (Five-Year Historical Financial Model and Driver Architecture) is
+authorized. This entry records read-only evidence-gathering findings against
+the two already-cached 10-Ks (accession `0000027419-25-000018`, FY2024 10-K,
+and accession `0000027419-26-000016`, FY2025 10-K); no schema was implemented
+and no annual analytical fact was persisted. Full detail, the five-year
+mapping matrix, the annual dry-run table, the driver dictionary, the proposed
+schema, and the validation plan are in `docs/milestone_2_proposal.md`.
+
+**Tag corrections to `config/metrics.csv` (candidate_xbrl_tag only; mapping_status
+left as `candidate_unverified` in every case — none marked reviewed):**
+- `operating_expenses`: `OperatingExpenses` (0 occurrences in either filing)
+  → `SellingGeneralAndAdministrativeExpense` (Target's actual SG&A line).
+- `long_term_debt`: `LongTermDebtNoncurrent` (0 occurrences) →
+  `LongTermDebtAndCapitalLeaseObligations` (+ `...Current` for the current
+  portion). A genuine, numerically different competing candidate,
+  `us-gaap:LongTermDebt` (a debt-maturity-schedule note total that appears to
+  exclude finance-lease obligations — e.g. FY2025: 14,398M vs. 14,326M), is
+  flagged unresolved for reviewer decision.
+- `gross_profit`: `us-gaap:GrossProfit` confirmed absent (0 occurrences) in
+  both filings by exhaustive tag scan. Must be derived as
+  `revenue - cost_of_sales` for every year; there is no direct-tag
+  alternative. Note updated to state this as a finding, not a possibility.
+
+**Income-statement bridge verified exactly, zero residual, for FY2022-FY2025**
+(Revenue − Cost of sales = Gross profit [derived]; Gross profit − SG&A −
+D&A(opex) = Operating income; Operating income − Net interest expense + Net
+other income = Pretax income; Pretax income − Tax = Net income; Net
+income / diluted shares = diluted EPS, matching reported EPS to the cent in
+every year). FY2022 figures come only from the FY2024 10-K's own comparative
+context (`c-5`, period 2022-01-30..2023-01-28) — corroborating, not
+authoritative, under the project's authoritative-source-filing policy, since
+the FY2024 10-K's own period of report is FY2024, not FY2022.
+
+**Source-authority gap identified, per item 1's instruction to request only
+one filing and not open a broad source-vault project:**
+- The FY2022 10-K (accession `0000027419-23-000015`, primary document
+  `tgt-20230128.htm`, period of report 2023-01-28) is **not present** in
+  `data/raw/` or registered in `docs/sources.csv`. Requested from the project
+  owner in the Milestone 2 report; not fetched automatically (network egress
+  to `www.sec.gov` remains blocked in this environment, consistent with the
+  Milestone 1 limitation already on file in `docs/limitations.md`).
+- A second, previously-unstated gap: even once the FY2022 10-K is obtained,
+  **no filing among current or planned holdings will have FY2023 as its own
+  primary period of report.** FY2023 appears only as a comparative in the
+  FY2024 10-K and FY2025 10-K (and would appear only as a *prior-year*
+  comparative in the FY2022 10-K, whose own period is FY2022, not FY2023).
+  This is reported as a standing accounting-authority limitation, not used to
+  request a further filing, per the explicit instruction against broadening
+  the source-vault project.
+
+**53-week fiscal year (FY2023) verbatim disclosure, found in both cached
+10-Ks:** "2023 consisted of 53 weeks. The extra week in 2023 contributed
+$1.7 billion of Net Sales." Both filings' week-count tables agree exactly:
+FY2022 = 52 weeks, FY2023 = 53 weeks, FY2024 = 52 weeks, FY2025 = 52 weeks.
+No 52-week-adjusted figure has been invented anywhere in this project; the
+annual dry-run table in `docs/milestone_2_proposal.md` carries the raw
+reported figures plus an explicit week-count footnote.

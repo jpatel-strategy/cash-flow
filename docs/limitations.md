@@ -39,6 +39,27 @@ implements a genuine HTTP client for environments where SEC access is open.
   until checked against Target's actual filing statements, contexts, and sign
   conventions, per the project owner's explicit standing instruction.
 
+## Data coverage (Milestone 2)
+
+- FY2021 and FY2022 balance-sheet items (inventory, accounts payable,
+  long-term debt, balance-sheet cash) are **BLOCKED** pending the FY2022
+  10-K (accession `0000027419-23-000015`, period 2023-01-28), requested from
+  the project owner — see `docs/milestone_2_proposal.md` §1. FY2022
+  income-statement and cash-flow figures are available only as
+  corroborating (not authoritative) observations from the FY2024 10-K's own
+  comparative context.
+- **Structural limitation, not resolvable by requesting a further filing:**
+  no filing among current or planned holdings will ever have FY2023 as its
+  own primary period of report. FY2023 appears only as a comparative in the
+  FY2024 10-K and FY2025 10-K. Every FY2023 figure in this project is,
+  and will remain, corroborating-only under the authoritative-source-filing
+  policy, even after the FY2022 10-K is obtained.
+- Two `config/metrics.csv` candidate tags were found to be incorrect and
+  corrected this milestone (`operating_expenses`, `long_term_debt`); neither
+  is marked `reviewed`. `gross_profit` has no direct XBRL tag in either
+  cached filing and must always be derived. See
+  `docs/milestone_2_proposal.md` §5 and §9 for full detail.
+
 ## Not yet built
 
 Forecasting, seasonal baseline, driver model, scenarios, investment-capacity
