@@ -1008,10 +1008,18 @@ not re-run or reinterpret `v1`.
 ### 27.1 Python / tests
 `tests/unit/test_forecast.py`: the one database-dependent test rewritten
 as a deterministic unit test (§22). `tests/unit/test_capacity_taxonomy.py`:
-50 tests, all passing. `tests/unit/test_capacity_persistence.py`: 15
-tests, all passing, including the two new corruption/pruning tests from
-§23. **Full source-complete suite: 466/466 passed** (`.venv/bin/python -m
-pytest -q`). See §28 for the separate fresh-public-clone run.
+50 tests, all passing. `tests/unit/test_capacity_persistence.py`: 16
+tests, all passing, including the corruption/pruning tests from §23 and
+a regression test (`test_reconflicted_lineage_row_updates_same_year_input_columns`)
+added after the clean-room rebuild comparison (§28) caught a real
+persistence bug: the `capacity_taxonomy_lineage` `ON CONFLICT DO UPDATE
+SET` clause omitted `same_year_forecast_inputs`/`same_year_capacity_inputs`,
+so re-persisting over an already-existing row (the path every unit test's
+fresh scratch DB never exercises, but production's pre-existing rows
+did) silently left those two columns at their stale, pre-closeout values.
+Fixed in the same commit as this test, then re-persisted to production
+(see §26). **Full source-complete suite: 467/467 passed** (`.venv/bin/python
+-m pytest -q`). See §28 for the separate fresh-public-clone run.
 
 ### 27.2 Excel
 The cumulative-reconciliation table on the Investment Capacity sheet now
@@ -1059,11 +1067,29 @@ count corrected from 467/210 to **470/213**.
 
 ## 28. Fresh public-clone and clean-room evidence
 
-(Recorded in the final report accompanying this commit — see the
-session's final report for the literal `git clone` transcript into a new
-temporary directory, the `pytest` run against that clone with no database
-copied or built beforehand, and the `scripts/clean_room_rebuild.py` +
-`scripts/compare_databases.py` canonical-export comparison.)
+**Fresh public clone**: `git clone --branch claude/gallant-dijkstra-p9xrvr
+https://github.com/jpatel-strategy/cash-flow` into a new, empty temporary
+directory. `data/curated/` in the clone contained only `.gitkeep` — no
+database file present, confirming the file is genuinely gitignored, not
+merely absent by coincidence. A fresh virtualenv was created and the
+package installed with `pip install -e ".[dev]"` (no other setup, no
+database copied or built). `pytest -q` from that clone: **467/467
+passed**, identical to the source-complete run, proving Item 1's fix
+holds with zero database access anywhere in the suite.
+
+**Clean-room rebuild**: `scripts/clean_room_rebuild.py` re-derives the
+entire pipeline from the 8 hash-verified source filings in a fresh
+temporary directory — ingestion, annual persistence, forecast, valuation,
+and capacity-taxonomy persistence — then `scripts/compare_databases.py`
+diffs every canonical export (SHA-256 of the ordered row set) between the
+clean-room database and the active production database. **Every one of
+the 22 exports matched exactly, including `capacity_taxonomy_lineage`
+(312 rows, identical hash)** — the same table whose hash mismatch during
+this very comparison first surfaced the §23/§26 `ON CONFLICT` bug (the
+clean-room DB, built fresh, always had the corrected `same_year_capacity_inputs`
+value, while the un-patched production DB still carried the stale one;
+after fixing the persistence bug and re-persisting production, the
+mismatch resolved and this final run shows `ALL EXPORTS MATCH`).
 
 ## 29. Limitations (final-closeout-specific, in addition to Parts I–II)
 
