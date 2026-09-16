@@ -764,6 +764,67 @@ def cmd_persist_forecast(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_persist_valuation(args: argparse.Namespace) -> int:
+    """Milestone 4 DCF valuation persistence: same discipline as
+    cmd_persist_forecast -- preflight from pure in-memory computation, zero-
+    FAIL gate, backup + independently re-verified SHA-256, one transaction,
+    post-write integrity.
+    """
+    import shutil
+    from datetime import datetime, timezone
+
+    from target_cash.forecast_persistence import sha256_of_file
+    from target_cash.valuation_persistence import (
+        compute_valuation_preflight,
+        persist_valuation,
+        verify_valuation_persistence_integrity,
+    )
+
+    config = load_config(Path(args.config))
+    preflight = compute_valuation_preflight()
+
+    output = {
+        "command": "persist-valuation",
+        "preflight": preflight.summary(),
+        "validation_failures": [
+            {"check_name": c.check_name, "scenario": c.scenario, "detail": c.detail}
+            for c in preflight.validation_failures
+        ],
+    }
+
+    if not preflight.is_authorized():
+        output["status"] = "refused"
+        print(json.dumps(output, default=str))
+        return 1
+
+    db_path = _resolve_path(config, "curated_dir") / config.get("paths", {}).get("db_filename", DEFAULT_PATHS["db_filename"])
+    backup_path = ""
+    backup_sha256 = ""
+    verified_backup_sha256 = ""
+    if db_path.exists():
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup_path_obj = db_path.parent / f"{db_path.name}.backup-{timestamp}"
+        shutil.copyfile(db_path, backup_path_obj)
+        backup_path = str(backup_path_obj)
+        backup_sha256 = sha256_of_file(str(db_path))
+        verified_backup_sha256 = sha256_of_file(backup_path)
+    output["backup_path"] = backup_path
+    output["backup_sha256"] = backup_sha256
+    output["backup_verified"] = backup_sha256 == verified_backup_sha256
+
+    conn = _connect_db(config)
+    result = persist_valuation(conn, preflight)
+    integrity = verify_valuation_persistence_integrity(conn)
+    conn.close()
+
+    output["status"] = result["status"]
+    output["written"] = result["written"]
+    output["integrity"] = integrity
+
+    print(json.dumps(output, default=str))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="target-cash", description="Target Cash Flow and Investment Capacity model")
     parser.add_argument("--version", action="version", version=__version__)
@@ -816,6 +877,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     persist_forecast_parser.add_argument("--config", required=True)
     persist_forecast_parser.set_defaults(func=cmd_persist_forecast)
+
+    persist_valuation_parser = subparsers.add_parser(
+        "persist-valuation",
+        help="Milestone 4: conditionally authorized DCF valuation persistence. Refuses unless every "
+             "target_cash.valuation check shows zero FAIL. Backs up the database, writes "
+             "transactionally, and reports post-write integrity.",
+    )
+    persist_valuation_parser.add_argument("--config", required=True)
+    persist_valuation_parser.set_defaults(func=cmd_persist_valuation)
 
     return parser
 

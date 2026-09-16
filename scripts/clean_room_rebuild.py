@@ -174,6 +174,13 @@ def main() -> int:
             print(json.dumps(persist_forecast, indent=2), file=sys.stderr)
             return 1
 
+        # Milestone 4: DCF valuation persistence, same clean room.
+        persist_valuation = run_cli(tmp_dir, "persist-valuation", "--config", "config/model.yml")
+        if persist_valuation.get("status") != "ok":
+            print("persist-valuation did not succeed in the clean room:", file=sys.stderr)
+            print(json.dumps(persist_valuation, indent=2), file=sys.stderr)
+            return 1
+
         db_path = tmp_dir / "data" / "curated" / "target_cash.db"
         print()
         print("=== Clean-room result ===")
@@ -187,6 +194,8 @@ def main() -> int:
         print(f"persist_annual.integrity.all_passed: {persist_annual.get('integrity', {}).get('all_passed')}")
         print(f"persist_forecast.written: {persist_forecast.get('written')}")
         print(f"persist_forecast.integrity.all_passed: {persist_forecast.get('integrity', {}).get('all_passed')}")
+        print(f"persist_valuation.written: {persist_valuation.get('written')}")
+        print(f"persist_valuation.integrity.all_passed: {persist_valuation.get('integrity', {}).get('all_passed')}")
         m1 = validate_final.get("milestone_1_validation", {})
         for k in ("gate_passed", "checks_run", "checks_passed", "checks_failed", "checks_blocked", "checks_unavailable"):
             print(f"validate.milestone_1_validation.{k}: {m1.get(k)}")

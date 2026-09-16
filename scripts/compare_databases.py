@@ -38,6 +38,12 @@ builds them all deterministically (forecast_fact_id = f"fct_{scenario}_
 {metric}_{fiscal_year}_{version}", etc.), the same discipline as
 annual_facts.annual_fact_id.
 
+Milestone 4: valuation_assumptions.created_at, valuation_results.created_at,
+and valuation_validation_results.run_at are likewise EXCLUDED (wall-clock).
+Every valuation_* primary key is deterministic
+(f"vres_{scenario}_{version}", f"vufcf_{scenario}_{fiscal_year}_{version}",
+etc.), same discipline as the forecast_* tables above.
+
 Usage: python compare_databases.py <db_a> <db_b> <validate_json_a> <validate_json_b>
 """
 import hashlib
@@ -210,6 +216,51 @@ def export_investment_capacity_results(conn):
     return [list(r) for r in rows]
 
 
+def export_valuation_assumptions(conn):
+    rows = conn.execute(
+        """
+        SELECT assumption_id, metric, value, unit, rationale, source_evidence, information_cutoff,
+               review_status, version
+        FROM valuation_assumptions ORDER BY metric
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_valuation_ufcf_facts(conn):
+    rows = conn.execute(
+        """
+        SELECT valuation_ufcf_fact_id, scenario_id, fiscal_year, ufcf, pv_ufcf, discount_period,
+               information_cutoff
+        FROM valuation_ufcf_facts ORDER BY scenario_id, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_valuation_results(conn):
+    rows = conn.execute(
+        """
+        SELECT valuation_result_id, scenario_id, wacc_pct, terminal_growth_pct, pv_explicit_period,
+               terminal_year_ufcf, terminal_value_undiscounted, pv_terminal_value, enterprise_value,
+               valuation_date_net_debt, equity_value, valuation_date_diluted_shares,
+               implied_value_per_share, information_cutoff
+        FROM valuation_results ORDER BY scenario_id
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_valuation_validation_results(conn):
+    rows = conn.execute(
+        """
+        SELECT validation_result_id, check_name, scenario_id, status, detail, valuation_version
+        FROM valuation_validation_results ORDER BY check_name, scenario_id
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
 def export_period_facts_unified(conn):
     rows = conn.execute(
         """
@@ -247,6 +298,10 @@ def export_db(db_path):
         "forecast_lineage": export_forecast_lineage(conn),
         "forecast_validation_results": export_forecast_validation_results(conn),
         "investment_capacity_results": export_investment_capacity_results(conn),
+        "valuation_assumptions": export_valuation_assumptions(conn),
+        "valuation_ufcf_facts": export_valuation_ufcf_facts(conn),
+        "valuation_results": export_valuation_results(conn),
+        "valuation_validation_results": export_valuation_validation_results(conn),
     }
     conn.close()
     return {name: {"row_count": len(rows), "sha256": sha256_of(rows)} for name, rows in exports.items()}

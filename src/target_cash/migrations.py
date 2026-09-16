@@ -685,6 +685,103 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
             );
         """,
     ),
+    TableMigration(
+        migration_id="0021_valuation_assumptions",
+        description=(
+            "Create valuation_assumptions (empty). Milestone 4: DCF valuation layer, kept in its "
+            "own tables, additive to (never mixed into) forecast_assumptions -- WACC components and "
+            "terminal growth are properties of the market/economy, not of an operating scenario, so "
+            "there is deliberately no scenario_id column here (see target_cash.valuation's own "
+            "module docstring for why WACC/terminal growth are scenario-invariant by design)."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS valuation_assumptions (
+                assumption_id       TEXT PRIMARY KEY,
+                metric              TEXT NOT NULL,
+                value               REAL NOT NULL,
+                unit                TEXT NOT NULL,
+                rationale           TEXT NOT NULL,
+                source_evidence     TEXT NOT NULL,
+                information_cutoff  TEXT NOT NULL,
+                review_status       TEXT NOT NULL DEFAULT 'proposed'
+                                        CHECK (review_status IN ('proposed', 'reviewed', 'approved', 'rejected')),
+                version             TEXT NOT NULL DEFAULT 'v1',
+                created_at          TEXT NOT NULL,
+                UNIQUE (metric, version)
+            );
+        """,
+    ),
+    TableMigration(
+        migration_id="0022_valuation_ufcf_facts",
+        description=(
+            "Create valuation_ufcf_facts (empty). Milestone 4: one row per (scenario, fiscal_year) "
+            "unlevered free cash flow and its discounted present value -- the explicit-period detail "
+            "behind each valuation_results row's pv_explicit_period total."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS valuation_ufcf_facts (
+                valuation_ufcf_fact_id  TEXT PRIMARY KEY,
+                scenario_id             TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year             INTEGER NOT NULL CHECK (fiscal_year >= 2026),
+                ufcf                    REAL NOT NULL,
+                pv_ufcf                 REAL NOT NULL,
+                discount_period         INTEGER NOT NULL,
+                information_cutoff      TEXT NOT NULL,
+                UNIQUE (scenario_id, fiscal_year)
+            );
+        """,
+    ),
+    TableMigration(
+        migration_id="0023_valuation_results",
+        description=(
+            "Create valuation_results (empty). Milestone 4: one row per scenario -- the complete DCF "
+            "bridge (PV of explicit period, terminal value, enterprise value, net debt, equity value, "
+            "implied value per share). valuation_date_net_debt/valuation_date_diluted_shares are "
+            "FY2025 actuals (never a forecast year's projected figure -- see "
+            "target_cash.valuation.check_valuation_date_consistency)."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS valuation_results (
+                valuation_result_id           TEXT PRIMARY KEY,
+                scenario_id                   TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                wacc_pct                      REAL NOT NULL,
+                terminal_growth_pct           REAL NOT NULL,
+                pv_explicit_period            REAL NOT NULL,
+                terminal_year_ufcf            REAL NOT NULL,
+                terminal_value_undiscounted   REAL NOT NULL,
+                pv_terminal_value             REAL NOT NULL,
+                enterprise_value              REAL NOT NULL,
+                valuation_date_net_debt       REAL NOT NULL,
+                equity_value                  REAL NOT NULL,
+                valuation_date_diluted_shares REAL NOT NULL,
+                implied_value_per_share       REAL NOT NULL,
+                information_cutoff            TEXT NOT NULL,
+                created_at                    TEXT NOT NULL,
+                UNIQUE (scenario_id)
+            );
+        """,
+    ),
+    TableMigration(
+        migration_id="0024_valuation_validation_results",
+        description=(
+            "Create valuation_validation_results (empty). Milestone 4: one row per "
+            "target_cash.valuation.ValuationCheckResult per persistence run -- UFCF reconciliation, "
+            "terminal-value period consistency, no debt/lease double counting, valuation-date "
+            "consistency, WACC-exceeds-growth, and WACC/growth scenario invariance."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS valuation_validation_results (
+                validation_result_id  TEXT PRIMARY KEY,
+                check_name            TEXT NOT NULL,
+                scenario_id           TEXT REFERENCES forecast_scenarios(scenario_id),
+                status                TEXT NOT NULL CHECK (status IN ('PASS', 'FAIL')),
+                detail                TEXT NOT NULL,
+                valuation_version     TEXT NOT NULL,
+                run_at                TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_valuation_validation_check ON valuation_validation_results(check_name);
+        """,
+    ),
 )
 
 

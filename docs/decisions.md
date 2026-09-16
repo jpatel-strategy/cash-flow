@@ -2594,3 +2594,122 @@ built against a real `sql/schema.sql` + migrations database seeded with
 FY2021-FY2025 `annual_facts` rows generated directly from
 `forecast.HISTORICAL`) plus 5 new tests in `test_forecast.py` for
 `build_full_lineage()`. Full suite: 363 passed.
+
+## 2026-09-16 — Milestone 4: restrained DCF valuation layer, persisted
+
+A deliberately restrained DCF built on top of the Milestone 3 forecast
+engine, in a new module (`src/target_cash/valuation.py`) — **a scenario-
+based model, not investment advice, a price target, or a prediction of
+Target's actual stock price**, stated in the module's own docstring and
+repeated at every presentation surface.
+
+**Valuation assumptions kept structurally separate from operating
+assumptions.** A new `ValuationAssumption` dataclass (no `scenario`
+field at all — the type itself forbids a per-scenario WACC) holds only
+WACC components and terminal growth; `forecast.Assumption` is untouched.
+Two of the 8 valuation assumptions are explicitly grounded in the
+already-validated operating forecast rather than duplicated
+(`cost_of_debt_pct` cites `asm_interest_rate_base`; `tax_rate_for_wacc_pct`
+cites `asm_tax_rate_base`) — reusing, not re-deriving, so the two layers
+can never quietly disagree on the same underlying rate.
+
+**A real data-availability limitation, disclosed rather than
+papered over**: this project's registered source set is SEC filings
+only — no market price feed, no live Treasury yield, no analyst beta.
+`risk_free_rate_pct` (4.5%), `equity_risk_premium_pct` (5.5%), and `beta`
+(1.0) are therefore explicitly labeled **illustrative, general-market
+inputs**, `review_status='proposed'`, never asserted as verified facts
+about Target. Capital-structure weights (85% equity / 15% debt) are a
+stated **target/policy** split, not a market-value weight — computing a
+market-value weight would need the market value of equity, circular with
+the very equity value this DCF estimates, and no live share price exists
+in the source set regardless.
+
+**UFCF is provably reconciled to the operating forecast's own levered
+FCF**, not an independently invented figure:
+`UFCF = levered_FCF + (1-t)*(interest_expense - net_other_income)`,
+verified exactly (both algebraically and against the real forecast) for
+all 15 scenario-years. UFCF uses `da_cfo_addback` (the full CFO D&A
+add-back), never the smaller opex-line D&A — a dedicated regression test
+guards against repeating item 5's double-counting mistake in the
+valuation layer.
+
+**Valuation-date consistency, checked explicitly.** Net debt and diluted
+shares in the enterprise-to-equity bridge are FY2025 ACTUALS (`HISTORICAL`
+literals), never a forecast year's projected figure — cash flows are
+discounted back to the end of FY2025, so the balance-sheet snapshot used
+in the bridge must be from that same date. Net debt uses
+`total_debt_gaap - cash` (i.e. `valuation_net_debt_excluding_leases`,
+the exact measure Milestone 2's own decisions.md entry designated as the
+DCF bridge's default), which already excludes finance leases — a
+dedicated check (`check_no_debt_or_lease_double_counting`) proves
+`finance_lease_liabilities` is never separately added on top.
+
+**Terminal value period consistency, checked explicitly**: the terminal
+year's UFCF must be the LAST explicit forecast year's own UFCF (FY2030),
+grown by exactly one period, and discounted back by exactly as many
+periods as there are explicit forecast years (5) — a dedicated check
+(`check_terminal_value_period_consistency`) and a corruption-test
+regression guard both verify this.
+
+**WACC and terminal growth are scenario-invariant by design** — a
+dedicated check (`check_wacc_scenario_invariant`, also re-verified at the
+database level in `verify_valuation_persistence_integrity`) proves all 3
+scenarios share the identical discount rate and growth rate, so
+enterprise-value differences across Base/Upside/Downside come entirely
+from differing operating cash flows, never from a friendlier discount
+rate quietly applied to a friendlier scenario.
+
+**Two sensitivities, both pure dry-run**: a WACC x terminal-growth grid
+(returns `None`, never a fabricated number, for any combination where
+growth would exceed WACC) and an operating-margin x revenue-growth grid
+(reusing `forecast._run_from_metrics` directly, the same internal
+function the operating forecast itself uses — no separate, potentially-
+inconsistent recomputation path).
+
+**Schema and persistence** (migrations `0021_valuation_assumptions`
+through `0024_valuation_validation_results`, additive, same
+`CREATE TABLE IF NOT EXISTS` style as every other migration):
+`valuation_assumptions`, `valuation_ufcf_facts`, `valuation_results`,
+`valuation_validation_results`. `src/target_cash/valuation_persistence.py`
+mirrors `forecast_persistence.py` exactly: preflight from pure in-memory
+computation, a zero-FAIL gate, one transaction, deterministic IDs with
+`ON CONFLICT DO UPDATE`, a post-write integrity report. Wired into a new
+`target_cash persist-valuation` CLI command with the same backup +
+independently-re-verified-SHA-256 discipline as `persist-forecast`.
+
+**One real bug found and fixed before the first write**: the initial
+`validation_result_id` scheme
+(`f"vval_{check_name}_{scenario}_{version}"`) didn't include fiscal year,
+so all 5 years of `ufcf_reconciles_to_levered_fcf` for a given scenario
+collided into a single row via `ON CONFLICT` overwrite — 28 computed
+checks collapsed to 16 persisted rows on the first test run against a
+scratch database, caught by comparing preflight-computed counts against
+actual persisted counts (the same class of bug, and the same detection
+method, as Milestone 3B's lineage-sequence collision). Fixed by adding a
+`fiscal_year` field to `ValuationCheckResult` and including it in the ID
+when present.
+
+**Run for real against the active database** (2026-09-16): backup at
+`data/curated/target_cash.db.backup-20260916T012100Z` (SHA-256
+`148e0e64c4157b22c26e2b5a706662c4724aa17efc360085551f07e123fd4342`,
+matching the pre-persistence database exactly). Persisted 8
+`valuation_assumptions`, 15 `valuation_ufcf_facts`, 3 `valuation_results`,
+28 `valuation_validation_results`. Post-write integrity (zero orphan
+UFCF facts/results, zero duplicate results, every scenario has exactly
+one result, WACC/growth scenario-invariant) passed in full. Re-ran the
+identical persistence a second time and confirmed byte-for-byte identical
+row counts. Resulting per-scenario headline figures (illustrative WACC
+8.86%, terminal growth 2.5%): BASE implied value/share $107.29, UPSIDE
+$138.32, DOWNSIDE $61.55 — ordering matches the operating scenarios
+exactly, as required. Milestone 1/2/3 tables unchanged.
+
+**Clean-room rebuild extended**: `scripts/clean_room_rebuild.py` now
+runs `persist-valuation` after `persist-forecast` in the same
+from-scratch clean room; `scripts/compare_databases.py` gained export
+functions for all 4 valuation tables (wall-clock `created_at`/`run_at`
+excluded, same rationale as the forecast tables).
+
+**Tests**: `tests/unit/test_valuation.py` (31 tests) and
+`tests/unit/test_valuation_persistence.py` (9 tests). Full suite: 401
+passed.
