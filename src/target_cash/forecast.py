@@ -44,6 +44,80 @@ FORECAST_INFORMATION_CUTOFF_ACCESSION = "0000027419-26-000016"  # the FY2025 10-
 FORECAST_YEARS = [2026, 2027, 2028, 2029, 2030]
 SCENARIOS = ["base", "upside", "downside"]
 
+# --- Scenario narratives (Milestone 3A) ------------------------------------
+# Each narrative is a coherent business condition: every assumption in a
+# scenario is a CONSEQUENCE of the same underlying story, not an independent
+# mechanical +/- applied to every line item. Cross-referenced against the
+# actual assumption values in build_assumptions() -- if a number here is
+# quoted, it matches a real assumption, never a rounded or invented one.
+SCENARIO_NARRATIVES = {
+    "base": (
+        "BASE is a continuation-of-current-trajectory story, not a blend of the other two. Target has "
+        "stabilized after the FY2022 margin shock and the FY2023 53-week-distorted year: traffic and "
+        "comparable sales are flattish-to-slightly-positive, promotional intensity and mix pressure have "
+        "stopped worsening but have not meaningfully reversed, and cost discipline is holding SG&A "
+        "leverage flat rather than improving it. Consistent with that single story: revenue growth is "
+        "modest (+1.0%/yr, matching the cleanest recent 52-week-normalized read); gross margin holds near "
+        "its FY2023-FY2025 average (27.93% drifting only to 28.00% by FY2030) rather than reverting to "
+        "FY2021's pandemic-inflated peak; SG&A stays flat at the FY2025 ratio because there is no assumed "
+        "acceleration in either sales leverage or cost cutting; CapEx continues at the recent maintenance-"
+        "plus-modest-growth level (3.6% of revenue, in line with the FY2025 actual and 5-year median); and "
+        "capital return continues at a moderate, sustainable pace (40% of post-dividend FCF to buybacks, "
+        "dividend growth decelerating to +2.0%/yr matching the recent FY2024-FY2025 pace) because neither "
+        "an acceleration nor a retrenchment in the business justifies a change in payout policy. Debt is "
+        "rolled at a flat, refinancing-style schedule ($700M proceeds against $700M repayments every year) "
+        "because nothing in this story implies either deleveraging urgency or a new borrowing need."
+    ),
+    "upside": (
+        "UPSIDE is a successful-execution story: Target's own disclosed strategic initiatives (supply-"
+        "chain and technology investment, assortment/mix improvement, digital fulfillment growth) work "
+        "better than the base case assumes, translating into both stronger traffic/comps AND better cost "
+        "absorption -- but bounded by what Target has ACTUALLY achieved historically, never an "
+        "unprecedented performance level. Every assumption traces to that one story: revenue growth rises "
+        "to +3.0%/yr (at, not beyond, the FY2022 historical maximum); gross margin recovers toward, but "
+        "never exceeds, the FY2021 historical peak (28.80% by FY2030, vs. the FY2021 high of 29.28%) "
+        "because better mix and supply-chain efficiency are exactly the kind of execution that produced "
+        "that peak before; SG&A leverage improves (toward, not below, the FY2021 low of 18.63%) because "
+        "stronger sales absorb fixed costs better. The one deliberately NON-monotonic driver is CapEx: "
+        "UPSIDE spends MORE on capital (4.3% of revenue, above BASE's 3.6%), not less -- because funding "
+        "the stronger growth (new stores, supply chain, digital investment) is what makes the stronger "
+        "growth possible, and higher investment is the correct signature of a genuine growth acceleration, "
+        "not a cost to be minimized. Stronger FCF supports both faster deleveraging (net debt repayment of "
+        "$700M/yr rather than a flat roll) and a higher buyback payout ratio (55% of post-dividend FCF) "
+        "and faster dividend growth (+4.0%/yr) -- all consequences of the SAME improved cash generation, "
+        "not independently chosen 'better' numbers."
+    ),
+    "downside": (
+        "DOWNSIDE is a sustained discretionary-spending-pressure story -- a continued deterioration of the "
+        "conditions already visible in FY2023-FY2025, not a fabricated crisis or an extreme, unprecedented "
+        "event. Consumers pull back further on discretionary categories, promotional intensity increases "
+        "to defend traffic, and the business responds with capital discipline and balance-sheet caution "
+        "rather than an operational collapse. Every assumption is a consequence of that one story: revenue "
+        "declines further (-2.5%/yr, roughly 1.5x the worst single historical year, reflecting sustained "
+        "rather than one-year pressure); gross margin compresses (toward, not to, the FY2022 trough of "
+        "24.57%) from continued promotional activity; SG&A deleverages (revenue falls faster than largely-"
+        "fixed operating costs) rather than being cut in step; inventory BUILDS as a % of revenue (12.8% "
+        "vs. BASE's 11.8%) because slower sell-through is a direct, coherent consequence of weaker demand, "
+        "not an independent assumption; accounts payable tightens (suppliers extend less credit at 15.5% "
+        "of COGS, near the historical minimum) for the same reason -- both are the SAME working-capital-"
+        "consumption story, not two unrelated pessimistic picks. Management responds exactly as a "
+        "distressed-but-not-crisis retailer would: CapEx is cut to a capital-discipline level (2.8% of "
+        "revenue, near the historical minimum, but never below it, since Target discloses no all-out "
+        "CapEx freeze); buybacks stop entirely (0% payout -- capital preservation); dividends are frozen, "
+        "not cut, because Target's dividend has grown in every one of the 5 historical years with no "
+        "observed reduction, so an outright cut is not modeled as plausible even under sustained pressure; "
+        "and a small, FIXED, pre-committed net debt issuance ($200M) is assumed as a liquidity backstop -- "
+        "explicitly NOT sized to whatever cash shortfall results, so a genuine liquidity gap surfaces as an "
+        "explicit funding warning (see the seasonal stress overlay's FY2026 finding) rather than being "
+        "silently plugged away by an ever-larger, unexplained debt draw."
+    ),
+}
+
+
+def scenario_narrative(scenario: str) -> str:
+    return SCENARIO_NARRATIVES[scenario]
+
+
 # --- Historical reference, FY2021-FY2025, latest_restated -----------------
 # Source: data/curated/target_cash.db, annual_facts, analytical_view=
 # 'latest_restated', frozen 2026-09-16. See docs/milestone_2_evidence.md
@@ -1367,6 +1441,22 @@ VALIDATION_CHECK_METADATA = {
                             "value); demonstrated passing against all 15 scenario-years in Section 4.",
         "example_failure_message": "waterfall ending_cash=6100.0 vs engine ending_cash=6188.4",
     },
+    "cumulative_capacity_no_double_counting": {
+        "category": "Cash Flow -- Capital Allocation", "check_type": "arithmetic_invariant",
+        "formula": "cumulative_deployable_capacity(years) = terminal_year.deployable_capacity + "
+                   "sum(management_selected_deployment) -- verified to differ from (and never reported as) "
+                   "the naive, defective sum(y.deployable_capacity for y in years), which double-counts "
+                   "unused cash carried forward year over year.",
+        "tolerance": "0.1% relative (_close, tol=1e-3) against the correct formula; the naive sum is expected "
+                     "to DIFFER, not match",
+        "gate_consequence": "Forecast rejected -- reporting the naive sum would overstate total capacity to "
+                             "a reviewer, exactly the double-counting error Milestone 3A was opened to fix.",
+        "corruption_test": "test_cumulative_capacity_naive_sum_would_overstate (asserts the naive sum exceeds "
+                            "the correct figure whenever any interior year carries positive undeployed "
+                            "capacity forward, which holds in every scenario this round)",
+        "example_failure_message": "cumulative=6315.0 but a naive sum-of-years-end-balances would report "
+                                    "23730.9 -- overstated by 17415.9",
+    },
 }
 
 
@@ -1564,7 +1654,28 @@ def validate_all(
             ok = _close(waterfall_ending_cash, y.ending_cash) and proof["no_double_counting_proven"]
             rec("capital_allocation_waterfall_reconciliation", scenario, y.fiscal_year, ok,
                 f"waterfall ending_cash={waterfall_ending_cash:,.1f} vs engine ending_cash={y.ending_cash:,.1f}; "
-                f"identity_a_holds={proof['identity_a_holds']}, identity_b_holds={proof['identity_b_holds']}")
+                f"identity_a_holds={proof['identity_a_holds']}, identity_b_holds={proof['identity_b_holds']}, "
+                f"identity_c_holds={proof['identity_c_holds']} (sources={proof['identity_c_sources']:,.1f} "
+                f"vs uses={proof['identity_c_uses']:,.1f})")
+
+    # 21. cumulative_capacity_no_double_counting (additional check, Milestone
+    # 3A critical rule): cumulative deployable capacity over FY2026-FY2030
+    # must equal terminal-year deployable_capacity + total actually deployed
+    # -- and must NOT equal the naive (defective) sum of all 5 years' own
+    # deployable_capacity balances whenever that naive sum would actually
+    # differ (it differs whenever any interior year carries positive,
+    # undeployed capacity forward, which happens in every scenario here).
+    for scenario, years in forecasts.items():
+        correct = cumulative_deployable_capacity(years)
+        naive_sum = sum(y.deployable_capacity for y in years)
+        terminal_plus_deployed = years[-1].deployable_capacity + sum(y.management_selected_deployment or 0.0 for y in years)
+        ok = _close(correct, terminal_plus_deployed)
+        naive_would_overstate = naive_sum > correct * 1.01
+        rec("cumulative_capacity_no_double_counting", scenario, None, ok,
+            f"cumulative={correct:,.1f} (= terminal deployable_capacity + total deployed); "
+            f"naive sum-of-years-end-balances would have reported {naive_sum:,.1f}"
+            + (" -- naive method overstates by "
+               f"{naive_sum - correct:,.1f}, confirming the fix matters" if naive_would_overstate else ""))
 
     return results
 
@@ -1658,6 +1769,21 @@ def capital_allocation_waterfall(y: ForecastYear) -> list[dict]:
     steps.append({"step": 7, "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
                   "amount": -y.share_repurchases, "balance_after": balance})
 
+    # A further, OPTIONAL discretionary use beyond the routine repurchase
+    # program (e.g. a reviewer-selected acquisition amount). Always $0 in
+    # this dry run (management_selected_deployment defaults to None on every
+    # ForecastYear -- see the field's own docstring), but modeled as an
+    # explicit, separately-subtracted step so that if a future round DOES
+    # set it, the same conservation identity (verify_no_double_counting's
+    # identity (a) and (c)) continues to hold without double-subtracting or
+    # double-counting it alongside step 7's repurchases or the deployable-
+    # capacity checkpoint at step 5b.
+    deployment = y.management_selected_deployment or 0.0
+    balance -= deployment
+    steps.append({"step": "7b", "label": "Management-selected deployment (beyond the routine repurchase "
+                  "program; always $0 this round -- no deployment has been selected)",
+                  "amount": -deployment, "balance_after": balance})
+
     steps.append({"step": 8, "label": "Ending cash", "amount": 0.0, "balance_after": balance})
 
     return steps
@@ -1687,8 +1813,10 @@ def verify_no_double_counting(y: ForecastYear) -> dict:
     (post-repurchase) outcome, is inside share_repurchases or ending_cash,
     never inside both views' totals at once.
     """
+    deployment = y.management_selected_deployment or 0.0
+
     identity_a_lhs = y.ending_cash
-    identity_a_rhs = y.pre_discretionary_ending_cash - y.share_repurchases
+    identity_a_rhs = y.pre_discretionary_ending_cash - y.share_repurchases - deployment
     identity_a_holds = _close(identity_a_lhs, identity_a_rhs)
 
     floored = (y.pre_discretionary_ending_cash - y.min_cash_buffer - y.near_term_debt_repayment_reserve) < 0
@@ -1696,14 +1824,28 @@ def verify_no_double_counting(y: ForecastYear) -> dict:
     identity_b_rhs = y.deployable_capacity + y.min_cash_buffer + y.near_term_debt_repayment_reserve
     identity_b_holds = floored or _close(identity_b_lhs, identity_b_rhs)
 
+    # (c) Full source/use conservation, the strongest possible no-double-
+    # counting proof: every dollar generated is either one of 5 mutually
+    # exclusive, additively-combined USES (debt repayment, dividends,
+    # repurchases, management-selected deployment, or ending cash) -- never
+    # two of them at once, because each is subtracted from `balance` exactly
+    # once in capital_allocation_waterfall's running total, and this identity
+    # re-derives the same total independently from the SOURCES side.
+    sources = y.beginning_cash + y.operating_cash_flow + y.investing_cash_flow + y.debt_proceeds
+    uses = y.debt_repayments + y.dividends_paid + y.share_repurchases + deployment + y.ending_cash
+    identity_c_holds = _close(sources, uses)
+
     return {
         "scenario": y.scenario, "fiscal_year": y.fiscal_year,
-        "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases",
+        "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
         "identity_a_lhs": identity_a_lhs, "identity_a_rhs": identity_a_rhs, "identity_a_holds": identity_a_holds,
         "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve"
                       + (" (floored -- deployable_capacity was clamped to 0)" if floored else ""),
         "identity_b_lhs": identity_b_lhs, "identity_b_rhs": identity_b_rhs, "identity_b_holds": identity_b_holds,
-        "no_double_counting_proven": identity_a_holds and identity_b_holds,
+        "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends "
+                      "+ repurchases + management_selected_deployment + ending_cash (USES)",
+        "identity_c_sources": sources, "identity_c_uses": uses, "identity_c_holds": identity_c_holds,
+        "no_double_counting_proven": identity_a_holds and identity_b_holds and identity_c_holds,
     }
 
 
@@ -2002,6 +2144,35 @@ SENSITIVITY_DRIVERS = {
 }
 
 
+def cumulative_deployable_capacity(years: list[ForecastYear]) -> float:
+    """Total capacity generated over a forecast horizon WITHOUT double-
+    counting unused cash carried forward from one year into the next.
+
+    `deployable_capacity` is a STOCK (a year-end headroom balance): the same
+    dollars that sit unspent in one year's deployable_capacity flow forward,
+    via the ordinary cash roll-forward, into every later year's cash balance
+    and therefore into every later year's deployable_capacity too. Summing
+    `deployable_capacity` across 5 years (an earlier, defective version of
+    this function did exactly that) counts a dollar that is never deployed
+    up to 5 times over -- once for every year it happens to still be sitting
+    in the bank.
+
+    The correct, non-double-counting total is: whatever is STILL undeployed
+    at the end of the horizon (the terminal year's own deployable_capacity,
+    which already reflects the full accumulation of every prior year's
+    unspent capacity through the cash roll-forward) PLUS whatever was
+    ACTUALLY DEPLOYED along the way (summed once each, since deployed cash
+    leaves the ending-cash balance and so is not double-counted by adding
+    the terminal figure). In this dry run `management_selected_deployment`
+    is 0 in every year (no deployment has been selected), so this reduces
+    to exactly the terminal year's own deployable_capacity -- see
+    test_cumulative_deployable_capacity_equals_terminal_when_nothing_deployed.
+    """
+    terminal_capacity = years[-1].deployable_capacity
+    total_deployed = sum(y.management_selected_deployment or 0.0 for y in years)
+    return terminal_capacity + total_deployed
+
+
 def sensitivity_table(
     driver: str, deltas: list[float], base_scenario: str = "base", assumptions: list[Assumption] | None = None
 ) -> list[dict]:
@@ -2024,7 +2195,7 @@ def sensitivity_table(
             "free_cash_flow": round(terminal.free_cash_flow, 1),
             "ending_cash": round(terminal.ending_cash, 1),
             "deployable_capacity": round(terminal.deployable_capacity, 1),
-            "cumulative_deployable_capacity_2026_2030": round(sum(y.deployable_capacity for y in years), 1),
+            "cumulative_deployable_capacity_2026_2030": round(cumulative_deployable_capacity(years), 1),
         })
     return rows
 

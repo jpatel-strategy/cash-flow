@@ -2423,3 +2423,72 @@ recorded inside the generated package itself.
 **Stopped for reviewer approval, as instructed.** No forecast schema
 migration written, no forecast fact persisted, no DCF/Excel/Power
 BI/website work begun.
+
+## 2026-09-16 — Independent review strategy changed; Milestone 3A correction round
+
+The reviewer changed strategy: rather than approve Milestone 3 in stages,
+one comprehensive independent audit will be conducted after the full
+project (Milestones 3A through 8, plus a final system audit) is
+complete. This session resumes from commit `df07bd5` and proceeds
+autonomously, without pausing between milestones, while preserving every
+existing Milestone 1/2 control, gate, backup, and reproducibility
+practice, and creating a separate Git commit per milestone.
+
+**Milestone 3A found and fixed one real, critical defect**: cumulative
+deployable capacity (`cumulative_deployable_capacity_2026_2030`, used in
+every sensitivity table) previously summed each year's own
+`deployable_capacity` balance across all 5 forecast years. Because
+`deployable_capacity` is a stock — a year-end headroom balance whose
+unused dollars flow forward into every later year's cash balance via the
+ordinary cash roll-forward — that sum double-, triple-, quadruple-, and
+quintuple-counted the same undeployed dollars. Measured against the real
+forecast: the naive method overstated cumulative capacity by
+$16,194M (BASE), $9,052M (UPSIDE), and $16,818M (DOWNSIDE) — roughly
+2.6x-3.8x the correct figure in every scenario. The corrected
+`cumulative_deployable_capacity()` function is: the terminal year's own
+`deployable_capacity` (which already reflects the full accumulation of
+every prior year's unspent capacity) plus whatever was actually deployed
+along the way (`management_selected_deployment`, summed once each,
+since deployed cash leaves the ending-cash balance and is therefore not
+re-counted by adding the terminal figure). New validation check 21,
+`cumulative_capacity_no_double_counting`, verifies the correct formula
+and confirms the naive alternative would have overstated it — with a
+dedicated regression test.
+
+**The capital-allocation no-double-counting proof was extended** from 2
+identities to 3, explicitly covering `management_selected_deployment`
+(previously present as a `ForecastYear` field but not yet wired into the
+conservation proof) and `debt_repayments`. Identity (c) is a full
+source/use conservation check: `beginning_cash + CFO + CFI +
+debt_proceeds = debt_repayments + dividends + repurchases +
+management_selected_deployment + ending_cash` — every dollar generated
+is exactly one of 5 mutually exclusive, additively-combined uses, never
+two at once. The 8-step capital-allocation waterfall gained a
+corresponding step 7b (management-selected deployment, always $0 this
+round) so the waterfall's own running balance stays reconciled to the
+extended identity.
+
+**Scenario narratives added** (`SCENARIO_NARRATIVES`): BASE, UPSIDE, and
+DOWNSIDE are now each documented as one coherent business condition —
+every assumption traced back to the same underlying story (e.g. UPSIDE's
+higher CapEx funds its stronger growth rather than being an independent
+"better number"; DOWNSIDE's inventory build and AP tightening are both
+the same working-capital-consumption story, not two unrelated pessimistic
+picks) — rather than a mechanical increase or decrease applied
+independently to every input.
+
+**Internal review pass** (assumptions, FY2025-to-FY2026 handoffs, other-
+operating-cash adjustments, minimum-cash policy, seasonal stress, debt
+roll-forward, repurchase treatment) found no further defects beyond the
+cumulative-capacity bug above — all 21 validation checks pass with 0
+failures and 0 warnings against the corrected model (229 individual
+results).
+
+`docs/milestone_3_forecast_review_package.md` regenerated to reflect all
+of the above (Section 4a extended, Section 4c added, Section 7 gained
+narratives, Section 8's check count updated). Full test suite: 341
+passed (328 pre-existing + 13 new Milestone 3A tests).
+
+**No forecast schema is implemented and no forecast fact is persisted by
+this commit.** Milestone 3B (additive schema + persistence, backed up,
+transactional, idempotency-verified) follows as a separate commit.

@@ -1,8 +1,10 @@
 # Milestone 3 Forecast -- Reviewer Audit Package
 
-**Evidence-review round only.** No Milestone 1 or Milestone 2 data, mapping, lineage, observation, migration, or persisted analytical fact is modified by this document or by `src/target_cash/forecast.py`. No `forecast_*` table exists, no migration was written, and `data/curated/target_cash.db` is unchanged. **No forecast schema is implemented and no forecast fact is persisted in this round.** Generated live by `scripts/build_milestone_3_review_package.py` -- every number below is computed by `target_cash.forecast`, not hand-transcribed.
+No Milestone 1 or Milestone 2 data, mapping, lineage, observation, or migration is modified by this document or by `src/target_cash/forecast.py`. Generated live by `scripts/build_milestone_3_review_package.py` -- every number below is computed by `target_cash.forecast`, not hand-transcribed.
 
-This supersedes the prior round's summary-level `docs/milestone_3_forecast_engine_proposal.md` for reviewer purposes: that document is left in place unmodified as a historical record, but this package is the complete evidence base -- full assumption matrix, full forecast outputs, full validation and sensitivity results -- the reviewer asked for after finding the prior summary insufficient to approve from.
+This supersedes the prior round's summary-level `docs/milestone_3_forecast_engine_proposal.md` for reviewer purposes: that document is left in place unmodified as a historical record, but this package is the complete evidence base -- full assumption matrix, full forecast outputs, full validation and sensitivity results.
+
+**Milestone 3A correction round applied.** This version reflects the Milestone 3A internal review and correction pass: (1) fixed the cumulative-deployable-capacity double-counting defect (Section 4c); (2) extended the capital-allocation no-double-counting proof to explicitly cover management-selected deployment and debt repayment (Section 4a, identity c); (3) added scenario narratives establishing each scenario as a coherent business condition (Section 7); (4) added validation check 21, `cumulative_capacity_no_double_counting`. As of this document's generation (the Milestone 3A commit), no forecast schema is implemented and no forecast fact is persisted -- `data/curated/target_cash.db` is unchanged. Milestone 3B (additive schema, backed-up, transactional, idempotency-verified persistence of this exact, now-corrected assumption set) follows as a separate commit; see `docs/decisions.md` for its record once complete.
 
 ---
 
@@ -476,6 +478,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 2,780.5) | 0.0 | 6,655.3 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 6,655.3 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -466.9 | 6,188.4 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 6,188.4 |
 | 8 | Ending cash | 0.0 | 6,188.4 |
 
 **FY2027** (beginning cash 6,188.4)
@@ -490,6 +493,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 3,603.1) | 0.0 | 7,509.7 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 7,509.7 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -528.5 | 6,981.2 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 6,981.2 |
 | 8 | Ending cash | 0.0 | 6,981.2 |
 
 **FY2028** (beginning cash 6,981.2)
@@ -504,6 +508,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 4,453.1) | 0.0 | 8,391.8 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 8,391.8 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -564.2 | 7,827.5 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 7,827.5 |
 | 8 | Ending cash | 0.0 | 7,827.5 |
 
 **FY2029** (beginning cash 7,827.5)
@@ -518,6 +523,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 5,357.3) | 0.0 | 9,328.3 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 9,328.3 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -600.3 | 8,728.0 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 8,728.0 |
 | 8 | Ending cash | 0.0 | 8,728.0 |
 
 **FY2030** (beginning cash 8,728.0)
@@ -532,6 +538,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 6,315.0) | 0.0 | 10,318.8 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 10,318.8 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -636.3 | 9,682.5 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 9,682.5 |
 | 8 | Ending cash | 0.0 | 9,682.5 |
 
 ### 4.2 Scenario: UPSIDE
@@ -548,6 +555,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 2,638.8) | 0.0 | 6,876.5 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 6,876.5 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -1,148.7 | 5,727.8 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 5,727.8 |
 | 8 | Ending cash | 0.0 | 5,727.8 |
 
 **FY2027** (beginning cash 5,727.8)
@@ -562,6 +570,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 1,840.8) | 0.0 | 6,175.6 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 6,175.6 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -631.3 | 5,544.3 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 5,544.3 |
 | 8 | Ending cash | 0.0 | 5,544.3 |
 
 **FY2028** (beginning cash 5,544.3)
@@ -576,6 +585,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 2,054.9) | 0.0 | 6,489.7 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 6,489.7 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -905.0 | 5,584.8 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 5,584.8 |
 | 8 | Ending cash | 0.0 | 5,584.8 |
 
 **FY2029** (beginning cash 5,584.8)
@@ -590,6 +600,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 2,517.5) | 0.0 | 7,055.4 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 7,055.4 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -1,193.9 | 5,861.6 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 5,861.6 |
 | 8 | Ending cash | 0.0 | 5,861.6 |
 
 **FY2030** (beginning cash 5,861.6)
@@ -604,6 +615,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 3,241.9) | 0.0 | 7,886.0 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 7,886.0 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -1,498.4 | 6,387.6 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 6,387.6 |
 | 8 | Ending cash | 0.0 | 6,387.6 |
 
 ### 4.3 Scenario: DOWNSIDE
@@ -620,6 +632,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 2,149.2) | 0.0 | 5,514.0 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 5,514.0 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -0.0 | 5,514.0 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 5,514.0 |
 | 8 | Ending cash | 0.0 | 5,514.0 |
 
 **FY2027** (beginning cash 5,514.0)
@@ -634,6 +647,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 3,838.2) | 0.0 | 7,126.4 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 7,126.4 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -0.0 | 7,126.4 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 7,126.4 |
 | 8 | Ending cash | 0.0 | 7,126.4 |
 
 **FY2028** (beginning cash 7,126.4)
@@ -648,6 +662,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 5,044.2) | 0.0 | 8,257.6 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 8,257.6 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -0.0 | 8,257.6 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 8,257.6 |
 | 8 | Ending cash | 0.0 | 8,257.6 |
 
 **FY2029** (beginning cash 8,257.6)
@@ -662,6 +677,7 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 5,786.9) | 0.0 | 8,927.5 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 8,927.5 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -0.0 | 8,927.5 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 8,927.5 |
 | 8 | Ending cash | 0.0 | 8,927.5 |
 
 **FY2030** (beginning cash 8,927.5)
@@ -676,33 +692,46 @@ Exact order of operations (`capital_allocation_waterfall()`), computed as an ind
 | 5b | DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted) (deployable_capacity = 6,087.5) | 0.0 | 9,157.2 |
 | 6 | Incremental (non-scheduled) financing -- always $0 (non-plug policy) | 0.0 | 9,157.2 |
 | 7 | Discretionary investment / repurchases (fixed payout-ratio assumption) | -0.0 | 9,157.2 |
+| 7b | Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected) | -0.0 | 9,157.2 |
 | 8 | Ending cash | 0.0 | 9,157.2 |
 
 ### 4a. No-Double-Counting Proof (all 15 scenario-years)
 
-Two identities, per `verify_no_double_counting()`: **(a)** `ending_cash = pre_discretionary_ending_cash - share_repurchases` (the repurchase is subtracted exactly once to reach the actual outcome). **(b)** `pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve` (whenever not floored at zero). Reading both together: deployable_capacity/buffer/reserve is an allocation of `pre_discretionary_ending_cash` under a hypothetical "repurchases not yet executed" view; share_repurchases/ending_cash is an allocation of the SAME total under the actual "repurchases already executed" view. They are alternative readings of one total, never additive -- a dollar inside deployable_capacity is, in the actual outcome, inside share_repurchases or ending_cash, never inside both totals at once.
+Three identities, per `verify_no_double_counting()` (extended in Milestone 3A to explicitly cover management-selected deployment and debt repayment, per the reviewer's critical waterfall rule): **(a)** `ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment` (both discretionary uses are subtracted exactly once). **(b)** `pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve` (whenever not floored at zero). **(c)** full source/use conservation: `beginning_cash + CFO + CFI + debt_proceeds = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash` -- every dollar generated is exactly one of 5 mutually exclusive, additively-combined uses, never two at once. Reading (a)+(b) together: deployable_capacity/buffer/reserve is an allocation of `pre_discretionary_ending_cash` under a hypothetical "discretionary uses not yet executed" view; share_repurchases + management_selected_deployment + ending_cash is an allocation of the SAME total under the actual "already executed" view. They are alternative readings of one total, never additive -- a dollar inside deployable_capacity is, in the actual outcome, inside repurchases, a selected deployment, or ending_cash, never inside more than one of those at once.
 
-| Scenario | FY | ending_cash | pre_disc_end_cash - repurchases | (a) holds | pre_disc_end_cash | deployable+buffer+reserve | (b) holds |
-|---|---|---|---|---|---|---|---|
-| base | 2026 | 6,188.4 | 6,188.4 | YES | 6,655.3 | 6,655.3 | YES |
-| base | 2027 | 6,981.2 | 6,981.2 | YES | 7,509.7 | 7,509.7 | YES |
-| base | 2028 | 7,827.5 | 7,827.5 | YES | 8,391.8 | 8,391.8 | YES |
-| base | 2029 | 8,728.0 | 8,728.0 | YES | 9,328.3 | 9,328.3 | YES |
-| base | 2030 | 9,682.5 | 9,682.5 | YES | 10,318.8 | 10,318.8 | YES |
-| upside | 2026 | 5,727.8 | 5,727.8 | YES | 6,876.5 | 6,876.5 | YES |
-| upside | 2027 | 5,544.3 | 5,544.3 | YES | 6,175.6 | 6,175.6 | YES |
-| upside | 2028 | 5,584.8 | 5,584.8 | YES | 6,489.7 | 6,489.7 | YES |
-| upside | 2029 | 5,861.6 | 5,861.6 | YES | 7,055.4 | 7,055.4 | YES |
-| upside | 2030 | 6,387.6 | 6,387.6 | YES | 7,886.0 | 7,886.0 | YES |
-| downside | 2026 | 5,514.0 | 5,514.0 | YES | 5,514.0 | 5,514.0 | YES |
-| downside | 2027 | 7,126.4 | 7,126.4 | YES | 7,126.4 | 7,126.4 | YES |
-| downside | 2028 | 8,257.6 | 8,257.6 | YES | 8,257.6 | 8,257.6 | YES |
-| downside | 2029 | 8,927.5 | 8,927.5 | YES | 8,927.5 | 8,927.5 | YES |
-| downside | 2030 | 9,157.2 | 9,157.2 | YES | 9,157.2 | 9,157.2 | YES |
+| Scenario | FY | ending_cash | pre_disc_end_cash - repurch - deployment | (a) | pre_disc_end_cash | deployable+buffer+reserve | (b) | sources | uses | (c) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base | 2026 | 6,188.4 | 6,188.4 | YES | 6,655.3 | 6,655.3 | YES | 9,438.9 | 9,438.9 | YES |
+| base | 2027 | 6,981.2 | 6,981.2 | YES | 7,509.7 | 7,509.7 | YES | 10,324.4 | 10,324.4 | YES |
+| base | 2028 | 7,827.5 | 7,827.5 | YES | 8,391.8 | 8,391.8 | YES | 11,237.9 | 11,237.9 | YES |
+| base | 2029 | 8,728.0 | 8,728.0 | YES | 9,328.3 | 9,328.3 | YES | 12,206.4 | 12,206.4 | YES |
+| base | 2030 | 9,682.5 | 9,682.5 | YES | 10,318.8 | 10,318.8 | YES | 13,229.3 | 13,229.3 | YES |
+| upside | 2026 | 5,727.8 | 5,727.8 | YES | 6,876.5 | 6,876.5 | YES | 9,979.6 | 9,979.6 | YES |
+| upside | 2027 | 5,544.3 | 5,544.3 | YES | 6,175.6 | 6,175.6 | YES | 9,330.0 | 9,330.0 | YES |
+| upside | 2028 | 5,584.8 | 5,584.8 | YES | 6,489.7 | 6,489.7 | YES | 9,696.7 | 9,696.7 | YES |
+| upside | 2029 | 5,861.6 | 5,861.6 | YES | 7,055.4 | 7,055.4 | YES | 10,316.2 | 10,316.2 | YES |
+| upside | 2030 | 6,387.6 | 6,387.6 | YES | 7,886.0 | 7,886.0 | YES | 11,202.0 | 11,202.0 | YES |
+| downside | 2026 | 5,514.0 | 5,514.0 | YES | 5,514.0 | 5,514.0 | YES | 7,867.0 | 7,867.0 | YES |
+| downside | 2027 | 7,126.4 | 7,126.4 | YES | 7,126.4 | 7,126.4 | YES | 9,479.4 | 9,479.4 | YES |
+| downside | 2028 | 8,257.6 | 8,257.6 | YES | 8,257.6 | 8,257.6 | YES | 10,610.6 | 10,610.6 | YES |
+| downside | 2029 | 8,927.5 | 8,927.5 | YES | 8,927.5 | 8,927.5 | YES | 11,280.5 | 11,280.5 | YES |
+| downside | 2030 | 9,157.2 | 9,157.2 | YES | 9,157.2 | 9,157.2 | YES | 11,510.2 | 11,510.2 | YES |
 
 ### 4b. Repurchase Classification
 
 **Fixed forecast assumption (payout ratio of post-dividend FCF). Not a use of deployable capacity, not a residual allocation, not zero-pending-selection (Downside's zero is itself a fixed assumption, not an unselected default).**
+
+### 4c. Cumulative Deployable Capacity -- Double-Counting Fix (Milestone 3A critical rule)
+
+**Corrected this round.** The prior round's `cumulative_deployable_capacity_2026_2030` summed each year's own `deployable_capacity` balance across all 5 forecast years. Because `deployable_capacity` is a STOCK (a year-end headroom balance whose unused dollars flow forward into every later year's cash balance via the ordinary cash roll-forward), that sum counted the same undeployed dollars up to 5 times. The corrected formula (`cumulative_deployable_capacity()`) is: terminal-year `deployable_capacity` (which already reflects the full accumulation of every prior year's unspent capacity) PLUS whatever was ACTUALLY DEPLOYED along the way (`management_selected_deployment`, summed once each, since deployed cash leaves the ending-cash balance and so is not re-counted by adding the terminal figure).
+
+| Scenario | Corrected Cumulative Capacity | Naive (defective) Sum-of-Years | Overstatement |
+|---|---|---|---|
+| base | 6,315.0 | 22,509.0 | 16,194.0 |
+| upside | 3,241.9 | 12,293.9 | 9,052.0 |
+| downside | 6,087.5 | 22,905.9 | 16,818.4 |
+
+Since no deployment has been selected this round (`management_selected_deployment` is 0 in every year), the corrected figure reduces to exactly the terminal-year (FY2030) `deployable_capacity` shown in Section 2's Capital Position tables and Section 9's sensitivity tables below.
 
 ## 5. Minimum-Cash-Buffer Policy Comparison
 
@@ -968,6 +997,20 @@ FY2024-FY2025 ending cash was 4.47%-5.24% of revenue -- materially above the 3.0
 
 ## 7. Scenario Logic
 
+**Scenario narratives (Milestone 3A)** -- each scenario is a coherent business condition, not a mechanical increase or decrease applied to every input independently. Full text, live from `SCENARIO_NARRATIVES`:
+
+### 7.1 BASE Narrative
+
+BASE is a continuation-of-current-trajectory story, not a blend of the other two. Target has stabilized after the FY2022 margin shock and the FY2023 53-week-distorted year: traffic and comparable sales are flattish-to-slightly-positive, promotional intensity and mix pressure have stopped worsening but have not meaningfully reversed, and cost discipline is holding SG&A leverage flat rather than improving it. Consistent with that single story: revenue growth is modest (+1.0%/yr, matching the cleanest recent 52-week-normalized read); gross margin holds near its FY2023-FY2025 average (27.93% drifting only to 28.00% by FY2030) rather than reverting to FY2021's pandemic-inflated peak; SG&A stays flat at the FY2025 ratio because there is no assumed acceleration in either sales leverage or cost cutting; CapEx continues at the recent maintenance-plus-modest-growth level (3.6% of revenue, in line with the FY2025 actual and 5-year median); and capital return continues at a moderate, sustainable pace (40% of post-dividend FCF to buybacks, dividend growth decelerating to +2.0%/yr matching the recent FY2024-FY2025 pace) because neither an acceleration nor a retrenchment in the business justifies a change in payout policy. Debt is rolled at a flat, refinancing-style schedule ($700M proceeds against $700M repayments every year) because nothing in this story implies either deleveraging urgency or a new borrowing need.
+
+### 7.2 UPSIDE Narrative
+
+UPSIDE is a successful-execution story: Target's own disclosed strategic initiatives (supply-chain and technology investment, assortment/mix improvement, digital fulfillment growth) work better than the base case assumes, translating into both stronger traffic/comps AND better cost absorption -- but bounded by what Target has ACTUALLY achieved historically, never an unprecedented performance level. Every assumption traces to that one story: revenue growth rises to +3.0%/yr (at, not beyond, the FY2022 historical maximum); gross margin recovers toward, but never exceeds, the FY2021 historical peak (28.80% by FY2030, vs. the FY2021 high of 29.28%) because better mix and supply-chain efficiency are exactly the kind of execution that produced that peak before; SG&A leverage improves (toward, not below, the FY2021 low of 18.63%) because stronger sales absorb fixed costs better. The one deliberately NON-monotonic driver is CapEx: UPSIDE spends MORE on capital (4.3% of revenue, above BASE's 3.6%), not less -- because funding the stronger growth (new stores, supply chain, digital investment) is what makes the stronger growth possible, and higher investment is the correct signature of a genuine growth acceleration, not a cost to be minimized. Stronger FCF supports both faster deleveraging (net debt repayment of $700M/yr rather than a flat roll) and a higher buyback payout ratio (55% of post-dividend FCF) and faster dividend growth (+4.0%/yr) -- all consequences of the SAME improved cash generation, not independently chosen 'better' numbers.
+
+### 7.3 DOWNSIDE Narrative
+
+DOWNSIDE is a sustained discretionary-spending-pressure story -- a continued deterioration of the conditions already visible in FY2023-FY2025, not a fabricated crisis or an extreme, unprecedented event. Consumers pull back further on discretionary categories, promotional intensity increases to defend traffic, and the business responds with capital discipline and balance-sheet caution rather than an operational collapse. Every assumption is a consequence of that one story: revenue declines further (-2.5%/yr, roughly 1.5x the worst single historical year, reflecting sustained rather than one-year pressure); gross margin compresses (toward, not to, the FY2022 trough of 24.57%) from continued promotional activity; SG&A deleverages (revenue falls faster than largely-fixed operating costs) rather than being cut in step; inventory BUILDS as a % of revenue (12.8% vs. BASE's 11.8%) because slower sell-through is a direct, coherent consequence of weaker demand, not an independent assumption; accounts payable tightens (suppliers extend less credit at 15.5% of COGS, near the historical minimum) for the same reason -- both are the SAME working-capital-consumption story, not two unrelated pessimistic picks. Management responds exactly as a distressed-but-not-crisis retailer would: CapEx is cut to a capital-discipline level (2.8% of revenue, near the historical minimum, but never below it, since Target discloses no all-out CapEx freeze); buybacks stop entirely (0% payout -- capital preservation); dividends are frozen, not cut, because Target's dividend has grown in every one of the 5 historical years with no observed reduction, so an outright cut is not modeled as plausible even under sustained pressure; and a small, FIXED, pre-committed net debt issuance ($200M) is assumed as a liquidity backstop -- explicitly NOT sized to whatever cash shortfall results, so a genuine liquidity gap surfaces as an explicit funding warning (see the seasonal stress overlay's FY2026 finding) rather than being silently plugged away by an ever-larger, unexplained debt draw.
+
 **Where Downside <= Base <= Upside is economically appropriate** (validation check 14, `scenario_ordering`): revenue growth, gross margin, net income, and diluted EPS should rise from Downside to Upside (better execution/demand improves all four together); SG&A % of revenue and the effective tax rate should FALL from Downside to Upside (lower cost ratios and a more favorable tax rate are both 'better'). Live result:
 
 | FY | Status | Detail |
@@ -990,9 +1033,9 @@ FY2024-FY2025 ending cash was 4.47%-5.24% of revenue -- materially above the 3.0
 
 ## 8. Validation Inventory
 
-20 named checks (the original 18 plus 2 added for this audit package -- `other_operating_cf_not_a_plug` and `capital_allocation_waterfall_reconciliation`), executed live. Total results: 226. Failures: 0. Warnings: 0.
+21 named checks (the original 18, plus `other_operating_cf_not_a_plug` and `capital_allocation_waterfall_reconciliation` from the prior audit-package round, plus `cumulative_capacity_no_double_counting` added this round for Milestone 3A's critical cumulative-capacity rule), executed live. Total results: 229. Failures: 0. Warnings: 0.
 
-**Honest self-classification** (per the reviewer's instruction not to present a passed arithmetic invariant as if it were independent evidence): of the 20 checks, 11 are **arithmetic invariants** (re-verify the SAME formula the engine used -- valuable for catching corruption/typos/manual overrides, but do not independently prove the underlying economics are sound), 1 is a genuinely **independent reasonableness test** (`capital_allocation_waterfall_reconciliation` -- computed via a differently-sequenced code path, not a restatement of the same formula), 7 are **structural/completeness/policy checks** (no numeric formula to independently re-derive -- they check presence, shape, or a modeling-discipline property instead), and 1 is a **scenario-comparative check** (`scenario_ordering` -- compares across scenarios, not within one scenario's own formula).
+**Honest self-classification** (per the reviewer's instruction not to present a passed arithmetic invariant as if it were independent evidence): of the 21 checks, 12 are **arithmetic invariants** (re-verify the SAME formula the engine used -- valuable for catching corruption/typos/manual overrides, but do not independently prove the underlying economics are sound), 1 is a genuinely **independent reasonableness test** (`capital_allocation_waterfall_reconciliation` -- computed via a differently-sequenced code path, not a restatement of the same formula), 7 are **structural/completeness/policy checks** (no numeric formula to independently re-derive -- they check presence, shape, or a modeling-discipline property instead), and 1 is a **scenario-comparative check** (`scenario_ordering` -- compares across scenarios, not within one scenario's own formula).
 
 | Check ID | Category | Type | Formula | # Results | PASS | FAIL | WARN | Tolerance | Gate Consequence | Corruption Test | Example Failure Message |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1000,6 +1043,7 @@ FY2024-FY2025 ending cash was 4.47%-5.24% of revenue -- materially above the 3.0
 | capital_allocation_waterfall_reconciliation | Cash Flow -- Capital Allocation | independent_reasonableness_test | An 8-step running-balance waterfall (capital_allocation_waterfall) must reach the exact same ending_cash as _run_from_metrics' own block-formula computation, AND both no-double-counting identities in verify_no_double_counting must hold. | 15 | 15 | 0 | 0 | 0.1% relative (_close, tol=1e-3) | Forecast rejected -- this is the one check in the whole suite computed via a genuinely different code path than the engine itself, so a failure here would indicate the engine's own arithmetic (not just a corrupted downstream value) is wrong. | Not corrupted directly this round (it would require deliberately breaking the waterfall function itself, a different exercise than corrupting a ForecastYear value); demonstrated passing against all 15 scenario-years in Section 4. | waterfall ending_cash=6100.0 vs engine ending_cash=6188.4 |
 | cash_roll_forward | Cash Flow | arithmetic_invariant | beginning_cash_t = ending_cash_(t-1); ending_cash_t = beginning_cash_t + net_change_in_cash_t; net_change_in_cash_t = CFO_t + CFI_t + CFF_t | 15 | 15 | 0 | 0 | 0.1% relative (_close, tol=1e-3) | Forecast rejected -- the cash balance no longer chains correctly across years. | test_cash_roll_forward_chains_across_years | beginning_cash=6000.0 vs prior ending_cash=6188.4 |
 | cfo_construction | Cash Flow | arithmetic_invariant | operating_cash_flow_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t | 15 | 15 | 0 | 0 | 0.1% relative (_close, tol=1e-3) | Forecast rejected -- CFO is not a bare residual and must reconcile to its stated components exactly. | test_validate_all_catches_a_broken_cfo_construction (adds $1,000M to one year in place) | CFO=8060.7 vs NI+D&A+WC+other=7060.7 |
+| cumulative_capacity_no_double_counting | Cash Flow -- Capital Allocation | arithmetic_invariant | cumulative_deployable_capacity(years) = terminal_year.deployable_capacity + sum(management_selected_deployment) -- verified to differ from (and never reported as) the naive, defective sum(y.deployable_capacity for y in years), which double-counts unused cash carried forward year over year. | 3 | 3 | 0 | 0 | 0.1% relative (_close, tol=1e-3) against the correct formula; the naive sum is expected to DIFFER, not match | Forecast rejected -- reporting the naive sum would overstate total capacity to a reviewer, exactly the double-counting error Milestone 3A was opened to fix. | test_cumulative_capacity_naive_sum_would_overstate (asserts the naive sum exceeds the correct figure whenever any interior year carries positive undeployed capacity forward, which holds in every scenario this round) | cumulative=6315.0 but a naive sum-of-years-end-balances would report 23730.9 -- overstated by 17415.9 |
 | debt_roll_forward | Balance Sheet -- Debt | arithmetic_invariant | total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1); total_debt_gaap_ending_t = beginning_t + debt_proceeds_t - debt_repayments_t | 15 | 15 | 0 | 0 | 0.1% relative (_close, tol=1e-3) | Forecast rejected -- the debt balance no longer chains correctly across years. | test_debt_roll_forward_chains_across_years | debt_end=14500.0 vs beg+proceeds-repay=14343.0 |
 | eps_consistency | Income Statement | arithmetic_invariant | diluted_eps_t = net_income_t / diluted_shares_t | 15 | 15 | 0 | 0 | 0.1% relative (_close, tol=1e-3) | Forecast rejected -- EPS no longer reconciles to net income and share count. | test_eps_consistency | diluted_eps=8.50 vs net_income/shares=8.12 |
 | fcf_calc | Cash Flow | arithmetic_invariant | free_cash_flow_t = operating_cash_flow_t - capital_expenditure_t (never total investing cash flow) | 15 | 15 | 0 | 0 | 0.1% relative (_close, tol=1e-3) | Forecast rejected -- also the specific control against CFI-for-CapEx substitution. | test_capex_uses_ppe_driver_never_total_cfi | FCF=4000.0 vs CFO-CapEx=3250.9 (CapEx=3809.8, distinct from total CFI=-3809.8) |
@@ -1025,61 +1069,61 @@ Each one-variable table perturbs a single BASE-scenario driver in isolation (hol
 
 | Delta | FY2030 CFO | FY2030 FCF | FY2030 Ending Cash | FY2030 Deployable Capacity | Cumulative FY2026-FY2030 Deployable Capacity |
 |---|---|---|---|---|---|
-| -1.00 | 7,380.6 | 3,608.6 | 9,344.6 | 6,060.4 | 21,982.3 |
-| -0.50 | 7,571.3 | 3,704.0 | 9,512.4 | 6,186.9 | 22,244.5 |
-| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 22,509.0 |
-| +0.50 | 7,964.3 | 3,900.7 | 9,854.9 | 6,444.6 | 22,775.9 |
-| +1.00 | 8,166.7 | 4,002.0 | 10,029.7 | 6,575.7 | 23,045.3 |
+| -1.00 | 7,380.6 | 3,608.6 | 9,344.6 | 6,060.4 | 6,060.4 |
+| -0.50 | 7,571.3 | 3,704.0 | 9,512.4 | 6,186.9 | 6,186.9 |
+| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 6,315.0 |
+| +0.50 | 7,964.3 | 3,900.7 | 9,854.9 | 6,444.6 | 6,444.6 |
+| +1.00 | 8,166.7 | 4,002.0 | 10,029.7 | 6,575.7 | 6,575.7 |
 
 ### gross_margin_pct
 
 | Delta | FY2030 CFO | FY2030 FCF | FY2030 Ending Cash | FY2030 Deployable Capacity | Cumulative FY2026-FY2030 Deployable Capacity |
 |---|---|---|---|---|---|
-| -0.50 | 7,338.4 | 3,373.9 | 8,477.7 | 4,939.2 | 18,221.5 |
-| -0.25 | 7,552.1 | 3,587.6 | 9,080.1 | 5,627.1 | 20,365.2 |
-| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 22,509.0 |
-| +0.25 | 7,979.6 | 4,015.1 | 10,284.9 | 7,002.9 | 24,652.8 |
-| +0.50 | 8,193.3 | 4,228.8 | 10,887.2 | 7,690.8 | 26,796.6 |
+| -0.50 | 7,338.4 | 3,373.9 | 8,477.7 | 4,939.2 | 4,939.2 |
+| -0.25 | 7,552.1 | 3,587.6 | 9,080.1 | 5,627.1 | 5,627.1 |
+| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 6,315.0 |
+| +0.25 | 7,979.6 | 4,015.1 | 10,284.9 | 7,002.9 | 7,002.9 |
+| +0.50 | 8,193.3 | 4,228.8 | 10,887.2 | 7,690.8 | 7,690.8 |
 
 ### sga_pct_of_revenue
 
 | Delta | FY2030 CFO | FY2030 FCF | FY2030 Ending Cash | FY2030 Deployable Capacity | Cumulative FY2026-FY2030 Deployable Capacity |
 |---|---|---|---|---|---|
-| -0.50 | 8,194.2 | 4,229.7 | 10,942.4 | 7,746.3 | 27,103.8 |
-| -0.25 | 7,980.0 | 4,015.5 | 10,312.4 | 7,030.7 | 24,806.4 |
-| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 22,509.0 |
-| +0.25 | 7,551.6 | 3,587.1 | 9,052.5 | 5,599.4 | 20,211.6 |
-| +0.50 | 7,337.4 | 3,373.0 | 8,422.5 | 4,883.7 | 17,914.2 |
+| -0.50 | 8,194.2 | 4,229.7 | 10,942.4 | 7,746.3 | 7,746.3 |
+| -0.25 | 7,980.0 | 4,015.5 | 10,312.4 | 7,030.7 | 7,030.7 |
+| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 6,315.0 |
+| +0.25 | 7,551.6 | 3,587.1 | 9,052.5 | 5,599.4 | 5,599.4 |
+| +0.50 | 7,337.4 | 3,373.0 | 8,422.5 | 4,883.7 | 4,883.7 |
 
 ### capex_pct_of_revenue
 
 | Delta | FY2030 CFO | FY2030 FCF | FY2030 Ending Cash | FY2030 Deployable Capacity | Cumulative FY2026-FY2030 Deployable Capacity |
 |---|---|---|---|---|---|
-| -0.50 | 7,765.8 | 4,352.0 | 11,301.9 | 8,154.8 | 28,414.9 |
-| -0.25 | 7,765.8 | 4,076.7 | 10,492.2 | 7,234.9 | 25,462.0 |
-| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 22,509.0 |
-| +0.25 | 7,765.8 | 3,526.0 | 8,872.7 | 5,395.2 | 19,556.1 |
-| +0.50 | 7,765.8 | 3,250.7 | 8,063.0 | 4,475.3 | 16,603.1 |
+| -0.50 | 7,765.8 | 4,352.0 | 11,301.9 | 8,154.8 | 8,154.8 |
+| -0.25 | 7,765.8 | 4,076.7 | 10,492.2 | 7,234.9 | 7,234.9 |
+| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 6,315.0 |
+| +0.25 | 7,765.8 | 3,526.0 | 8,872.7 | 5,395.2 | 5,395.2 |
+| +0.50 | 7,765.8 | 3,250.7 | 8,063.0 | 4,475.3 | 4,475.3 |
 
 ### inventory_pct_of_revenue
 
 | Delta | FY2030 CFO | FY2030 FCF | FY2030 Ending Cash | FY2030 Deployable Capacity | Cumulative FY2026-FY2030 Deployable Capacity |
 |---|---|---|---|---|---|
-| -1.00 | 7,776.7 | 3,812.2 | 10,343.2 | 6,980.1 | 26,188.5 |
-| -0.50 | 7,771.3 | 3,806.8 | 10,012.8 | 6,647.6 | 24,348.8 |
-| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 22,509.0 |
-| +0.50 | 7,760.4 | 3,795.9 | 9,352.1 | 5,982.5 | 20,669.3 |
-| +1.00 | 7,754.9 | 3,790.4 | 9,021.7 | 5,649.9 | 18,829.5 |
+| -1.00 | 7,776.7 | 3,812.2 | 10,343.2 | 6,980.1 | 6,980.1 |
+| -0.50 | 7,771.3 | 3,806.8 | 10,012.8 | 6,647.6 | 6,647.6 |
+| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 6,315.0 |
+| +0.50 | 7,760.4 | 3,795.9 | 9,352.1 | 5,982.5 | 5,982.5 |
+| +1.00 | 7,754.9 | 3,790.4 | 9,021.7 | 5,649.9 | 5,649.9 |
 
 ### min_cash_buffer_pct_of_revenue
 
 | Delta | FY2030 CFO | FY2030 FCF | FY2030 Ending Cash | FY2030 Deployable Capacity | Cumulative FY2026-FY2030 Deployable Capacity |
 |---|---|---|---|---|---|
-| -1.00 | 7,765.8 | 3,801.3 | 9,682.5 | 7,416.3 | 27,907.3 |
-| -0.50 | 7,765.8 | 3,801.3 | 9,682.5 | 6,865.6 | 25,208.2 |
-| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 22,509.0 |
-| +0.50 | 7,765.8 | 3,801.3 | 9,682.5 | 5,764.4 | 19,809.9 |
-| +1.00 | 7,765.8 | 3,801.3 | 9,682.5 | 5,213.8 | 17,110.7 |
+| -1.00 | 7,765.8 | 3,801.3 | 9,682.5 | 7,416.3 | 7,416.3 |
+| -0.50 | 7,765.8 | 3,801.3 | 9,682.5 | 6,865.6 | 6,865.6 |
+| +0.00 | 7,765.8 | 3,801.3 | 9,682.5 | 6,315.0 | 6,315.0 |
+| +0.50 | 7,765.8 | 3,801.3 | 9,682.5 | 5,764.4 | 5,764.4 |
+| +1.00 | 7,765.8 | 3,801.3 | 9,682.5 | 5,213.8 | 5,213.8 |
 
 ### 9a. Two-Variable Sensitivity: Revenue Growth x Gross Margin (FY2030 Deployable Capacity)
 
@@ -1205,35 +1249,38 @@ Raw-fact citations for `depreciation_amortization_cfo_addback` (the one metric s
 
 ```
 ........................................................................ [ 21%]
-........................................................................ [ 43%]
-........................................................................ [ 65%]
-........................................................................ [ 87%]
-........................................                                 [100%]
-328 passed in 1.05s
+........................................................................ [ 42%]
+........................................................................ [ 63%]
+........................................................................ [ 84%]
+.....................................................                    [100%]
+341 passed in 1.07s
 ```
 
 `tests/unit/test_forecast.py` alone:
 ```
-..................................................................       [100%]
-66 passed in 0.07s
+........................................................................ [ 91%]
+.......                                                                  [100%]
+79 passed in 0.09s
 ```
 
 ### 12e. Git Diff Summary
 
 Working-tree diff stat at generation time (uncommitted changes this round):
 ```
-docs/decisions.md           |  135 ++++++
- src/target_cash/forecast.py | 1046 ++++++++++++++++++++++++++++++++++++++++++-
- tests/unit/test_forecast.py |  311 +++++++++++++
- 3 files changed, 1480 insertions(+), 12 deletions(-)
+docs/decisions.md                           |  69 +++++++++++
+ docs/milestone_3_forecast_review_package.md | 177 +++++++++++++++++----------
+ scripts/build_milestone_3_review_package.py | 107 +++++++++++-----
+ src/target_cash/forecast.py                 | 181 +++++++++++++++++++++++++++-
+ tests/unit/test_forecast.py                 | 139 ++++++++++++++++++++-
+ 5 files changed, 573 insertions(+), 100 deletions(-)
 ```
 `git status --short`:
 ```
 M docs/decisions.md
+ M docs/milestone_3_forecast_review_package.md
+ M scripts/build_milestone_3_review_package.py
  M src/target_cash/forecast.py
  M tests/unit/test_forecast.py
-?? docs/milestone_3_forecast_review_package.md
-?? scripts/build_milestone_3_review_package.py
 ```
 
 No file under `data/`, `src/target_cash/migrations.py`, `config/metric_definitions.csv`, or any other Milestone 1/2 module appears in either listing above -- confirming this round did not touch historical facts, mappings, lineage, observations, or migrations.

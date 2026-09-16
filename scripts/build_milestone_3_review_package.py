@@ -58,11 +58,8 @@ def fmt(v):
 lines.append("# Milestone 3 Forecast -- Reviewer Audit Package")
 lines.append("")
 lines.append(
-    "**Evidence-review round only.** No Milestone 1 or Milestone 2 data, mapping, lineage, "
-    "observation, migration, or persisted analytical fact is modified by this document or by "
-    "`src/target_cash/forecast.py`. No `forecast_*` table exists, no migration was written, and "
-    "`data/curated/target_cash.db` is unchanged. **No forecast schema is implemented and no "
-    "forecast fact is persisted in this round.** Generated live by "
+    "No Milestone 1 or Milestone 2 data, mapping, lineage, observation, or migration is modified "
+    "by this document or by `src/target_cash/forecast.py`. Generated live by "
     "`scripts/build_milestone_3_review_package.py` -- every number below is computed by "
     "`target_cash.forecast`, not hand-transcribed."
 )
@@ -71,8 +68,21 @@ lines.append(
     "This supersedes the prior round's summary-level "
     "`docs/milestone_3_forecast_engine_proposal.md` for reviewer purposes: that document is left "
     "in place unmodified as a historical record, but this package is the complete evidence base "
-    "-- full assumption matrix, full forecast outputs, full validation and sensitivity results -- "
-    "the reviewer asked for after finding the prior summary insufficient to approve from."
+    "-- full assumption matrix, full forecast outputs, full validation and sensitivity results."
+)
+lines.append("")
+lines.append(
+    "**Milestone 3A correction round applied.** This version reflects the Milestone 3A internal "
+    "review and correction pass: (1) fixed the cumulative-deployable-capacity double-counting "
+    "defect (Section 4c); (2) extended the capital-allocation no-double-counting proof to "
+    "explicitly cover management-selected deployment and debt repayment (Section 4a, identity c); "
+    "(3) added scenario narratives establishing each scenario as a coherent business condition "
+    "(Section 7); (4) added validation check 21, `cumulative_capacity_no_double_counting`. As of "
+    "this document's generation (the Milestone 3A commit), no forecast schema is implemented and "
+    "no forecast fact is persisted -- `data/curated/target_cash.db` is unchanged. Milestone 3B "
+    "(additive schema, backed-up, transactional, idempotency-verified persistence of this exact, "
+    "now-corrected assumption set) follows as a separate commit; see `docs/decisions.md` for its "
+    "record once complete."
 )
 lines.append("")
 lines.append("---")
@@ -262,30 +272,62 @@ for s in f.SCENARIOS:
         p()
 
 h("4a. No-Double-Counting Proof (all 15 scenario-years)", level=3)
-p("Two identities, per `verify_no_double_counting()`: **(a)** `ending_cash = "
-  "pre_discretionary_ending_cash - share_repurchases` (the repurchase is subtracted exactly once "
-  "to reach the actual outcome). **(b)** `pre_discretionary_ending_cash = deployable_capacity + "
-  "min_cash_buffer + near_term_debt_repayment_reserve` (whenever not floored at zero). Reading "
-  "both together: deployable_capacity/buffer/reserve is an allocation of "
-  "`pre_discretionary_ending_cash` under a hypothetical \"repurchases not yet executed\" view; "
-  "share_repurchases/ending_cash is an allocation of the SAME total under the actual "
-  "\"repurchases already executed\" view. They are alternative readings of one total, never "
-  "additive -- a dollar inside deployable_capacity is, in the actual outcome, inside "
-  "share_repurchases or ending_cash, never inside both totals at once.")
+p("Three identities, per `verify_no_double_counting()` (extended in Milestone 3A to explicitly "
+  "cover management-selected deployment and debt repayment, per the reviewer's critical waterfall "
+  "rule): **(a)** `ending_cash = pre_discretionary_ending_cash - share_repurchases - "
+  "management_selected_deployment` (both discretionary uses are subtracted exactly once). "
+  "**(b)** `pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + "
+  "near_term_debt_repayment_reserve` (whenever not floored at zero). **(c)** full source/use "
+  "conservation: `beginning_cash + CFO + CFI + debt_proceeds = debt_repayments + dividends + "
+  "repurchases + management_selected_deployment + ending_cash` -- every dollar generated is "
+  "exactly one of 5 mutually exclusive, additively-combined uses, never two at once. Reading "
+  "(a)+(b) together: deployable_capacity/buffer/reserve is an allocation of "
+  "`pre_discretionary_ending_cash` under a hypothetical \"discretionary uses not yet executed\" "
+  "view; share_repurchases + management_selected_deployment + ending_cash is an allocation of the "
+  "SAME total under the actual \"already executed\" view. They are alternative readings of one "
+  "total, never additive -- a dollar inside deployable_capacity is, in the actual outcome, inside "
+  "repurchases, a selected deployment, or ending_cash, never inside more than one of those at once.")
 p()
-p("| Scenario | FY | ending_cash | pre_disc_end_cash - repurchases | (a) holds | "
-  "pre_disc_end_cash | deployable+buffer+reserve | (b) holds |")
-p("|---|---|---|---|---|---|---|---|")
+p("| Scenario | FY | ending_cash | pre_disc_end_cash - repurch - deployment | (a) | "
+  "pre_disc_end_cash | deployable+buffer+reserve | (b) | sources | uses | (c) |")
+p("|---|---|---|---|---|---|---|---|---|---|---|")
 for s in f.SCENARIOS:
     for y in forecasts[s]:
         proof = f.verify_no_double_counting(y)
         p(f"| {s} | {y.fiscal_year} | {proof['identity_a_lhs']:,.1f} | {proof['identity_a_rhs']:,.1f} | "
           f"{fmt(proof['identity_a_holds'])} | {proof['identity_b_lhs']:,.1f} | "
-          f"{proof['identity_b_rhs']:,.1f} | {fmt(proof['identity_b_holds'])} |")
+          f"{proof['identity_b_rhs']:,.1f} | {fmt(proof['identity_b_holds'])} | "
+          f"{proof['identity_c_sources']:,.1f} | {proof['identity_c_uses']:,.1f} | "
+          f"{fmt(proof['identity_c_holds'])} |")
 p()
 
 h("4b. Repurchase Classification", level=3)
 p(f"**{f.capital_allocation_repurchase_classification()}**")
+p()
+
+h("4c. Cumulative Deployable Capacity -- Double-Counting Fix (Milestone 3A critical rule)", level=3)
+p("**Corrected this round.** The prior round's `cumulative_deployable_capacity_2026_2030` summed "
+  "each year's own `deployable_capacity` balance across all 5 forecast years. Because "
+  "`deployable_capacity` is a STOCK (a year-end headroom balance whose unused dollars flow forward "
+  "into every later year's cash balance via the ordinary cash roll-forward), that sum counted the "
+  "same undeployed dollars up to 5 times. The corrected formula "
+  "(`cumulative_deployable_capacity()`) is: terminal-year `deployable_capacity` (which already "
+  "reflects the full accumulation of every prior year's unspent capacity) PLUS whatever was "
+  "ACTUALLY DEPLOYED along the way (`management_selected_deployment`, summed once each, since "
+  "deployed cash leaves the ending-cash balance and so is not re-counted by adding the terminal "
+  "figure).")
+p()
+p("| Scenario | Corrected Cumulative Capacity | Naive (defective) Sum-of-Years | Overstatement |")
+p("|---|---|---|---|")
+for s in f.SCENARIOS:
+    correct = f.cumulative_deployable_capacity(forecasts[s])
+    naive = sum(y.deployable_capacity for y in forecasts[s])
+    p(f"| {s} | {correct:,.1f} | {naive:,.1f} | {naive - correct:,.1f} |")
+p()
+p("Since no deployment has been selected this round (`management_selected_deployment` is 0 in "
+  "every year), the corrected figure reduces to exactly the terminal-year (FY2030) "
+  "`deployable_capacity` shown in Section 2's Capital Position tables and Section 9's sensitivity "
+  "tables below.")
 p()
 
 # ============================================================================
@@ -366,6 +408,15 @@ p()
 
 # ============================================================================
 h("7. Scenario Logic")
+p("**Scenario narratives (Milestone 3A)** -- each scenario is a coherent business condition, not "
+  "a mechanical increase or decrease applied to every input independently. Full text, live from "
+  "`SCENARIO_NARRATIVES`:")
+p()
+for s in f.SCENARIOS:
+    h(f"7.{f.SCENARIOS.index(s) + 1} {s.upper()} Narrative", level=3)
+    p(f.scenario_narrative(s))
+    p()
+
 p("**Where Downside <= Base <= Upside is economically appropriate** (validation check 14, "
   "`scenario_ordering`): revenue growth, gross margin, net income, and diluted EPS should rise "
   "from Downside to Upside (better execution/demand improves all four together); SG&A % of "
@@ -408,14 +459,16 @@ p()
 
 # ============================================================================
 h("8. Validation Inventory")
-p(f"20 named checks (the original 18 plus 2 added for this audit package -- "
-  f"`other_operating_cf_not_a_plug` and `capital_allocation_waterfall_reconciliation`), executed "
-  f"live. Total results: {len(validation_results)}. "
+n_checks = len(f.VALIDATION_CHECK_METADATA)
+p(f"{n_checks} named checks (the original 18, plus `other_operating_cf_not_a_plug` and "
+  f"`capital_allocation_waterfall_reconciliation` from the prior audit-package round, plus "
+  f"`cumulative_capacity_no_double_counting` added this round for Milestone 3A's critical "
+  f"cumulative-capacity rule), executed live. Total results: {len(validation_results)}. "
   f"Failures: {sum(1 for r in validation_results if r.status == 'FAIL')}. "
   f"Warnings: {sum(1 for r in validation_results if r.status == 'WARNING')}.")
 p()
-p("**Honest self-classification** (per the reviewer's instruction not to present a passed "
-  "arithmetic invariant as if it were independent evidence): of the 20 checks, "
+p(f"**Honest self-classification** (per the reviewer's instruction not to present a passed "
+  f"arithmetic invariant as if it were independent evidence): of the {n_checks} checks, "
   f"{sum(1 for m in f.VALIDATION_CHECK_METADATA.values() if m['check_type'] == 'arithmetic_invariant')} "
   "are **arithmetic invariants** (re-verify the SAME formula the engine used -- valuable for "
   "catching corruption/typos/manual overrides, but do not independently prove the underlying "

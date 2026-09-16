@@ -663,7 +663,10 @@ def test_validation_metadata_distinguishes_arithmetic_from_independent():
     independent = [k for k, v in meta.items() if v["check_type"] == "independent_reasonableness_test"]
     assert len(arithmetic) >= 8
     # Only the waterfall reconciliation is computed via a genuinely different code path.
+    # cumulative_capacity_no_double_counting re-derives its own function's formula inline
+    # as a self-check, so it is honestly an arithmetic invariant, not independent evidence.
     assert independent == ["capital_allocation_waterfall_reconciliation"]
+    assert "cumulative_capacity_no_double_counting" in arithmetic
 
 
 def test_every_check_metadata_has_required_fields():
@@ -696,4 +699,138 @@ def test_two_variable_sensitivity_monotonic_in_both_directions():
 def test_sensitivity_table_includes_cumulative_deployable_capacity():
     rows = f.sensitivity_table("gross_margin_pct", [0.0])
     assert "cumulative_deployable_capacity_2026_2030" in rows[0]
-    assert rows[0]["cumulative_deployable_capacity_2026_2030"] > rows[0]["deployable_capacity"]
+    # With nothing actually deployed this round, cumulative == terminal-year deployable_capacity
+    # exactly (see cumulative_deployable_capacity's docstring) -- NOT greater than it, which
+    # would indicate the old, defective sum-of-year-end-balances double-counting bug is back.
+    assert rows[0]["cumulative_deployable_capacity_2026_2030"] == pytest.approx(rows[0]["deployable_capacity"])
+
+
+# --- Milestone 3A: cumulative-capacity double-counting fix -----------------
+
+
+def test_cumulative_deployable_capacity_equals_terminal_when_nothing_deployed():
+    forecasts = f.run_all_scenarios()
+    for scenario, years in forecasts.items():
+        assert all(y.management_selected_deployment in (None, 0.0) for y in years)
+        cumulative = f.cumulative_deployable_capacity(years)
+        assert cumulative == pytest.approx(years[-1].deployable_capacity)
+
+
+def test_cumulative_capacity_naive_sum_would_overstate():
+    """Proves the fix matters: the OLD (defective) sum-of-year-end-balances
+    method materially overstates capacity relative to the corrected figure,
+    because every scenario carries positive undeployed capacity forward
+    year over year (deployable_capacity is monotonically non-decreasing in
+    every scenario here)."""
+    forecasts = f.run_all_scenarios()
+    for scenario, years in forecasts.items():
+        naive_sum = sum(y.deployable_capacity for y in years)
+        correct = f.cumulative_deployable_capacity(years)
+        assert naive_sum > correct * 1.5  # naive method is off by a wide margin, not a rounding difference
+
+
+def test_cumulative_deployable_capacity_with_simulated_deployment():
+    """If a deployment IS selected partway through the horizon, cumulative
+    capacity must include it exactly once (not double-count it alongside
+    whatever remains in the terminal balance)."""
+    import dataclasses
+    forecasts = f.run_all_scenarios()
+    years = forecasts["base"]
+    deployed_amount = 1000.0
+    modified = [
+        dataclasses.replace(y, management_selected_deployment=deployed_amount) if y.fiscal_year == 2027 else y
+        for y in years
+    ]
+    cumulative = f.cumulative_deployable_capacity(modified)
+    expected = modified[-1].deployable_capacity + deployed_amount
+    assert cumulative == pytest.approx(expected)
+    # And it must NOT simply equal the terminal balance alone (that would drop the deployment).
+    assert cumulative != pytest.approx(modified[-1].deployable_capacity)
+
+
+def test_cumulative_capacity_validation_check_passes_and_flags_naive_overstatement():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    lineage = {s: f.build_lineage(y, assumptions) for s, y in forecasts.items()}
+    results = f.validate_all(forecasts, assumptions, lineage)
+    checks = [r for r in results if r.check_name == "cumulative_capacity_no_double_counting"]
+    assert len(checks) == 3
+    assert all(r.status == "PASS" for r in checks)
+    assert all("naive method overstates" in r.detail for r in checks)
+
+
+# --- Milestone 3A: extended no-double-counting identity (with debt + deployment) ---
+
+
+def test_verify_no_double_counting_identity_c_full_conservation():
+    forecasts = f.run_all_scenarios()
+    for years in forecasts.values():
+        for y in years:
+            proof = f.verify_no_double_counting(y)
+            assert "identity_c_holds" in proof
+            assert proof["identity_c_holds"]
+            assert proof["no_double_counting_proven"]
+
+
+def test_verify_no_double_counting_accounts_for_management_selected_deployment():
+    import dataclasses
+    forecasts = f.run_all_scenarios()
+    y = forecasts["base"][0]
+    y_with_deployment = dataclasses.replace(
+        y, management_selected_deployment=500.0, ending_cash=y.ending_cash - 500.0,
+        net_change_in_cash=y.net_change_in_cash - 500.0,
+    )
+    proof = f.verify_no_double_counting(y_with_deployment)
+    assert proof["identity_a_holds"]
+    assert proof["identity_c_holds"]
+
+
+def test_capital_allocation_waterfall_includes_management_selected_deployment_step():
+    forecasts = f.run_all_scenarios()
+    y = forecasts["base"][0]
+    steps = f.capital_allocation_waterfall(y)
+    step_7b = next(s for s in steps if s["step"] == "7b")
+    assert step_7b["amount"] == 0.0  # no deployment selected this round
+    assert steps[-1]["balance_after"] == pytest.approx(y.ending_cash)
+
+
+# --- Milestone 3A: scenario narratives --------------------------------------
+
+
+def test_scenario_narratives_exist_for_all_scenarios():
+    for s in f.SCENARIOS:
+        narrative = f.scenario_narrative(s)
+        assert isinstance(narrative, str)
+        assert len(narrative) > 500  # substantive prose, not a one-liner
+
+
+def test_scenario_narratives_are_not_mechanically_identical_in_structure():
+    narratives = [f.SCENARIO_NARRATIVES[s] for s in f.SCENARIOS]
+    assert len(set(narratives)) == 3  # all distinct
+
+
+def test_upside_narrative_explains_the_non_monotonic_capex_exception():
+    narrative = f.SCENARIO_NARRATIVES["upside"].lower()
+    assert "capex" in narrative
+    assert "not" in narrative and ("less" in narrative or "minimize" in narrative)
+
+
+def test_downside_narrative_explains_dividend_freeze_not_cut():
+    narrative = f.SCENARIO_NARRATIVES["downside"].lower()
+    assert "frozen" in narrative
+    assert "not cut" in narrative or "not modeled as plausible" in narrative
+
+
+def test_downside_narrative_references_funding_warning():
+    assert "funding warning" in f.SCENARIO_NARRATIVES["downside"].lower()
+
+
+def test_scenario_narratives_cite_real_assumption_values():
+    by_scenario = f.assumptions_by_scenario(f.build_assumptions())
+    base_growth = f._lookup(by_scenario["base"]["revenue_growth_pct"], 2026)
+    upside_growth = f._lookup(by_scenario["upside"]["revenue_growth_pct"], 2026)
+    downside_growth = f._lookup(by_scenario["downside"]["revenue_growth_pct"], 2026)
+    assert f"{base_growth:.1f}%" in f.SCENARIO_NARRATIVES["base"] or "+1.0%" in f.SCENARIO_NARRATIVES["base"]
+    assert "+3.0%" in f.SCENARIO_NARRATIVES["upside"]
+    assert "-2.5%" in f.SCENARIO_NARRATIVES["downside"]
+    assert base_growth == 1.0 and upside_growth == 3.0 and downside_growth == -2.5
