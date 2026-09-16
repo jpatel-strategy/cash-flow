@@ -1,0 +1,9 @@
+accession_number,cik,company_name,form_type,filed_at,period_of_report,primary_document_url,ingestion_method
+0000027419-22-000007,0000027419,Target Corp,10-K,2022-03-09,2022-01-29,https://www.sec.gov/Archives/edgar/data/27419/000002741922000007/tgt-20220129.htm,manual_upload
+0000027419-23-000015,0000027419,Target Corporation,10-K,2023-03-08,2023-01-28,https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/tgt-20230128.htm,manual_upload
+0000027419-24-000032,0000027419,Target Corporation,10-K,2024-03-13,2024-02-03,https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/tgt-20240203.htm,manual_upload
+0000027419-25-000018,0000027419,Target Corporation,10-K,2025-03-12,2025-02-01,https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/tgt-20250201.htm,manual_upload
+0000027419-25-000101,0000027419,Target Corporation,10-Q,2025-05-30,2025-05-03,https://www.sec.gov/Archives/edgar/data/27419/000002741925000101/tgt-20250503.htm,manual_upload
+0000027419-25-000118,0000027419,Target Corporation,10-Q,2025-08-29,2025-08-02,https://www.sec.gov/Archives/edgar/data/27419/000002741925000118/tgt-20250802.htm,manual_upload
+0000027419-25-000126,0000027419,Target Corporation,10-Q,2025-11-26,2025-11-01,https://www.sec.gov/Archives/edgar/data/27419/000002741925000126/tgt-20251101.htm,manual_upload
+0000027419-26-000016,0000027419,Target Corporation,10-K,2026-03-11,2026-01-31,https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/tgt-20260131.htm,manual_upload

@@ -1,0 +1,29 @@
+validation_result_id,check_name,scenario_id,status,detail,valuation_version,run_at
+vval_no_debt_or_lease_double_counting_base_v1,no_debt_or_lease_double_counting,base,PASS,net_debt=8855.0 vs total_debt_gaap-cash=8855.0 (finance_lease_liabilities=2113.0 correctly excluded),v1,2026-09-16T01:21:08Z
+vval_no_debt_or_lease_double_counting_downside_v1,no_debt_or_lease_double_counting,downside,PASS,net_debt=8855.0 vs total_debt_gaap-cash=8855.0 (finance_lease_liabilities=2113.0 correctly excluded),v1,2026-09-16T01:21:08Z
+vval_no_debt_or_lease_double_counting_upside_v1,no_debt_or_lease_double_counting,upside,PASS,net_debt=8855.0 vs total_debt_gaap-cash=8855.0 (finance_lease_liabilities=2113.0 correctly excluded),v1,2026-09-16T01:21:08Z
+vval_terminal_value_period_consistency_base_v1,terminal_value_period_consistency,base,PASS,"terminal base year=2030, discount periods=5, terminal_year_ufcf matches FY2030=True, TV formula=True, discount periods=True",v1,2026-09-16T01:21:08Z
+vval_terminal_value_period_consistency_downside_v1,terminal_value_period_consistency,downside,PASS,"terminal base year=2030, discount periods=5, terminal_year_ufcf matches FY2030=True, TV formula=True, discount periods=True",v1,2026-09-16T01:21:08Z
+vval_terminal_value_period_consistency_upside_v1,terminal_value_period_consistency,upside,PASS,"terminal base year=2030, discount periods=5, terminal_year_ufcf matches FY2030=True, TV formula=True, discount periods=True",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_base_2026_v1,ufcf_reconciles_to_levered_fcf,base,PASS,"FY2026: ufcf=3522.9, bridge=3522.9",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_base_2027_v1,ufcf_reconciles_to_levered_fcf,base,PASS,"FY2027: ufcf=3708.0, bridge=3708.0",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_base_2028_v1,ufcf_reconciles_to_levered_fcf,base,PASS,"FY2028: ufcf=3828.8, bridge=3828.8",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_base_2029_v1,ufcf_reconciles_to_levered_fcf,base,PASS,"FY2029: ufcf=3950.9, bridge=3950.9",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_base_2030_v1,ufcf_reconciles_to_levered_fcf,base,PASS,"FY2030: ufcf=4073.4, bridge=4073.4",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_downside_2026_v1,ufcf_reconciles_to_levered_fcf,downside,PASS,"FY2026: ufcf=2195.5, bridge=2195.5",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_downside_2027_v1,ufcf_reconciles_to_levered_fcf,downside,PASS,"FY2027: ufcf=3787.2, bridge=3787.2",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_downside_2028_v1,ufcf_reconciles_to_levered_fcf,downside,PASS,"FY2028: ufcf=3311.2, bridge=3311.2",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_downside_2029_v1,ufcf_reconciles_to_levered_fcf,downside,PASS,"FY2029: ufcf=2855.1, bridge=2855.1",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_downside_2030_v1,ufcf_reconciles_to_levered_fcf,downside,PASS,"FY2030: ufcf=2420.1, bridge=2420.1",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_upside_2026_v1,ufcf_reconciles_to_levered_fcf,upside,PASS,"FY2026: ufcf=4431.7, bridge=4431.7",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_upside_2027_v1,ufcf_reconciles_to_levered_fcf,upside,PASS,"FY2027: ufcf=3526.3, bridge=3526.3",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_upside_2028_v1,ufcf_reconciles_to_levered_fcf,upside,PASS,"FY2028: ufcf=4060.6, bridge=4060.6",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_upside_2029_v1,ufcf_reconciles_to_levered_fcf,upside,PASS,"FY2029: ufcf=4623.7, bridge=4623.7",v1,2026-09-16T01:21:08Z
+vval_ufcf_reconciles_to_levered_fcf_upside_2030_v1,ufcf_reconciles_to_levered_fcf,upside,PASS,"FY2030: ufcf=5216.7, bridge=5216.7",v1,2026-09-16T01:21:08Z
+vval_valuation_date_consistency_base_v1,valuation_date_consistency,base,PASS,"net_debt uses FY2025 actuals=True, diluted_shares uses FY2025 actual=True",v1,2026-09-16T01:21:08Z
+vval_valuation_date_consistency_downside_v1,valuation_date_consistency,downside,PASS,"net_debt uses FY2025 actuals=True, diluted_shares uses FY2025 actual=True",v1,2026-09-16T01:21:08Z
+vval_valuation_date_consistency_upside_v1,valuation_date_consistency,upside,PASS,"net_debt uses FY2025 actuals=True, diluted_shares uses FY2025 actual=True",v1,2026-09-16T01:21:08Z
+vval_wacc_and_terminal_growth_scenario_invariant_all_v1,wacc_and_terminal_growth_scenario_invariant,,PASS,distinct WACC values across scenarios: {8.86177}; distinct terminal growth values: {2.5},v1,2026-09-16T01:21:08Z
+vval_wacc_exceeds_terminal_growth_base_v1,wacc_exceeds_terminal_growth,base,PASS,WACC=8.86% vs terminal growth=2.50%,v1,2026-09-16T01:21:08Z
+vval_wacc_exceeds_terminal_growth_downside_v1,wacc_exceeds_terminal_growth,downside,PASS,WACC=8.86% vs terminal growth=2.50%,v1,2026-09-16T01:21:08Z
+vval_wacc_exceeds_terminal_growth_upside_v1,wacc_exceeds_terminal_growth,upside,PASS,WACC=8.86% vs terminal growth=2.50%,v1,2026-09-16T01:21:08Z

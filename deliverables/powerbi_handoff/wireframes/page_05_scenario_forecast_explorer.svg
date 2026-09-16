@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="1280" height="720" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1280" height="56" fill="#1F3864"/>
+<text x="20" y="26" font-family="Segoe UI, Arial" font-size="18" fill="#FFFFFF" font-weight="bold">Page 5: Scenario Forecast Explorer</text>
+<text x="20" y="46" font-family="Segoe UI, Arial" font-size="11" fill="#D9E2F3">FY2026-FY2030 projected income statement &amp; drivers, selector-driven</text>
+<rect x="0" y="56" width="1280" height="34" fill="#D9E2F3"/>
+<text x="20" y="77" font-family="Segoe UI, Arial" font-size="11" fill="#1F3864">Filters/Slicers: Scenario selector, Fiscal Year, Metric</text>
+<rect x="20" y="100" width="610" height="280" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="325.0" y="234.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Line Chart</text>
+<text x="325.0" y="252.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Revenue, Gross Profit, Operating Income, Net Income by FY</text>
+<rect x="650" y="100" width="610" height="280" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="955.0" y="234.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Line Chart</text>
+<text x="955.0" y="252.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Diluted EPS, Revenue Growth %, Gross/Operating Margin %</text>
+<rect x="20" y="400" width="610" height="290" fill="#F2F2F2" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="325.0" y="539.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Table (Matrix)</text>
+<text x="325.0" y="557.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Full income-statement forecast, all years, selected scenario</text>
+<rect x="650" y="400" width="610" height="290" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="955.0" y="539.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Text Box</text>
+<text x="955.0" y="557.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Scenario Narrative (Downside/Base/Upside business-condition story)</text>
+<text x="1260" y="708" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="end">WIREFRAME MOCKUP -- schematic layout only, not an actual Power BI screenshot (Power BI Desktop unavailable in this build environment)</text>
+</svg>

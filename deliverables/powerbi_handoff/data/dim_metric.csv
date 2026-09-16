@@ -1,0 +1,92 @@
+metric_key,metric_label,category
+accounts_payable,Accounts Payable,Balance Sheet
+accounts_payable_balance,Accounts Payable Balance,Balance Sheet
+accounts_payable_to_cogs,Accounts Payable To Cogs,Balance Sheet
+adjusted_net_debt_including_finance_leases,Adjusted Net Debt Including Finance Leases,Other
+ap_cash_impact,AP Cash Impact,Other
+ap_pct_of_cogs,AP Pct Of Cogs,Ratio / Driver
+beginning_cash,Beginning Cash,Other
+buyback_payout_pct_of_post_dividend_fcf,Buyback Payout Pct Of Post Dividend Fcf,Ratio / Driver
+capex_intensity,Capex Intensity,Cash Flow
+capex_pct_of_revenue,Capex Pct Of Revenue,Cash Flow
+capital_expenditure,Capital Expenditure,Cash Flow
+cash_and_equivalents_balance_sheet,Cash And Equivalents Balance Sheet,Balance Sheet
+cash_and_equivalents_rollforward,Cash And Equivalents Rollforward,Balance Sheet
+cash_conversion,Cash Conversion,Ratio / Driver
+cost_of_sales,Cost Of Sales,Income Statement
+da_cfo_addback,D&A CFO Addback,Other
+da_cfo_addback_pct_of_revenue,D&A CFO Addback Pct Of Revenue,Ratio / Driver
+da_pct_of_revenue,D&A Pct Of Revenue,Ratio / Driver
+debt_fair_value_hedge_adjustment,Debt Fair Value Hedge Adjustment,Other
+debt_principal_schedule,Debt Principal Schedule,Other
+debt_proceeds,Debt Proceeds,Cash Flow
+debt_proceeds_musd,Debt Proceeds Musd,Cash Flow
+debt_repayments,Debt Repayments,Cash Flow
+debt_repayments_musd,Debt Repayments Musd,Cash Flow
+debt_to_cfo,Debt To CFO,Ratio / Driver
+deployable_capacity,Deployable Capacity,Investment Capacity
+depreciation_amortization_opex,Depreciation Amortization Opex,Other
+diluted_eps,Diluted EPS,Income Statement
+diluted_share_change_pct,Diluted Share Change Pct,Ratio / Driver
+diluted_shares,Diluted Shares,Income Statement
+dividend_per_share,Dividend Per Share,Other
+dividend_per_share_growth_pct,Dividend Per Share Growth Pct,Ratio / Driver
+dividends_paid,Dividends Paid,Cash Flow
+effective_tax_rate,Effective Tax Rate,Other
+effective_tax_rate_pct,Effective Tax Rate Pct,Ratio / Driver
+ending_cash,Ending Cash,Other
+fcf_margin,Fcf Margin,Other
+finance_lease_liabilities,Finance Lease Liabilities,Balance Sheet
+finance_lease_liabilities_musd,Finance Lease Liabilities Musd,Balance Sheet
+finance_lease_liability_current,Finance Lease Liability Current,Balance Sheet
+finance_lease_liability_noncurrent,Finance Lease Liability Noncurrent,Balance Sheet
+financing_cash_flow,Financing Cash Flow,Cash Flow
+free_cash_flow,Free Cash Flow,Cash Flow
+funding_warning,Funding Warning,Investment Capacity
+gross_fcf_capacity,Gross Fcf Capacity,Investment Capacity
+gross_margin,Gross Margin,Income Statement
+gross_margin_pct,Gross Margin Pct,Ratio / Driver
+gross_profit,Gross Profit,Income Statement
+income_tax_expense,Income Tax Expense,Income Statement
+interest_expense,Interest Expense,Income Statement
+interest_rate_pct,Interest Rate Pct,Ratio / Driver
+inventory,Inventory,Balance Sheet
+inventory_balance,Inventory Balance,Balance Sheet
+inventory_cash_impact,Inventory Cash Impact,Balance Sheet
+inventory_pct_of_revenue,Inventory Pct Of Revenue,Balance Sheet
+inventory_to_revenue,Inventory To Revenue,Balance Sheet
+investing_cash_flow,Investing Cash Flow,Cash Flow
+long_term_debt_gaap_carrying_value,Long Term Debt GAAP Carrying Value,Balance Sheet
+long_term_debt_gaap_carrying_value_current,Long Term Debt GAAP Carrying Value Current,Balance Sheet
+long_term_debt_gaap_carrying_value_noncurrent,Long Term Debt GAAP Carrying Value Noncurrent,Balance Sheet
+mandatory_financing_flows,Mandatory Financing Flows,Cash Flow
+min_cash_buffer,Min Cash Buffer,Investment Capacity
+min_cash_buffer_pct_of_revenue,Min Cash Buffer Pct Of Revenue,Investment Capacity
+near_term_debt_repayment_reserve,Near Term Debt Repayment Reserve,Investment Capacity
+net_change_in_cash,Net Change In Cash,Other
+net_debt_to_cfo,Net Debt To CFO,Ratio / Driver
+net_income,Net Income,Income Statement
+net_margin,Net Margin,Income Statement
+net_other_income,Net Other Income,Income Statement
+net_other_income_musd,Net Other Income Musd,Income Statement
+operating_cash_flow,Operating Cash Flow,Cash Flow
+operating_expenses,Operating Expenses,Income Statement
+operating_income,Operating Income,Income Statement
+operating_margin,Operating Margin,Income Statement
+operating_margin_pct,Operating Margin Pct,Ratio / Driver
+other_operating_cf,Other Operating Cf,Other
+other_operating_cf_musd,Other Operating Cf Musd,Other
+post_dividend_capacity,Post Dividend Capacity,Investment Capacity
+pre_discretionary_ending_cash,Pre Discretionary Ending Cash,Other
+pretax_income,Pretax Income,Income Statement
+revenue,Revenue,Income Statement
+revenue_growth_pct,Revenue Growth Pct,Ratio / Driver
+sga_expense,SG&A Expense,Income Statement
+sga_pct_of_revenue,SG&A Pct Of Revenue,Ratio / Driver
+share_repurchases,Share Repurchases,Cash Flow
+shareholder_distributions_to_fcf,Shareholder Distributions To Fcf,Ratio / Driver
+total_debt_gaap,Total Debt GAAP,Balance Sheet
+total_debt_gaap_beginning,Total Debt GAAP Beginning,Balance Sheet
+total_debt_gaap_ending,Total Debt GAAP Ending,Balance Sheet
+valuation_net_debt,Valuation Net Debt,Other
+valuation_net_debt_excluding_leases,Valuation Net Debt Excluding Leases,Other

@@ -1,0 +1,230 @@
+validation_result_id,check_name,scenario_id,fiscal_year,status,detail,forecast_version,run_at
+val_assumption_completeness_base_0_v1,assumption_completeness,base,,PASS,all required metrics covered for FY2026-FY2030,v1,2026-09-16T01:08:58Z
+val_assumption_completeness_downside_0_v1,assumption_completeness,downside,,PASS,all required metrics covered for FY2026-FY2030,v1,2026-09-16T01:08:58Z
+val_assumption_completeness_upside_0_v1,assumption_completeness,upside,,PASS,all required metrics covered for FY2026-FY2030,v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_base_2026_v1,capital_allocation_waterfall_reconciliation,base,2026.0,PASS,"waterfall ending_cash=6,188.4 vs engine ending_cash=6,188.4; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=9,438.9 vs uses=9,438.9)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_base_2027_v1,capital_allocation_waterfall_reconciliation,base,2027.0,PASS,"waterfall ending_cash=6,981.2 vs engine ending_cash=6,981.2; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=10,324.4 vs uses=10,324.4)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_base_2028_v1,capital_allocation_waterfall_reconciliation,base,2028.0,PASS,"waterfall ending_cash=7,827.5 vs engine ending_cash=7,827.5; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=11,237.9 vs uses=11,237.9)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_base_2029_v1,capital_allocation_waterfall_reconciliation,base,2029.0,PASS,"waterfall ending_cash=8,728.0 vs engine ending_cash=8,728.0; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=12,206.4 vs uses=12,206.4)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_base_2030_v1,capital_allocation_waterfall_reconciliation,base,2030.0,PASS,"waterfall ending_cash=9,682.5 vs engine ending_cash=9,682.5; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=13,229.3 vs uses=13,229.3)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_downside_2026_v1,capital_allocation_waterfall_reconciliation,downside,2026.0,PASS,"waterfall ending_cash=5,514.0 vs engine ending_cash=5,514.0; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=7,867.0 vs uses=7,867.0)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_downside_2027_v1,capital_allocation_waterfall_reconciliation,downside,2027.0,PASS,"waterfall ending_cash=7,126.4 vs engine ending_cash=7,126.4; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=9,479.4 vs uses=9,479.4)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_downside_2028_v1,capital_allocation_waterfall_reconciliation,downside,2028.0,PASS,"waterfall ending_cash=8,257.6 vs engine ending_cash=8,257.6; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=10,610.6 vs uses=10,610.6)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_downside_2029_v1,capital_allocation_waterfall_reconciliation,downside,2029.0,PASS,"waterfall ending_cash=8,927.5 vs engine ending_cash=8,927.5; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=11,280.5 vs uses=11,280.5)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_downside_2030_v1,capital_allocation_waterfall_reconciliation,downside,2030.0,PASS,"waterfall ending_cash=9,157.2 vs engine ending_cash=9,157.2; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=11,510.2 vs uses=11,510.2)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_upside_2026_v1,capital_allocation_waterfall_reconciliation,upside,2026.0,PASS,"waterfall ending_cash=5,727.8 vs engine ending_cash=5,727.8; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=9,979.6 vs uses=9,979.6)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_upside_2027_v1,capital_allocation_waterfall_reconciliation,upside,2027.0,PASS,"waterfall ending_cash=5,544.3 vs engine ending_cash=5,544.3; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=9,330.0 vs uses=9,330.0)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_upside_2028_v1,capital_allocation_waterfall_reconciliation,upside,2028.0,PASS,"waterfall ending_cash=5,584.8 vs engine ending_cash=5,584.8; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=9,696.7 vs uses=9,696.7)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_upside_2029_v1,capital_allocation_waterfall_reconciliation,upside,2029.0,PASS,"waterfall ending_cash=5,861.6 vs engine ending_cash=5,861.6; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=10,316.2 vs uses=10,316.2)",v1,2026-09-16T01:08:58Z
+val_capital_allocation_waterfall_reconciliation_upside_2030_v1,capital_allocation_waterfall_reconciliation,upside,2030.0,PASS,"waterfall ending_cash=6,387.6 vs engine ending_cash=6,387.6; identity_a_holds=True, identity_b_holds=True, identity_c_holds=True (sources=11,202.0 vs uses=11,202.0)",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_base_2026_v1,cash_roll_forward,base,2026.0,PASS,"beginning_cash=5488.0, ending_cash=6188.4 vs beg+change=6188.4",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_base_2027_v1,cash_roll_forward,base,2027.0,PASS,"beginning_cash=6188.4, ending_cash=6981.2 vs beg+change=6981.2",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_base_2028_v1,cash_roll_forward,base,2028.0,PASS,"beginning_cash=6981.2, ending_cash=7827.5 vs beg+change=7827.5",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_base_2029_v1,cash_roll_forward,base,2029.0,PASS,"beginning_cash=7827.5, ending_cash=8728.0 vs beg+change=8728.0",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_base_2030_v1,cash_roll_forward,base,2030.0,PASS,"beginning_cash=8728.0, ending_cash=9682.5 vs beg+change=9682.5",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_downside_2026_v1,cash_roll_forward,downside,2026.0,PASS,"beginning_cash=5488.0, ending_cash=5514.0 vs beg+change=5514.0",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_downside_2027_v1,cash_roll_forward,downside,2027.0,PASS,"beginning_cash=5514.0, ending_cash=7126.4 vs beg+change=7126.4",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_downside_2028_v1,cash_roll_forward,downside,2028.0,PASS,"beginning_cash=7126.4, ending_cash=8257.6 vs beg+change=8257.6",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_downside_2029_v1,cash_roll_forward,downside,2029.0,PASS,"beginning_cash=8257.6, ending_cash=8927.5 vs beg+change=8927.5",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_downside_2030_v1,cash_roll_forward,downside,2030.0,PASS,"beginning_cash=8927.5, ending_cash=9157.2 vs beg+change=9157.2",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_upside_2026_v1,cash_roll_forward,upside,2026.0,PASS,"beginning_cash=5488.0, ending_cash=5727.8 vs beg+change=5727.8",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_upside_2027_v1,cash_roll_forward,upside,2027.0,PASS,"beginning_cash=5727.8, ending_cash=5544.3 vs beg+change=5544.3",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_upside_2028_v1,cash_roll_forward,upside,2028.0,PASS,"beginning_cash=5544.3, ending_cash=5584.8 vs beg+change=5584.8",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_upside_2029_v1,cash_roll_forward,upside,2029.0,PASS,"beginning_cash=5584.8, ending_cash=5861.6 vs beg+change=5861.6",v1,2026-09-16T01:08:58Z
+val_cash_roll_forward_upside_2030_v1,cash_roll_forward,upside,2030.0,PASS,"beginning_cash=5861.6, ending_cash=6387.6 vs beg+change=6387.6",v1,2026-09-16T01:08:58Z
+val_cfo_construction_base_2026_v1,cfo_construction,base,2026.0,PASS,CFO=7060.7 vs NI+D&A+WC+other=7060.7,v1,2026-09-16T01:08:58Z
+val_cfo_construction_base_2027_v1,cfo_construction,base,2027.0,PASS,CFO=7283.9 vs NI+D&A+WC+other=7283.9,v1,2026-09-16T01:08:58Z
+val_cfo_construction_base_2028_v1,cfo_construction,base,2028.0,PASS,CFO=7443.1 vs NI+D&A+WC+other=7443.1,v1,2026-09-16T01:08:58Z
+val_cfo_construction_base_2029_v1,cfo_construction,base,2029.0,PASS,CFO=7604.1 vs NI+D&A+WC+other=7604.1,v1,2026-09-16T01:08:58Z
+val_cfo_construction_base_2030_v1,cfo_construction,base,2030.0,PASS,CFO=7765.8 vs NI+D&A+WC+other=7765.8,v1,2026-09-16T01:08:58Z
+val_cfo_construction_downside_2026_v1,cfo_construction,downside,2026.0,PASS,CFO=4739.5 vs NI+D&A+WC+other=4739.5,v1,2026-09-16T01:08:58Z
+val_cfo_construction_downside_2027_v1,cfo_construction,downside,2027.0,PASS,CFO=6254.4 vs NI+D&A+WC+other=6254.4,v1,2026-09-16T01:08:58Z
+val_cfo_construction_downside_2028_v1,cfo_construction,downside,2028.0,PASS,CFO=5703.5 vs NI+D&A+WC+other=5703.5,v1,2026-09-16T01:08:58Z
+val_cfo_construction_downside_2029_v1,cfo_construction,downside,2029.0,PASS,CFO=5174.2 vs NI+D&A+WC+other=5174.2,v1,2026-09-16T01:08:58Z
+val_cfo_construction_downside_2030_v1,cfo_construction,downside,2030.0,PASS,CFO=4667.6 vs NI+D&A+WC+other=4667.6,v1,2026-09-16T01:08:58Z
+val_cfo_construction_upside_2026_v1,cfo_construction,upside,2026.0,PASS,CFO=8832.3 vs NI+D&A+WC+other=8832.3,v1,2026-09-16T01:08:58Z
+val_cfo_construction_upside_2027_v1,cfo_construction,upside,2027.0,PASS,CFO=8082.1 vs NI+D&A+WC+other=8082.1,v1,2026-09-16T01:08:58Z
+val_cfo_construction_upside_2028_v1,cfo_construction,upside,2028.0,PASS,CFO=8775.7 vs NI+D&A+WC+other=8775.7,v1,2026-09-16T01:08:58Z
+val_cfo_construction_upside_2029_v1,cfo_construction,upside,2029.0,PASS,CFO=9502.5 vs NI+D&A+WC+other=9502.5,v1,2026-09-16T01:08:58Z
+val_cfo_construction_upside_2030_v1,cfo_construction,upside,2030.0,PASS,CFO=10263.6 vs NI+D&A+WC+other=10263.6,v1,2026-09-16T01:08:58Z
+val_cumulative_capacity_no_double_counting_base_0_v1,cumulative_capacity_no_double_counting,base,,PASS,"cumulative=6,315.0 (= terminal deployable_capacity + total deployed); naive sum-of-years-end-balances would have reported 22,509.0 -- naive method overstates by 16,194.0, confirming the fix matters",v1,2026-09-16T01:08:58Z
+val_cumulative_capacity_no_double_counting_downside_0_v1,cumulative_capacity_no_double_counting,downside,,PASS,"cumulative=6,087.5 (= terminal deployable_capacity + total deployed); naive sum-of-years-end-balances would have reported 22,905.9 -- naive method overstates by 16,818.4, confirming the fix matters",v1,2026-09-16T01:08:58Z
+val_cumulative_capacity_no_double_counting_upside_0_v1,cumulative_capacity_no_double_counting,upside,,PASS,"cumulative=3,241.9 (= terminal deployable_capacity + total deployed); naive sum-of-years-end-balances would have reported 12,293.9 -- naive method overstates by 9,052.0, confirming the fix matters",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_base_2026_v1,debt_roll_forward,base,2026.0,PASS,"debt_beg=14343.0, debt_end=14343.0 vs beg+proceeds-repay=14343.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_base_2027_v1,debt_roll_forward,base,2027.0,PASS,"debt_beg=14343.0, debt_end=14343.0 vs beg+proceeds-repay=14343.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_base_2028_v1,debt_roll_forward,base,2028.0,PASS,"debt_beg=14343.0, debt_end=14343.0 vs beg+proceeds-repay=14343.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_base_2029_v1,debt_roll_forward,base,2029.0,PASS,"debt_beg=14343.0, debt_end=14343.0 vs beg+proceeds-repay=14343.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_base_2030_v1,debt_roll_forward,base,2030.0,PASS,"debt_beg=14343.0, debt_end=14343.0 vs beg+proceeds-repay=14343.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_downside_2026_v1,debt_roll_forward,downside,2026.0,PASS,"debt_beg=14343.0, debt_end=14543.0 vs beg+proceeds-repay=14543.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_downside_2027_v1,debt_roll_forward,downside,2027.0,PASS,"debt_beg=14543.0, debt_end=14743.0 vs beg+proceeds-repay=14743.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_downside_2028_v1,debt_roll_forward,downside,2028.0,PASS,"debt_beg=14743.0, debt_end=14943.0 vs beg+proceeds-repay=14943.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_downside_2029_v1,debt_roll_forward,downside,2029.0,PASS,"debt_beg=14943.0, debt_end=15143.0 vs beg+proceeds-repay=15143.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_downside_2030_v1,debt_roll_forward,downside,2030.0,PASS,"debt_beg=15143.0, debt_end=15343.0 vs beg+proceeds-repay=15343.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_upside_2026_v1,debt_roll_forward,upside,2026.0,PASS,"debt_beg=14343.0, debt_end=13643.0 vs beg+proceeds-repay=13643.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_upside_2027_v1,debt_roll_forward,upside,2027.0,PASS,"debt_beg=13643.0, debt_end=12943.0 vs beg+proceeds-repay=12943.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_upside_2028_v1,debt_roll_forward,upside,2028.0,PASS,"debt_beg=12943.0, debt_end=12243.0 vs beg+proceeds-repay=12243.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_upside_2029_v1,debt_roll_forward,upside,2029.0,PASS,"debt_beg=12243.0, debt_end=11543.0 vs beg+proceeds-repay=11543.0",v1,2026-09-16T01:08:58Z
+val_debt_roll_forward_upside_2030_v1,debt_roll_forward,upside,2030.0,PASS,"debt_beg=11543.0, debt_end=10843.0 vs beg+proceeds-repay=10843.0",v1,2026-09-16T01:08:58Z
+val_eps_consistency_base_2026_v1,eps_consistency,base,2026.0,PASS,diluted_eps=8.1215 vs net_income/shares=8.1215,v1,2026-09-16T01:08:58Z
+val_eps_consistency_base_2027_v1,eps_consistency,base,2027.0,PASS,diluted_eps=8.1394 vs net_income/shares=8.1394,v1,2026-09-16T01:08:58Z
+val_eps_consistency_base_2028_v1,eps_consistency,base,2028.0,PASS,diluted_eps=8.1577 vs net_income/shares=8.1577,v1,2026-09-16T01:08:58Z
+val_eps_consistency_base_2029_v1,eps_consistency,base,2029.0,PASS,diluted_eps=8.1728 vs net_income/shares=8.1728,v1,2026-09-16T01:08:58Z
+val_eps_consistency_base_2030_v1,eps_consistency,base,2030.0,PASS,diluted_eps=8.1845 vs net_income/shares=8.1845,v1,2026-09-16T01:08:58Z
+val_eps_consistency_downside_2026_v1,eps_consistency,downside,2026.0,PASS,diluted_eps=7.7690 vs net_income/shares=7.7690,v1,2026-09-16T01:08:58Z
+val_eps_consistency_downside_2027_v1,eps_consistency,downside,2027.0,PASS,diluted_eps=6.4147 vs net_income/shares=6.4147,v1,2026-09-16T01:08:58Z
+val_eps_consistency_downside_2028_v1,eps_consistency,downside,2028.0,PASS,diluted_eps=5.1222 vs net_income/shares=5.1222,v1,2026-09-16T01:08:58Z
+val_eps_consistency_downside_2029_v1,eps_consistency,downside,2029.0,PASS,diluted_eps=3.8861 vs net_income/shares=3.8861,v1,2026-09-16T01:08:58Z
+val_eps_consistency_downside_2030_v1,eps_consistency,downside,2030.0,PASS,diluted_eps=2.7107 vs net_income/shares=2.7107,v1,2026-09-16T01:08:58Z
+val_eps_consistency_upside_2026_v1,eps_consistency,upside,2026.0,PASS,diluted_eps=8.3417 vs net_income/shares=8.3417,v1,2026-09-16T01:08:58Z
+val_eps_consistency_upside_2027_v1,eps_consistency,upside,2027.0,PASS,diluted_eps=9.4227 vs net_income/shares=9.4227,v1,2026-09-16T01:08:58Z
+val_eps_consistency_upside_2028_v1,eps_consistency,upside,2028.0,PASS,diluted_eps=10.5802 vs net_income/shares=10.5802,v1,2026-09-16T01:08:58Z
+val_eps_consistency_upside_2029_v1,eps_consistency,upside,2029.0,PASS,diluted_eps=11.8211 vs net_income/shares=11.8211,v1,2026-09-16T01:08:58Z
+val_eps_consistency_upside_2030_v1,eps_consistency,upside,2030.0,PASS,diluted_eps=13.1529 vs net_income/shares=13.1529,v1,2026-09-16T01:08:58Z
+val_fcf_calc_base_2026_v1,fcf_calc,base,2026.0,PASS,"FCF=3250.9 vs CFO-CapEx=3250.9 (CapEx=3809.8, distinct from total CFI=-3809.8)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_base_2027_v1,fcf_calc,base,2027.0,PASS,"FCF=3436.0 vs CFO-CapEx=3436.0 (CapEx=3847.9, distinct from total CFI=-3847.9)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_base_2028_v1,fcf_calc,base,2028.0,PASS,"FCF=3556.7 vs CFO-CapEx=3556.7 (CapEx=3886.4, distinct from total CFI=-3886.4)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_base_2029_v1,fcf_calc,base,2029.0,PASS,"FCF=3678.9 vs CFO-CapEx=3678.9 (CapEx=3925.2, distinct from total CFI=-3925.2)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_base_2030_v1,fcf_calc,base,2030.0,PASS,"FCF=3801.3 vs CFO-CapEx=3801.3 (CapEx=3964.5, distinct from total CFI=-3964.5)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_downside_2026_v1,fcf_calc,downside,2026.0,PASS,"FCF=1879.0 vs CFO-CapEx=1879.0 (CapEx=2860.5, distinct from total CFI=-2860.5)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_downside_2027_v1,fcf_calc,downside,2027.0,PASS,"FCF=3465.4 vs CFO-CapEx=3465.4 (CapEx=2789.0, distinct from total CFI=-2789.0)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_downside_2028_v1,fcf_calc,downside,2028.0,PASS,"FCF=2984.2 vs CFO-CapEx=2984.2 (CapEx=2719.3, distinct from total CFI=-2719.3)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_downside_2029_v1,fcf_calc,downside,2029.0,PASS,"FCF=2522.9 vs CFO-CapEx=2522.9 (CapEx=2651.3, distinct from total CFI=-2651.3)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_downside_2030_v1,fcf_calc,downside,2030.0,PASS,"FCF=2082.6 vs CFO-CapEx=2082.6 (CapEx=2585.0, distinct from total CFI=-2585.0)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_upside_2026_v1,fcf_calc,upside,2026.0,PASS,"FCF=4191.6 vs CFO-CapEx=4191.6 (CapEx=4640.7, distinct from total CFI=-4640.7)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_upside_2027_v1,fcf_calc,upside,2027.0,PASS,"FCF=3302.2 vs CFO-CapEx=3302.2 (CapEx=4779.9, distinct from total CFI=-4779.9)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_upside_2028_v1,fcf_calc,upside,2028.0,PASS,"FCF=3852.4 vs CFO-CapEx=3852.4 (CapEx=4923.3, distinct from total CFI=-4923.3)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_upside_2029_v1,fcf_calc,upside,2029.0,PASS,"FCF=4431.5 vs CFO-CapEx=4431.5 (CapEx=5071.0, distinct from total CFI=-5071.0)",v1,2026-09-16T01:08:58Z
+val_fcf_calc_upside_2030_v1,fcf_calc,upside,2030.0,PASS,"FCF=5040.4 vs CFO-CapEx=5040.4 (CapEx=5223.2, distinct from total CFI=-5223.2)",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_base_2026_v1,gross_profit_calc,base,2026.0,PASS,"gross_profit=29557.7, revenue*margin=29557.7, revenue-COGS=29557.7",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_base_2027_v1,gross_profit_calc,base,2027.0,PASS,"gross_profit=29871.5, revenue*margin=29871.5, revenue-COGS=29871.5",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_base_2028_v1,gross_profit_calc,base,2028.0,PASS,"gross_profit=30189.6, revenue*margin=30189.6, revenue-COGS=30189.6",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_base_2029_v1,gross_profit_calc,base,2029.0,PASS,"gross_profit=30511.1, revenue*margin=30511.1, revenue-COGS=30511.1",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_base_2030_v1,gross_profit_calc,base,2030.0,PASS,"gross_profit=30835.0, revenue*margin=30835.0, revenue-COGS=30835.0",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_downside_2026_v1,gross_profit_calc,downside,2026.0,PASS,"gross_profit=28533.4, revenue*margin=28533.4, revenue-COGS=28533.4",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_downside_2027_v1,gross_profit_calc,downside,2027.0,PASS,"gross_profit=27414.7, revenue*margin=27414.7, revenue-COGS=27414.7",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_downside_2028_v1,gross_profit_calc,downside,2028.0,PASS,"gross_profit=26333.1, revenue*margin=26333.1, revenue-COGS=26333.1",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_downside_2029_v1,gross_profit_calc,downside,2029.0,PASS,"gross_profit=25288.4, revenue*margin=25288.4, revenue-COGS=25288.4",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_downside_2030_v1,gross_profit_calc,downside,2030.0,PASS,"gross_profit=24280.5, revenue*margin=24280.5, revenue-COGS=24280.5",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_upside_2026_v1,gross_profit_calc,upside,2026.0,PASS,"gross_profit=30143.0, revenue*margin=30143.0, revenue-COGS=30143.0",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_upside_2027_v1,gross_profit_calc,upside,2027.0,PASS,"gross_profit=31289.6, revenue*margin=31289.6, revenue-COGS=31289.6",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_upside_2028_v1,gross_profit_calc,upside,2028.0,PASS,"gross_profit=32476.8, revenue*margin=32476.8, revenue-COGS=32476.8",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_upside_2029_v1,gross_profit_calc,upside,2029.0,PASS,"gross_profit=33707.0, revenue*margin=33707.0, revenue-COGS=33707.0",v1,2026-09-16T01:08:58Z
+val_gross_profit_calc_upside_2030_v1,gross_profit_calc,upside,2030.0,PASS,"gross_profit=34983.0, revenue*margin=34983.0, revenue-COGS=34983.0",v1,2026-09-16T01:08:58Z
+val_information_cutoff_compliance_all_0_v1,information_cutoff_compliance,,,PASS,"every assumption's information_cutoff <= FORECAST_INFORMATION_CUTOFF (2026-03-11, FY2025 10-K)",v1,2026-09-16T01:08:58Z
+val_lineage_completeness_base_0_v1,lineage_completeness,base,,PASS,"50 lineage rows covering 10/10 tracked metrics per year, all with >=1 assumption_id",v1,2026-09-16T01:08:58Z
+val_lineage_completeness_downside_0_v1,lineage_completeness,downside,,PASS,"50 lineage rows covering 10/10 tracked metrics per year, all with >=1 assumption_id",v1,2026-09-16T01:08:58Z
+val_lineage_completeness_upside_0_v1,lineage_completeness,upside,,PASS,"50 lineage rows covering 10/10 tracked metrics per year, all with >=1 assumption_id",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_base_2026_v1,minimum_cash_compliance,base,2026.0,PASS,"ending_cash=6188.4, min_cash_buffer=3174.8, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_base_2027_v1,minimum_cash_compliance,base,2027.0,PASS,"ending_cash=6981.2, min_cash_buffer=3206.6, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_base_2028_v1,minimum_cash_compliance,base,2028.0,PASS,"ending_cash=7827.5, min_cash_buffer=3238.6, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_base_2029_v1,minimum_cash_compliance,base,2029.0,PASS,"ending_cash=8728.0, min_cash_buffer=3271.0, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_base_2030_v1,minimum_cash_compliance,base,2030.0,PASS,"ending_cash=9682.5, min_cash_buffer=3303.7, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_downside_2026_v1,minimum_cash_compliance,downside,2026.0,PASS,"ending_cash=5514.0, min_cash_buffer=3064.8, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_downside_2027_v1,minimum_cash_compliance,downside,2027.0,PASS,"ending_cash=7126.4, min_cash_buffer=2988.2, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_downside_2028_v1,minimum_cash_compliance,downside,2028.0,PASS,"ending_cash=8257.6, min_cash_buffer=2913.5, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_downside_2029_v1,minimum_cash_compliance,downside,2029.0,PASS,"ending_cash=8927.5, min_cash_buffer=2840.7, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_downside_2030_v1,minimum_cash_compliance,downside,2030.0,PASS,"ending_cash=9157.2, min_cash_buffer=2769.6, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_upside_2026_v1,minimum_cash_compliance,upside,2026.0,PASS,"ending_cash=5727.8, min_cash_buffer=3237.7, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_upside_2027_v1,minimum_cash_compliance,upside,2027.0,PASS,"ending_cash=5544.3, min_cash_buffer=3334.8, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_upside_2028_v1,minimum_cash_compliance,upside,2028.0,PASS,"ending_cash=5584.8, min_cash_buffer=3434.9, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_upside_2029_v1,minimum_cash_compliance,upside,2029.0,PASS,"ending_cash=5861.6, min_cash_buffer=3537.9, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_minimum_cash_compliance_upside_2030_v1,minimum_cash_compliance,upside,2030.0,PASS,"ending_cash=6387.6, min_cash_buffer=3644.1, funding_warning=False",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_base_2026_v1,no_finance_lease_double_counting,base,2026.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_base_2027_v1,no_finance_lease_double_counting,base,2027.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_base_2028_v1,no_finance_lease_double_counting,base,2028.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_base_2029_v1,no_finance_lease_double_counting,base,2029.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_base_2030_v1,no_finance_lease_double_counting,base,2030.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_downside_2026_v1,no_finance_lease_double_counting,downside,2026.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_downside_2027_v1,no_finance_lease_double_counting,downside,2027.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_downside_2028_v1,no_finance_lease_double_counting,downside,2028.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_downside_2029_v1,no_finance_lease_double_counting,downside,2029.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_downside_2030_v1,no_finance_lease_double_counting,downside,2030.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_upside_2026_v1,no_finance_lease_double_counting,upside,2026.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_upside_2027_v1,no_finance_lease_double_counting,upside,2027.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_upside_2028_v1,no_finance_lease_double_counting,upside,2028.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_upside_2029_v1,no_finance_lease_double_counting,upside,2029.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_finance_lease_double_counting_upside_2030_v1,no_finance_lease_double_counting,upside,2030.0,PASS,"finance_lease=2113.0 (flat at FY2025 actual, held outside total_debt_gaap roll-forward)",v1,2026-09-16T01:08:58Z
+val_no_historical_forecast_mixing_all_0_v1,no_historical_forecast_mixing,,,PASS,FORECAST_YEARS and HISTORICAL_YEARS are disjoint and every ForecastYear.fiscal_year is a FORECAST_YEARS member,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_base_2026_v1,operating_income_bridge,base,2026.0,PASS,operating_income=5081.9 vs gross_profit-SG&A-D&A=5081.9,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_base_2027_v1,operating_income_bridge,base,2027.0,PASS,operating_income=5068.5 vs gross_profit-SG&A-D&A=5068.5,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_base_2028_v1,operating_income_bridge,base,2028.0,PASS,operating_income=5055.5 vs gross_profit-SG&A-D&A=5055.5,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_base_2029_v1,operating_income_bridge,base,2029.0,PASS,operating_income=5040.7 vs gross_profit-SG&A-D&A=5040.7,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_base_2030_v1,operating_income_bridge,base,2030.0,PASS,operating_income=5023.9 vs gross_profit-SG&A-D&A=5023.9,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_downside_2026_v1,operating_income_bridge,downside,2026.0,PASS,operating_income=5007.9 vs gross_profit-SG&A-D&A=5007.9,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_downside_2027_v1,operating_income_bridge,downside,2027.0,PASS,operating_income=4213.4 vs gross_profit-SG&A-D&A=4213.4,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_downside_2028_v1,operating_income_bridge,downside,2028.0,PASS,operating_income=3455.4 vs gross_profit-SG&A-D&A=3455.4,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_downside_2029_v1,operating_income_bridge,downside,2029.0,PASS,operating_income=2730.8 vs gross_profit-SG&A-D&A=2730.8,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_downside_2030_v1,operating_income_bridge,downside,2030.0,PASS,operating_income=2042.1 vs gross_profit-SG&A-D&A=2042.1,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_upside_2026_v1,operating_income_bridge,upside,2026.0,PASS,operating_income=5074.6 vs gross_profit-SG&A-D&A=5074.6,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_upside_2027_v1,operating_income_bridge,upside,2027.0,PASS,operating_income=5591.4 vs gross_profit-SG&A-D&A=5591.4,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_upside_2028_v1,operating_income_bridge,upside,2028.0,PASS,operating_income=6133.5 vs gross_profit-SG&A-D&A=6133.5,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_upside_2029_v1,operating_income_bridge,upside,2029.0,PASS,operating_income=6703.2 vs gross_profit-SG&A-D&A=6703.2,v1,2026-09-16T01:08:58Z
+val_operating_income_bridge_upside_2030_v1,operating_income_bridge,upside,2030.0,PASS,operating_income=7302.7 vs gross_profit-SG&A-D&A=7302.7,v1,2026-09-16T01:08:58Z
+val_other_operating_cf_not_a_plug_base_0_v1,other_operating_cf_not_a_plug,base,,PASS,"other_operating_cf per year: [150.0, 150.0, 150.0, 150.0, 150.0] -- constant, consistent with a fixed assumption",v1,2026-09-16T01:08:58Z
+val_other_operating_cf_not_a_plug_downside_0_v1,other_operating_cf_not_a_plug,downside,,PASS,"other_operating_cf per year: [50.0, 50.0, 50.0, 50.0, 50.0] -- constant, consistent with a fixed assumption",v1,2026-09-16T01:08:58Z
+val_other_operating_cf_not_a_plug_upside_0_v1,other_operating_cf_not_a_plug,upside,,PASS,"other_operating_cf per year: [250.0, 250.0, 250.0, 250.0, 250.0] -- constant, consistent with a fixed assumption",v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_base_2026_v1,pretax_income_bridge,base,2026.0,PASS,pretax_income=4732.2 vs OI-interest+other=4732.2,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_base_2027_v1,pretax_income_bridge,base,2027.0,PASS,pretax_income=4718.9 vs OI-interest+other=4718.9,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_base_2028_v1,pretax_income_bridge,base,2028.0,PASS,pretax_income=4705.9 vs OI-interest+other=4705.9,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_base_2029_v1,pretax_income_bridge,base,2029.0,PASS,pretax_income=4691.0 vs OI-interest+other=4691.0,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_base_2030_v1,pretax_income_bridge,base,2030.0,PASS,pretax_income=4674.3 vs OI-interest+other=4674.3,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_downside_2026_v1,pretax_income_bridge,downside,2026.0,PASS,pretax_income=4596.8 vs OI-interest+other=4596.8,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_downside_2027_v1,pretax_income_bridge,downside,2027.0,PASS,pretax_income=3795.5 vs OI-interest+other=3795.5,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_downside_2028_v1,pretax_income_bridge,downside,2028.0,PASS,pretax_income=3030.7 vs OI-interest+other=3030.7,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_downside_2029_v1,pretax_income_bridge,downside,2029.0,PASS,pretax_income=2299.4 vs OI-interest+other=2299.4,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_downside_2030_v1,pretax_income_bridge,downside,2030.0,PASS,pretax_income=1603.9 vs OI-interest+other=1603.9,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_upside_2026_v1,pretax_income_bridge,upside,2026.0,PASS,pretax_income=4768.8 vs OI-interest+other=4768.8,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_upside_2027_v1,pretax_income_bridge,upside,2027.0,PASS,pretax_income=5305.9 vs OI-interest+other=5305.9,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_upside_2028_v1,pretax_income_bridge,upside,2028.0,PASS,pretax_income=5868.4 vs OI-interest+other=5868.4,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_upside_2029_v1,pretax_income_bridge,upside,2029.0,PASS,pretax_income=6458.3 vs OI-interest+other=6458.3,v1,2026-09-16T01:08:58Z
+val_pretax_income_bridge_upside_2030_v1,pretax_income_bridge,upside,2030.0,PASS,pretax_income=7078.1 vs OI-interest+other=7078.1,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_base_2026_v1,revenue_recursion,base,2026.0,PASS,revenue=105827.8 vs prev*(1+g)=105827.8,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_base_2027_v1,revenue_recursion,base,2027.0,PASS,revenue=106886.1 vs prev*(1+g)=106886.1,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_base_2028_v1,revenue_recursion,base,2028.0,PASS,revenue=107954.9 vs prev*(1+g)=107954.9,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_base_2029_v1,revenue_recursion,base,2029.0,PASS,revenue=109034.5 vs prev*(1+g)=109034.5,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_base_2030_v1,revenue_recursion,base,2030.0,PASS,revenue=110124.8 vs prev*(1+g)=110124.8,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_downside_2026_v1,revenue_recursion,downside,2026.0,PASS,revenue=102160.5 vs prev*(1+g)=102160.5,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_downside_2027_v1,revenue_recursion,downside,2027.0,PASS,revenue=99606.5 vs prev*(1+g)=99606.5,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_downside_2028_v1,revenue_recursion,downside,2028.0,PASS,revenue=97116.3 vs prev*(1+g)=97116.3,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_downside_2029_v1,revenue_recursion,downside,2029.0,PASS,revenue=94688.4 vs prev*(1+g)=94688.4,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_downside_2030_v1,revenue_recursion,downside,2030.0,PASS,revenue=92321.2 vs prev*(1+g)=92321.2,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_upside_2026_v1,revenue_recursion,upside,2026.0,PASS,revenue=107923.4 vs prev*(1+g)=107923.4,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_upside_2027_v1,revenue_recursion,upside,2027.0,PASS,revenue=111161.1 vs prev*(1+g)=111161.1,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_upside_2028_v1,revenue_recursion,upside,2028.0,PASS,revenue=114495.9 vs prev*(1+g)=114495.9,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_upside_2029_v1,revenue_recursion,upside,2029.0,PASS,revenue=117930.8 vs prev*(1+g)=117930.8,v1,2026-09-16T01:08:58Z
+val_revenue_recursion_upside_2030_v1,revenue_recursion,upside,2030.0,PASS,revenue=121468.7 vs prev*(1+g)=121468.7,v1,2026-09-16T01:08:58Z
+val_scenario_ordering_all_2026_v1,scenario_ordering,,2026.0,PASS,upside >= base >= downside holds for all economically-unambiguous drivers,v1,2026-09-16T01:08:58Z
+val_scenario_ordering_all_2027_v1,scenario_ordering,,2027.0,PASS,upside >= base >= downside holds for all economically-unambiguous drivers,v1,2026-09-16T01:08:58Z
+val_scenario_ordering_all_2028_v1,scenario_ordering,,2028.0,PASS,upside >= base >= downside holds for all economically-unambiguous drivers,v1,2026-09-16T01:08:58Z
+val_scenario_ordering_all_2029_v1,scenario_ordering,,2029.0,PASS,upside >= base >= downside holds for all economically-unambiguous drivers,v1,2026-09-16T01:08:58Z
+val_scenario_ordering_all_2030_v1,scenario_ordering,,2030.0,PASS,upside >= base >= downside holds for all economically-unambiguous drivers,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_base_2026_v1,tax_net_income_bridge,base,2026.0,PASS,tax=1050.6 vs pretax*ETR=1050.6; net_income=3681.7 vs pretax-tax=3681.7,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_base_2027_v1,tax_net_income_bridge,base,2027.0,PASS,tax=1047.6 vs pretax*ETR=1047.6; net_income=3671.3 vs pretax-tax=3671.3,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_base_2028_v1,tax_net_income_bridge,base,2028.0,PASS,tax=1044.7 vs pretax*ETR=1044.7; net_income=3661.2 vs pretax-tax=3661.2,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_base_2029_v1,tax_net_income_bridge,base,2029.0,PASS,tax=1041.4 vs pretax*ETR=1041.4; net_income=3649.6 vs pretax-tax=3649.6,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_base_2030_v1,tax_net_income_bridge,base,2030.0,PASS,tax=1037.7 vs pretax*ETR=1037.7; net_income=3636.6 vs pretax-tax=3636.6,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_downside_2026_v1,tax_net_income_bridge,downside,2026.0,PASS,tax=1057.3 vs pretax*ETR=1057.3; net_income=3539.6 vs pretax-tax=3539.6,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_downside_2027_v1,tax_net_income_bridge,downside,2027.0,PASS,tax=873.0 vs pretax*ETR=873.0; net_income=2922.5 vs pretax-tax=2922.5,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_downside_2028_v1,tax_net_income_bridge,downside,2028.0,PASS,tax=697.1 vs pretax*ETR=697.1; net_income=2333.7 vs pretax-tax=2333.7,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_downside_2029_v1,tax_net_income_bridge,downside,2029.0,PASS,tax=528.9 vs pretax*ETR=528.9; net_income=1770.5 vs pretax-tax=1770.5,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_downside_2030_v1,tax_net_income_bridge,downside,2030.0,PASS,tax=368.9 vs pretax*ETR=368.9; net_income=1235.0 vs pretax-tax=1235.0,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_upside_2026_v1,tax_net_income_bridge,upside,2026.0,PASS,tax=1025.3 vs pretax*ETR=1025.3; net_income=3743.5 vs pretax-tax=3743.5,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_upside_2027_v1,tax_net_income_bridge,upside,2027.0,PASS,tax=1140.8 vs pretax*ETR=1140.8; net_income=4165.1 vs pretax-tax=4165.1,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_upside_2028_v1,tax_net_income_bridge,upside,2028.0,PASS,tax=1261.7 vs pretax*ETR=1261.7; net_income=4606.7 vs pretax-tax=4606.7,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_upside_2029_v1,tax_net_income_bridge,upside,2029.0,PASS,tax=1388.5 vs pretax*ETR=1388.5; net_income=5069.8 vs pretax-tax=5069.8,v1,2026-09-16T01:08:58Z
+val_tax_net_income_bridge_upside_2030_v1,tax_net_income_bridge,upside,2030.0,PASS,tax=1521.8 vs pretax*ETR=1521.8; net_income=5556.3 vs pretax-tax=5556.3,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_base_2026_v1,working_capital_sign_checks,base,2026.0,PASS,inventory_delta=183.7/cash_impact=-183.7; ap_delta=115.1/cash_impact=115.1,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_base_2027_v1,working_capital_sign_checks,base,2027.0,PASS,inventory_delta=124.9/cash_impact=-124.9; ap_delta=124.3/cash_impact=124.3,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_base_2028_v1,working_capital_sign_checks,base,2028.0,PASS,inventory_delta=126.1/cash_impact=-126.1; ap_delta=125.4/cash_impact=125.4,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_base_2029_v1,working_capital_sign_checks,base,2029.0,PASS,inventory_delta=127.4/cash_impact=-127.4; ap_delta=126.6/cash_impact=126.6,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_base_2030_v1,working_capital_sign_checks,base,2030.0,PASS,inventory_delta=128.7/cash_impact=-128.7; ap_delta=128.0/cash_impact=128.0,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_downside_2026_v1,working_capital_sign_checks,downside,2026.0,PASS,inventory_delta=772.5/cash_impact=-772.5; ap_delta=-1209.8/cash_impact=-1209.8,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_downside_2027_v1,working_capital_sign_checks,downside,2027.0,PASS,inventory_delta=-326.9/cash_impact=326.9; ap_delta=-222.5/cash_impact=-222.5,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_downside_2028_v1,working_capital_sign_checks,downside,2028.0,PASS,inventory_delta=-318.7/cash_impact=318.7; ap_delta=-218.3/cash_impact=-218.3,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_downside_2029_v1,working_capital_sign_checks,downside,2029.0,PASS,inventory_delta=-310.8/cash_impact=310.8; ap_delta=-214.4/cash_impact=-214.4,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_downside_2030_v1,working_capital_sign_checks,downside,2030.0,PASS,inventory_delta=-303.0/cash_impact=303.0; ap_delta=-210.7/cash_impact=-210.7,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_upside_2026_v1,working_capital_sign_checks,upside,2026.0,PASS,inventory_delta=-432.4/cash_impact=432.4; ap_delta=989.6/cash_impact=989.6,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_upside_2027_v1,working_capital_sign_checks,upside,2027.0,PASS,inventory_delta=356.1/cash_impact=-356.1; ap_delta=365.9/cash_impact=365.9,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_upside_2028_v1,working_capital_sign_checks,upside,2028.0,PASS,inventory_delta=366.8/cash_impact=-366.8; ap_delta=375.8/cash_impact=375.8,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_upside_2029_v1,working_capital_sign_checks,upside,2029.0,PASS,inventory_delta=377.8/cash_impact=-377.8; ap_delta=385.8/cash_impact=385.8,v1,2026-09-16T01:08:58Z
+val_working_capital_sign_checks_upside_2030_v1,working_capital_sign_checks,upside,2030.0,PASS,inventory_delta=389.2/cash_impact=-389.2; ap_delta=395.8/cash_impact=395.8,v1,2026-09-16T01:08:58Z

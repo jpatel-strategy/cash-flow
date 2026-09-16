@@ -1,0 +1,53 @@
+{
+  "name": "Target Cash Flow Model",
+  "dataColors": [
+    "#1F3864",
+    "#C9A227",
+    "#8FAADC",
+    "#548235",
+    "#C00000",
+    "#7F7F7F",
+    "#2E75B6",
+    "#BF8F00"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#1F3864",
+  "tableAccent": "#1F3864",
+  "good": "#548235",
+  "neutral": "#BF8F00",
+  "bad": "#C00000",
+  "maximum": "#1F3864",
+  "center": "#D9E2F3",
+  "minimum": "#FFFFFF",
+  "null": "#D9D9D9",
+  "textClasses": {
+    "callout": { "fontSize": 32, "color": "#1F3864" },
+    "title": { "fontSize": 14, "fontFace": "Segoe UI Semibold", "color": "#1F3864" },
+    "header": { "fontSize": 12, "fontFace": "Segoe UI Semibold", "color": "#FFFFFF" },
+    "label": { "fontSize": 10, "fontFace": "Segoe UI", "color": "#404040" }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [ { "show": true, "color": { "solid": { "color": "#FFFFFF" } } } ],
+        "border": [ { "show": true, "color": { "solid": { "color": "#D9E2F3" } } } ]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [ { "color": { "solid": { "color": "#FFFFFF" } }, "transparency": 0 } ]
+      }
+    },
+    "card": {
+      "*": {
+        "labels": [ { "color": "#1F3864", "fontSize": 24 } ],
+        "categoryLabels": [ { "color": "#404040", "fontSize": 11 } ]
+      }
+    },
+    "slicer": {
+      "*": {
+        "general": [ { "orientation": "Horizontal" } ]
+      }
+    }
+  }
+}

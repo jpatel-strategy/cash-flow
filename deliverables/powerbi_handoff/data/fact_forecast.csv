@@ -1,0 +1,766 @@
+forecast_fact_id,scenario_id,fiscal_year,metric,metric_definition_version,assumption_version,value,unit,formula,validation_status,information_cutoff
+fct_base_accounts_payable_balance_2026_v1,base,2026,accounts_payable_balance,forecast_v1,v1,12737.10594182,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_base_ap_cash_impact_2026_v1,base,2026,ap_cash_impact,forecast_v1,v1,115.10594182000023,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_base_beginning_cash_2026_v1,base,2026,beginning_cash,forecast_v1,v1,5488.0,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_base_capital_expenditure_2026_v1,base,2026,capital_expenditure,forecast_v1,v1,3809.8008,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_cost_of_sales_2026_v1,base,2026,cost_of_sales,forecast_v1,v1,76270.09546000001,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_base_da_cfo_addback_2026_v1,base,2026,da_cfo_addback,forecast_v1,v1,3297.5942480000003,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_da_pct_of_revenue_2026_v1,base,2026,da_pct_of_revenue,forecast_v1,v1,2.578,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_proceeds_2026_v1,base,2026,debt_proceeds,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_repayments_2026_v1,base,2026,debt_repayments,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_deployable_capacity_2026_v1,base,2026,deployable_capacity,forecast_v1,v1,2780.4608595879968,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_base_depreciation_amortization_opex_2026_v1,base,2026,depreciation_amortization_opex,forecast_v1,v1,2728.240684,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_diluted_eps_2026_v1,base,2026,diluted_eps,forecast_v1,v1,8.121524147886047,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_base_diluted_shares_2026_v1,base,2026,diluted_shares,forecast_v1,v1,453.322,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_base_dividend_per_share_2026_v1,base,2026,dividend_per_share,forecast_v1,v1,4.596268656716418,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_dividends_paid_2026_v1,base,2026,dividends_paid,forecast_v1,v1,2083.5897000000004,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_base_effective_tax_rate_pct_2026_v1,base,2026,effective_tax_rate_pct,forecast_v1,v1,22.2,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_ending_cash_2026_v1,base,2026,ending_cash,forecast_v1,v1,6188.376915752799,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_base_finance_lease_liabilities_2026_v1,base,2026,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_base_financing_cash_flow_2026_v1,base,2026,financing_cash_flow,forecast_v1,v1,-2550.5076438352,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_free_cash_flow_2026_v1,base,2026,free_cash_flow,forecast_v1,v1,3250.8845595879984,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_base_funding_warning_2026_v1,base,2026,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_base_gross_fcf_capacity_2026_v1,base,2026,gross_fcf_capacity,forecast_v1,v1,3250.8845595879984,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_base_gross_margin_pct_2026_v1,base,2026,gross_margin_pct,forecast_v1,v1,27.93,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_gross_profit_2026_v1,base,2026,gross_profit,forecast_v1,v1,29557.70454,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_base_income_tax_expense_2026_v1,base,2026,income_tax_expense,forecast_v1,v1,1050.5523862319997,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_base_interest_expense_2026_v1,base,2026,interest_expense,forecast_v1,v1,444.633,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_base_interest_rate_pct_2026_v1,base,2026,interest_rate_pct,forecast_v1,v1,3.1,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_inventory_balance_2026_v1,base,2026,inventory_balance,forecast_v1,v1,12487.680400000001,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_inventory_cash_impact_2026_v1,base,2026,inventory_cash_impact,forecast_v1,v1,-183.6804000000011,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_base_investing_cash_flow_2026_v1,base,2026,investing_cash_flow,forecast_v1,v1,-3809.8008,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_base_mandatory_financing_flows_2026_v1,base,2026,mandatory_financing_flows,forecast_v1,v1,-2083.5897000000004,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_min_cash_buffer_2026_v1,base,2026,min_cash_buffer,forecast_v1,v1,3174.8340000000003,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_near_term_debt_repayment_reserve_2026_v1,base,2026,near_term_debt_repayment_reserve,forecast_v1,v1,700.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_base_net_change_in_cash_2026_v1,base,2026,net_change_in_cash,forecast_v1,v1,700.3769157527986,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_base_net_income_2026_v1,base,2026,net_income,forecast_v1,v1,3681.665569767999,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_base_net_other_income_2026_v1,base,2026,net_other_income,forecast_v1,v1,95.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_operating_cash_flow_2026_v1,base,2026,operating_cash_flow,forecast_v1,v1,7060.685359587998,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_base_operating_income_2026_v1,base,2026,operating_income,forecast_v1,v1,5081.850955999998,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_base_operating_margin_pct_2026_v1,base,2026,operating_margin_pct,forecast_v1,v1,4.801999999999999,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_base_other_operating_cf_2026_v1,base,2026,other_operating_cf,forecast_v1,v1,150.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_post_dividend_capacity_2026_v1,base,2026,post_dividend_capacity,forecast_v1,v1,1167.294859587998,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_base_pre_discretionary_ending_cash_2026_v1,base,2026,pre_discretionary_ending_cash,forecast_v1,v1,6655.294859587997,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_base_pretax_income_2026_v1,base,2026,pretax_income,forecast_v1,v1,4732.217955999999,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_base_revenue_2026_v1,base,2026,revenue,forecast_v1,v1,105827.8,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_revenue_growth_pct_2026_v1,base,2026,revenue_growth_pct,forecast_v1,v1,1.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_sga_expense_2026_v1,base,2026,sga_expense,forecast_v1,v1,21747.6129,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_sga_pct_of_revenue_2026_v1,base,2026,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_share_repurchases_2026_v1,base,2026,share_repurchases,forecast_v1,v1,466.9179438351992,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_base_total_debt_gaap_beginning_2026_v1,base,2026,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_base_total_debt_gaap_ending_2026_v1,base,2026,total_debt_gaap_ending,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_valuation_net_debt_2026_v1,base,2026,valuation_net_debt,forecast_v1,v1,8154.623084247201,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_base_accounts_payable_balance_2027_v1,base,2027,accounts_payable_balance,forecast_v1,v1,12861.44250548378,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_base_ap_cash_impact_2027_v1,base,2027,ap_cash_impact,forecast_v1,v1,124.33656366377909,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_base_beginning_cash_2027_v1,base,2027,beginning_cash,forecast_v1,v1,6188.376915752799,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_base_capital_expenditure_2027_v1,base,2027,capital_expenditure,forecast_v1,v1,3847.8988080000004,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_cost_of_sales_2027_v1,base,2027,cost_of_sales,forecast_v1,v1,77014.62578134,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_base_da_cfo_addback_2027_v1,base,2027,da_cfo_addback,forecast_v1,v1,3463.108927200001,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_da_pct_of_revenue_2027_v1,base,2027,da_pct_of_revenue,forecast_v1,v1,2.655,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_proceeds_2027_v1,base,2027,debt_proceeds,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_repayments_2027_v1,base,2027,debt_repayments,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_deployable_capacity_2027_v1,base,2027,deployable_capacity,forecast_v1,v1,3603.137217081854,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_base_depreciation_amortization_opex_2027_v1,base,2027,depreciation_amortization_opex,forecast_v1,v1,2837.8253709,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_diluted_eps_2027_v1,base,2027,diluted_eps,forecast_v1,v1,8.139372747536125,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_base_diluted_shares_2027_v1,base,2027,diluted_shares,forecast_v1,v1,451.05539,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_base_dividend_per_share_2027_v1,base,2027,dividend_per_share,forecast_v1,v1,4.688194029850747,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_dividends_paid_2027_v1,base,2027,dividends_paid,forecast_v1,v1,2114.6351865300003,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_base_effective_tax_rate_pct_2027_v1,base,2027,effective_tax_rate_pct,forecast_v1,v1,22.2,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_ending_cash_2027_v1,base,2027,ending_cash,forecast_v1,v1,6981.182500550232,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_base_finance_lease_liabilities_2027_v1,base,2027,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_base_financing_cash_flow_2027_v1,base,2027,financing_cash_flow,forecast_v1,v1,-2643.172243061623,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_free_cash_flow_2027_v1,base,2027,free_cash_flow,forecast_v1,v1,3435.977827859057,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_base_funding_warning_2027_v1,base,2027,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_base_gross_fcf_capacity_2027_v1,base,2027,gross_fcf_capacity,forecast_v1,v1,3435.977827859057,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_base_gross_margin_pct_2027_v1,base,2027,gross_margin_pct,forecast_v1,v1,27.947,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_gross_profit_2027_v1,base,2027,gross_profit,forecast_v1,v1,29871.45221866,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_base_income_tax_expense_2027_v1,base,2027,income_tax_expense,forecast_v1,v1,1047.5968697647195,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_base_interest_expense_2027_v1,base,2027,interest_expense,forecast_v1,v1,444.633,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_base_interest_rate_pct_2027_v1,base,2027,interest_rate_pct,forecast_v1,v1,3.1,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_inventory_balance_2027_v1,base,2027,inventory_balance,forecast_v1,v1,12612.557204000002,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_inventory_cash_impact_2027_v1,base,2027,inventory_cash_impact,forecast_v1,v1,-124.87680400000136,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_base_investing_cash_flow_2027_v1,base,2027,investing_cash_flow,forecast_v1,v1,-3847.8988080000004,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_base_mandatory_financing_flows_2027_v1,base,2027,mandatory_financing_flows,forecast_v1,v1,-2114.6351865300003,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_min_cash_buffer_2027_v1,base,2027,min_cash_buffer,forecast_v1,v1,3206.5823400000004,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_near_term_debt_repayment_reserve_2027_v1,base,2027,near_term_debt_repayment_reserve,forecast_v1,v1,700.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_base_net_change_in_cash_2027_v1,base,2027,net_change_in_cash,forecast_v1,v1,792.8055847974342,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_base_net_income_2027_v1,base,2027,net_income,forecast_v1,v1,3671.307948995279,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_base_net_other_income_2027_v1,base,2027,net_other_income,forecast_v1,v1,95.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_operating_cash_flow_2027_v1,base,2027,operating_cash_flow,forecast_v1,v1,7283.876635859057,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_base_operating_income_2027_v1,base,2027,operating_income,forecast_v1,v1,5068.537818759998,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_base_operating_margin_pct_2027_v1,base,2027,operating_margin_pct,forecast_v1,v1,4.741999999999997,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_base_other_operating_cf_2027_v1,base,2027,other_operating_cf,forecast_v1,v1,150.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_post_dividend_capacity_2027_v1,base,2027,post_dividend_capacity,forecast_v1,v1,1321.3426413290567,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_base_pre_discretionary_ending_cash_2027_v1,base,2027,pre_discretionary_ending_cash,forecast_v1,v1,7509.719557081855,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_base_pretax_income_2027_v1,base,2027,pretax_income,forecast_v1,v1,4718.904818759998,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_base_revenue_2027_v1,base,2027,revenue,forecast_v1,v1,106886.07800000001,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_revenue_growth_pct_2027_v1,base,2027,revenue_growth_pct,forecast_v1,v1,1.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_sga_expense_2027_v1,base,2027,sga_expense,forecast_v1,v1,21965.089029000002,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_sga_pct_of_revenue_2027_v1,base,2027,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_share_repurchases_2027_v1,base,2027,share_repurchases,forecast_v1,v1,528.5370565316226,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_base_total_debt_gaap_beginning_2027_v1,base,2027,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_base_total_debt_gaap_ending_2027_v1,base,2027,total_debt_gaap_ending,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_valuation_net_debt_2027_v1,base,2027,valuation_net_debt,forecast_v1,v1,7361.817499449768,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_base_accounts_payable_balance_2028_v1,base,2028,accounts_payable_balance,forecast_v1,v1,12986.811805078893,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_base_ap_cash_impact_2028_v1,base,2028,ap_cash_impact,forecast_v1,v1,125.36929959511326,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_base_beginning_cash_2028_v1,base,2028,beginning_cash,forecast_v1,v1,6981.182500550232,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_base_capital_expenditure_2028_v1,base,2028,capital_expenditure,forecast_v1,v1,3886.3777960800007,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_cost_of_sales_2028_v1,base,2028,cost_of_sales,forecast_v1,v1,77765.34015017301,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_base_da_cfo_addback_2028_v1,base,2028,da_cfo_addback,forecast_v1,v1,3632.683689947001,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_da_pct_of_revenue_2028_v1,base,2028,da_pct_of_revenue,forecast_v1,v1,2.732,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_proceeds_2028_v1,base,2028,debt_proceeds,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_repayments_2028_v1,base,2028,debt_repayments,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_deployable_capacity_2028_v1,base,2028,deployable_capacity,forecast_v1,v1,4453.128404989488,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_base_depreciation_amortization_opex_2028_v1,base,2028,depreciation_amortization_opex,forecast_v1,v1,2949.3289274696003,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_diluted_eps_2028_v1,base,2028,diluted_eps,forecast_v1,v1,8.15772454321675,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_base_diluted_shares_2028_v1,base,2028,diluted_shares,forecast_v1,v1,448.80011305,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_base_dividend_per_share_2028_v1,base,2028,dividend_per_share,forecast_v1,v1,4.781957910447762,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_dividends_paid_2028_v1,base,2028,dividends_paid,forecast_v1,v1,2146.143250809297,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_base_effective_tax_rate_pct_2028_v1,base,2028,effective_tax_rate_pct,forecast_v1,v1,22.2,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_ending_cash_2028_v1,base,2028,ending_cash,forecast_v1,v1,7827.538941253785,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_base_finance_lease_liabilities_2028_v1,base,2028,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_base_financing_cash_flow_2028_v1,base,2028,financing_cash_flow,forecast_v1,v1,-2710.380877944999,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_free_cash_flow_2028_v1,base,2028,free_cash_flow,forecast_v1,v1,3556.737318648552,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_base_funding_warning_2028_v1,base,2028,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_base_gross_fcf_capacity_2028_v1,base,2028,gross_fcf_capacity,forecast_v1,v1,3556.737318648552,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_base_gross_margin_pct_2028_v1,base,2028,gross_margin_pct,forecast_v1,v1,27.965,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_gross_profit_2028_v1,base,2028,gross_profit,forecast_v1,v1,30189.598629827,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_base_income_tax_expense_2028_v1,base,2028,income_tax_expense,forecast_v1,v1,1044.7090858409624,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_base_interest_expense_2028_v1,base,2028,interest_expense,forecast_v1,v1,444.633,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_base_interest_rate_pct_2028_v1,base,2028,interest_rate_pct,forecast_v1,v1,3.1,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_inventory_balance_2028_v1,base,2028,inventory_balance,forecast_v1,v1,12738.682776040001,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_inventory_cash_impact_2028_v1,base,2028,inventory_cash_impact,forecast_v1,v1,-126.12557203999859,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_base_investing_cash_flow_2028_v1,base,2028,investing_cash_flow,forecast_v1,v1,-3886.3777960800007,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_base_mandatory_financing_flows_2028_v1,base,2028,mandatory_financing_flows,forecast_v1,v1,-2146.143250809297,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_min_cash_buffer_2028_v1,base,2028,min_cash_buffer,forecast_v1,v1,3238.6481634,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_near_term_debt_repayment_reserve_2028_v1,base,2028,near_term_debt_repayment_reserve,forecast_v1,v1,700.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_base_net_change_in_cash_2028_v1,base,2028,net_change_in_cash,forecast_v1,v1,846.3564407035528,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_base_net_income_2028_v1,base,2028,net_income,forecast_v1,v1,3661.1876972264367,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_base_net_other_income_2028_v1,base,2028,net_other_income,forecast_v1,v1,95.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_operating_cash_flow_2028_v1,base,2028,operating_cash_flow,forecast_v1,v1,7443.115114728553,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_base_operating_income_2028_v1,base,2028,operating_income,forecast_v1,v1,5055.529783067399,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_base_operating_margin_pct_2028_v1,base,2028,operating_margin_pct,forecast_v1,v1,4.682999999999998,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_base_other_operating_cf_2028_v1,base,2028,other_operating_cf,forecast_v1,v1,150.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_post_dividend_capacity_2028_v1,base,2028,post_dividend_capacity,forecast_v1,v1,1410.5940678392549,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_base_pre_discretionary_ending_cash_2028_v1,base,2028,pre_discretionary_ending_cash,forecast_v1,v1,8391.776568389489,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_base_pretax_income_2028_v1,base,2028,pretax_income,forecast_v1,v1,4705.896783067399,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_base_revenue_2028_v1,base,2028,revenue,forecast_v1,v1,107954.93878000001,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_revenue_growth_pct_2028_v1,base,2028,revenue_growth_pct,forecast_v1,v1,1.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_sga_expense_2028_v1,base,2028,sga_expense,forecast_v1,v1,22184.73991929,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_sga_pct_of_revenue_2028_v1,base,2028,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_share_repurchases_2028_v1,base,2028,share_repurchases,forecast_v1,v1,564.2376271357019,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_base_total_debt_gaap_beginning_2028_v1,base,2028,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_base_total_debt_gaap_ending_2028_v1,base,2028,total_debt_gaap_ending,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_valuation_net_debt_2028_v1,base,2028,valuation_net_debt,forecast_v1,v1,6515.461058746215,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_base_accounts_payable_balance_2029_v1,base,2029,accounts_payable_balance,forecast_v1,v1,13113.402346415356,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_base_ap_cash_impact_2029_v1,base,2029,ap_cash_impact,forecast_v1,v1,126.5905413364635,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_base_beginning_cash_2029_v1,base,2029,beginning_cash,forecast_v1,v1,7827.538941253785,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_base_capital_expenditure_2029_v1,base,2029,capital_expenditure,forecast_v1,v1,3925.2415740408005,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_cost_of_sales_2029_v1,base,2029,cost_of_sales,forecast_v1,v1,78523.36734380454,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_base_da_cfo_addback_2029_v1,base,2029,da_cfo_addback,forecast_v1,v1,3805.3036370562204,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_da_pct_of_revenue_2029_v1,base,2029,da_pct_of_revenue,forecast_v1,v1,2.81,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_proceeds_2029_v1,base,2029,debt_proceeds,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_repayments_2029_v1,base,2029,debt_repayments,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_deployable_capacity_2029_v1,base,2029,deployable_capacity,forecast_v1,v1,5357.271707426884,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_base_depreciation_amortization_opex_2029_v1,base,2029,depreciation_amortization_opex,forecast_v1,v1,3063.8691175151803,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_diluted_eps_2029_v1,base,2029,diluted_eps,forecast_v1,v1,8.172819311675209,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_base_diluted_shares_2029_v1,base,2029,diluted_shares,forecast_v1,v1,446.55611248475,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_base_dividend_per_share_2029_v1,base,2029,dividend_per_share,forecast_v1,v1,4.877597068656717,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_dividends_paid_2029_v1,base,2029,dividends_paid,forecast_v1,v1,2178.120785246356,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_base_effective_tax_rate_pct_2029_v1,base,2029,effective_tax_rate_pct,forecast_v1,v1,22.2,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_ending_cash_2029_v1,base,2029,ending_cash,forecast_v1,v1,8727.999387978045,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_base_finance_lease_liabilities_2029_v1,base,2029,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_base_financing_cash_flow_2029_v1,base,2029,financing_cash_flow,forecast_v1,v1,-2778.4277497291955,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_free_cash_flow_2029_v1,base,2029,free_cash_flow,forecast_v1,v1,3678.888196453455,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_base_funding_warning_2029_v1,base,2029,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_base_gross_fcf_capacity_2029_v1,base,2029,gross_fcf_capacity,forecast_v1,v1,3678.888196453455,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_base_gross_margin_pct_2029_v1,base,2029,gross_margin_pct,forecast_v1,v1,27.983,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_gross_profit_2029_v1,base,2029,gross_profit,forecast_v1,v1,30511.120823995476,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_base_income_tax_expense_2029_v1,base,2029,income_tax_expense,forecast_v1,v1,1041.4089681354212,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_base_interest_expense_2029_v1,base,2029,interest_expense,forecast_v1,v1,444.633,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_base_interest_rate_pct_2029_v1,base,2029,interest_rate_pct,forecast_v1,v1,3.1,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_inventory_balance_2029_v1,base,2029,inventory_balance,forecast_v1,v1,12866.0696038004,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_inventory_cash_impact_2029_v1,base,2029,inventory_cash_impact,forecast_v1,v1,-127.38682776039968,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_base_investing_cash_flow_2029_v1,base,2029,investing_cash_flow,forecast_v1,v1,-3925.2415740408005,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_base_mandatory_financing_flows_2029_v1,base,2029,mandatory_financing_flows,forecast_v1,v1,-2178.120785246356,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_min_cash_buffer_2029_v1,base,2029,min_cash_buffer,forecast_v1,v1,3271.0346450340003,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_near_term_debt_repayment_reserve_2029_v1,base,2029,near_term_debt_repayment_reserve,forecast_v1,v1,700.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_base_net_change_in_cash_2029_v1,base,2029,net_change_in_cash,forecast_v1,v1,900.4604467242593,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_base_net_income_2029_v1,base,2029,net_income,forecast_v1,v1,3649.6224198619716,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_base_net_other_income_2029_v1,base,2029,net_other_income,forecast_v1,v1,95.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_operating_cash_flow_2029_v1,base,2029,operating_cash_flow,forecast_v1,v1,7604.129770494255,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_base_operating_income_2029_v1,base,2029,operating_income,forecast_v1,v1,5040.664387997393,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_base_operating_margin_pct_2029_v1,base,2029,operating_margin_pct,forecast_v1,v1,4.622999999999998,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_base_other_operating_cf_2029_v1,base,2029,other_operating_cf,forecast_v1,v1,150.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_post_dividend_capacity_2029_v1,base,2029,post_dividend_capacity,forecast_v1,v1,1500.767411207099,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_base_pre_discretionary_ending_cash_2029_v1,base,2029,pre_discretionary_ending_cash,forecast_v1,v1,9328.306352460884,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_base_pretax_income_2029_v1,base,2029,pretax_income,forecast_v1,v1,4691.031387997393,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_base_revenue_2029_v1,base,2029,revenue,forecast_v1,v1,109034.48816780001,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_revenue_growth_pct_2029_v1,base,2029,revenue_growth_pct,forecast_v1,v1,1.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_sga_expense_2029_v1,base,2029,sga_expense,forecast_v1,v1,22406.587318482903,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_sga_pct_of_revenue_2029_v1,base,2029,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_share_repurchases_2029_v1,base,2029,share_repurchases,forecast_v1,v1,600.3069644828396,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_base_total_debt_gaap_beginning_2029_v1,base,2029,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_base_total_debt_gaap_ending_2029_v1,base,2029,total_debt_gaap_ending,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_valuation_net_debt_2029_v1,base,2029,valuation_net_debt,forecast_v1,v1,5615.000612021955,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_base_accounts_payable_balance_2030_v1,base,2030,accounts_payable_balance,forecast_v1,v1,13241.409925869235,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_base_ap_cash_impact_2030_v1,base,2030,ap_cash_impact,forecast_v1,v1,128.00757945387886,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_base_beginning_cash_2030_v1,base,2030,beginning_cash,forecast_v1,v1,8727.999387978045,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_base_capital_expenditure_2030_v1,base,2030,capital_expenditure,forecast_v1,v1,3964.4939897812083,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_cost_of_sales_2030_v1,base,2030,cost_of_sales,forecast_v1,v1,79289.87979562416,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_base_da_cfo_addback_2030_v1,base,2030,da_cfo_addback,forecast_v1,v1,3979.911466408135,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_da_pct_of_revenue_2030_v1,base,2030,da_pct_of_revenue,forecast_v1,v1,2.888,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_proceeds_2030_v1,base,2030,debt_proceeds,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_debt_repayments_2030_v1,base,2030,debt_repayments,forecast_v1,v1,700.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_deployable_capacity_2030_v1,base,2030,deployable_capacity,forecast_v1,v1,6315.019717121953,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_base_depreciation_amortization_opex_2030_v1,base,2030,depreciation_amortization_opex,forecast_v1,v1,3180.4051784689245,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_diluted_eps_2030_v1,base,2030,diluted_eps,forecast_v1,v1,8.184525736694143,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_base_diluted_shares_2030_v1,base,2030,diluted_shares,forecast_v1,v1,444.32333192232625,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_base_dividend_per_share_2030_v1,base,2030,dividend_per_share,forecast_v1,v1,4.975149010029852,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_dividends_paid_2030_v1,base,2030,dividends_paid,forecast_v1,v1,2210.5747849465265,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_base_effective_tax_rate_pct_2030_v1,base,2030,effective_tax_rate_pct,forecast_v1,v1,22.2,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_ending_cash_2030_v1,base,2030,ending_cash,forecast_v1,v1,9682.458580354993,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_base_finance_lease_liabilities_2030_v1,base,2030,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_base_financing_cash_flow_2030_v1,base,2030,financing_cash_flow,forecast_v1,v1,-2846.880913197825,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_free_cash_flow_2030_v1,base,2030,free_cash_flow,forecast_v1,v1,3801.3401055747736,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_base_funding_warning_2030_v1,base,2030,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_base_gross_fcf_capacity_2030_v1,base,2030,gross_fcf_capacity,forecast_v1,v1,3801.3401055747736,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_base_gross_margin_pct_2030_v1,base,2030,gross_margin_pct,forecast_v1,v1,28.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_gross_profit_2030_v1,base,2030,gross_profit,forecast_v1,v1,30834.953253853844,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_base_income_tax_expense_2030_v1,base,2030,income_tax_expense,forecast_v1,v1,1037.686138185216,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_base_interest_expense_2030_v1,base,2030,interest_expense,forecast_v1,v1,444.633,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_base_interest_rate_pct_2030_v1,base,2030,interest_rate_pct,forecast_v1,v1,3.1,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_inventory_balance_2030_v1,base,2030,inventory_balance,forecast_v1,v1,12994.730299838406,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_inventory_cash_impact_2030_v1,base,2030,inventory_cash_impact,forecast_v1,v1,-128.66069603800497,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_base_investing_cash_flow_2030_v1,base,2030,investing_cash_flow,forecast_v1,v1,-3964.4939897812083,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_base_mandatory_financing_flows_2030_v1,base,2030,mandatory_financing_flows,forecast_v1,v1,-2210.5747849465265,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_min_cash_buffer_2030_v1,base,2030,min_cash_buffer,forecast_v1,v1,3303.74499148434,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_near_term_debt_repayment_reserve_2030_v1,base,2030,near_term_debt_repayment_reserve,forecast_v1,v1,700.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_base_net_change_in_cash_2030_v1,base,2030,net_change_in_cash,forecast_v1,v1,954.4591923769485,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_base_net_income_2030_v1,base,2030,net_income,forecast_v1,v1,3636.5757455319736,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_base_net_other_income_2030_v1,base,2030,net_other_income,forecast_v1,v1,95.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_operating_cash_flow_2030_v1,base,2030,operating_cash_flow,forecast_v1,v1,7765.834095355982,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_base_operating_income_2030_v1,base,2030,operating_income,forecast_v1,v1,5023.894883717189,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_base_operating_margin_pct_2030_v1,base,2030,operating_margin_pct,forecast_v1,v1,4.562000000000002,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_base_other_operating_cf_2030_v1,base,2030,other_operating_cf,forecast_v1,v1,150.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_post_dividend_capacity_2030_v1,base,2030,post_dividend_capacity,forecast_v1,v1,1590.765320628247,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_base_pre_discretionary_ending_cash_2030_v1,base,2030,pre_discretionary_ending_cash,forecast_v1,v1,10318.764708606293,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_base_pretax_income_2030_v1,base,2030,pretax_income,forecast_v1,v1,4674.261883717189,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_base_revenue_2030_v1,base,2030,revenue,forecast_v1,v1,110124.83304947801,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_base_revenue_growth_pct_2030_v1,base,2030,revenue_growth_pct,forecast_v1,v1,1.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_sga_expense_2030_v1,base,2030,sga_expense,forecast_v1,v1,22630.65319166773,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_base_sga_pct_of_revenue_2030_v1,base,2030,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_base_share_repurchases_2030_v1,base,2030,share_repurchases,forecast_v1,v1,636.3061282512988,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_base_total_debt_gaap_beginning_2030_v1,base,2030,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_base_total_debt_gaap_ending_2030_v1,base,2030,total_debt_gaap_ending,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_base_valuation_net_debt_2030_v1,base,2030,valuation_net_debt,forecast_v1,v1,4660.541419645007,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_downside_accounts_payable_balance_2026_v1,downside,2026,accounts_payable_balance,forecast_v1,v1,11412.19621425,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_downside_ap_cash_impact_2026_v1,downside,2026,ap_cash_impact,forecast_v1,v1,-1209.8037857500003,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_downside_beginning_cash_2026_v1,downside,2026,beginning_cash,forecast_v1,v1,5488.0,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_downside_capital_expenditure_2026_v1,downside,2026,capital_expenditure,forecast_v1,v1,2860.4939999999997,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_cost_of_sales_2026_v1,downside,2026,cost_of_sales,forecast_v1,v1,73627.07235,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_downside_da_cfo_addback_2026_v1,downside,2026,da_cfo_addback,forecast_v1,v1,3132.24093,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_da_pct_of_revenue_2026_v1,downside,2026,da_pct_of_revenue,forecast_v1,v1,2.478,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_proceeds_2026_v1,downside,2026,debt_proceeds,forecast_v1,v1,500.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_repayments_2026_v1,downside,2026,debt_repayments,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_deployable_capacity_2026_v1,downside,2026,deployable_capacity,forecast_v1,v1,2149.155340949999,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_downside_depreciation_amortization_opex_2026_v1,downside,2026,depreciation_amortization_opex,forecast_v1,v1,2531.53719,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_diluted_eps_2026_v1,downside,2026,diluted_eps,forecast_v1,v1,7.769032477392453,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_downside_diluted_shares_2026_v1,downside,2026,diluted_shares,forecast_v1,v1,455.6,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividend_per_share_2026_v1,downside,2026,dividend_per_share,forecast_v1,v1,4.506145741878841,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividends_paid_2026_v1,downside,2026,dividends_paid,forecast_v1,v1,2053.0,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_downside_effective_tax_rate_pct_2026_v1,downside,2026,effective_tax_rate_pct,forecast_v1,v1,23.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_ending_cash_2026_v1,downside,2026,ending_cash,forecast_v1,v1,5513.97034095,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_downside_finance_lease_liabilities_2026_v1,downside,2026,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_downside_financing_cash_flow_2026_v1,downside,2026,financing_cash_flow,forecast_v1,v1,-1853.0,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_free_cash_flow_2026_v1,downside,2026,free_cash_flow,forecast_v1,v1,1878.9703409499998,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_funding_warning_2026_v1,downside,2026,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_downside_gross_fcf_capacity_2026_v1,downside,2026,gross_fcf_capacity,forecast_v1,v1,1878.9703409499998,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_downside_gross_margin_pct_2026_v1,downside,2026,gross_margin_pct,forecast_v1,v1,27.93,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_gross_profit_2026_v1,downside,2026,gross_profit,forecast_v1,v1,28533.42765,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_downside_income_tax_expense_2026_v1,downside,2026,income_tax_expense,forecast_v1,v1,1057.2745133000005,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_downside_interest_expense_2026_v1,downside,2026,interest_expense,forecast_v1,v1,491.062,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_downside_interest_rate_pct_2026_v1,downside,2026,interest_rate_pct,forecast_v1,v1,3.4,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_inventory_balance_2026_v1,downside,2026,inventory_balance,forecast_v1,v1,13076.544000000002,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_inventory_cash_impact_2026_v1,downside,2026,inventory_cash_impact,forecast_v1,v1,-772.5440000000017,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_downside_investing_cash_flow_2026_v1,downside,2026,investing_cash_flow,forecast_v1,v1,-2860.4939999999997,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_mandatory_financing_flows_2026_v1,downside,2026,mandatory_financing_flows,forecast_v1,v1,-1853.0,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_min_cash_buffer_2026_v1,downside,2026,min_cash_buffer,forecast_v1,v1,3064.815,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_near_term_debt_repayment_reserve_2026_v1,downside,2026,near_term_debt_repayment_reserve,forecast_v1,v1,300.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_downside_net_change_in_cash_2026_v1,downside,2026,net_change_in_cash,forecast_v1,v1,25.97034094999981,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_downside_net_income_2026_v1,downside,2026,net_income,forecast_v1,v1,3539.5711967000016,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_downside_net_other_income_2026_v1,downside,2026,net_other_income,forecast_v1,v1,80.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_operating_cash_flow_2026_v1,downside,2026,operating_cash_flow,forecast_v1,v1,4739.4643409499995,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_downside_operating_income_2026_v1,downside,2026,operating_income,forecast_v1,v1,5007.907710000002,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_downside_operating_margin_pct_2026_v1,downside,2026,operating_margin_pct,forecast_v1,v1,4.902000000000002,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_downside_other_operating_cf_2026_v1,downside,2026,other_operating_cf,forecast_v1,v1,50.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_post_dividend_capacity_2026_v1,downside,2026,post_dividend_capacity,forecast_v1,v1,-174.0296590500002,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_downside_pre_discretionary_ending_cash_2026_v1,downside,2026,pre_discretionary_ending_cash,forecast_v1,v1,5513.970340949999,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_downside_pretax_income_2026_v1,downside,2026,pretax_income,forecast_v1,v1,4596.845710000002,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_downside_revenue_2026_v1,downside,2026,revenue,forecast_v1,v1,102160.5,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_revenue_growth_pct_2026_v1,downside,2026,revenue_growth_pct,forecast_v1,v1,-2.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_sga_expense_2026_v1,downside,2026,sga_expense,forecast_v1,v1,20993.98275,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_sga_pct_of_revenue_2026_v1,downside,2026,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_share_repurchases_2026_v1,downside,2026,share_repurchases,forecast_v1,v1,0.0,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_downside_total_debt_gaap_beginning_2026_v1,downside,2026,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_downside_total_debt_gaap_ending_2026_v1,downside,2026,total_debt_gaap_ending,forecast_v1,v1,14543.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_valuation_net_debt_2026_v1,downside,2026,valuation_net_debt,forecast_v1,v1,9029.02965905,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_downside_accounts_payable_balance_2027_v1,downside,2027,accounts_payable_balance,forecast_v1,v1,11189.728061533126,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_downside_ap_cash_impact_2027_v1,downside,2027,ap_cash_impact,forecast_v1,v1,-222.4681527168741,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_downside_beginning_cash_2027_v1,downside,2027,beginning_cash,forecast_v1,v1,5513.97034095,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_downside_capital_expenditure_2027_v1,downside,2027,capital_expenditure,forecast_v1,v1,2788.9816499999997,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_cost_of_sales_2027_v1,downside,2027,cost_of_sales,forecast_v1,v1,72191.793945375,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_downside_da_cfo_addback_2027_v1,downside,2027,da_cfo_addback,forecast_v1,v1,3177.4469512500004,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_da_pct_of_revenue_2027_v1,downside,2027,da_pct_of_revenue,forecast_v1,v1,2.555,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_proceeds_2027_v1,downside,2027,debt_proceeds,forecast_v1,v1,500.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_repayments_2027_v1,downside,2027,debt_repayments,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_deployable_capacity_2027_v1,downside,2027,deployable_capacity,forecast_v1,v1,3838.215628845628,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_downside_depreciation_amortization_opex_2027_v1,downside,2027,depreciation_amortization_opex,forecast_v1,v1,2544.945755625,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_diluted_eps_2027_v1,downside,2027,diluted_eps,forecast_v1,v1,6.414682099127524,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_downside_diluted_shares_2027_v1,downside,2027,diluted_shares,forecast_v1,v1,455.6,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividend_per_share_2027_v1,downside,2027,dividend_per_share,forecast_v1,v1,4.506145741878841,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividends_paid_2027_v1,downside,2027,dividends_paid,forecast_v1,v1,2053.0,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_downside_effective_tax_rate_pct_2027_v1,downside,2027,effective_tax_rate_pct,forecast_v1,v1,23.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_ending_cash_2027_v1,downside,2027,ending_cash,forecast_v1,v1,7126.410253845628,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_downside_finance_lease_liabilities_2027_v1,downside,2027,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_downside_financing_cash_flow_2027_v1,downside,2027,financing_cash_flow,forecast_v1,v1,-1853.0,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_free_cash_flow_2027_v1,downside,2027,free_cash_flow,forecast_v1,v1,3465.4399128956284,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_funding_warning_2027_v1,downside,2027,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_downside_gross_fcf_capacity_2027_v1,downside,2027,gross_fcf_capacity,forecast_v1,v1,3465.4399128956284,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_downside_gross_margin_pct_2027_v1,downside,2027,gross_margin_pct,forecast_v1,v1,27.523,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_gross_profit_2027_v1,downside,2027,gross_profit,forecast_v1,v1,27414.693554625,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_downside_income_tax_expense_2027_v1,downside,2027,income_tax_expense,forecast_v1,v1,872.9632568875,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_downside_interest_expense_2027_v1,downside,2027,interest_expense,forecast_v1,v1,497.862,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_downside_interest_rate_pct_2027_v1,downside,2027,interest_rate_pct,forecast_v1,v1,3.4,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_inventory_balance_2027_v1,downside,2027,inventory_balance,forecast_v1,v1,12749.6304,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_inventory_cash_impact_2027_v1,downside,2027,inventory_cash_impact,forecast_v1,v1,326.9136000000017,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_downside_investing_cash_flow_2027_v1,downside,2027,investing_cash_flow,forecast_v1,v1,-2788.9816499999997,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_mandatory_financing_flows_2027_v1,downside,2027,mandatory_financing_flows,forecast_v1,v1,-1853.0,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_min_cash_buffer_2027_v1,downside,2027,min_cash_buffer,forecast_v1,v1,2988.194625,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_near_term_debt_repayment_reserve_2027_v1,downside,2027,near_term_debt_repayment_reserve,forecast_v1,v1,300.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_downside_net_change_in_cash_2027_v1,downside,2027,net_change_in_cash,forecast_v1,v1,1612.4399128956284,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_downside_net_income_2027_v1,downside,2027,net_income,forecast_v1,v1,2922.5291643625,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_downside_net_other_income_2027_v1,downside,2027,net_other_income,forecast_v1,v1,80.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_operating_cash_flow_2027_v1,downside,2027,operating_cash_flow,forecast_v1,v1,6254.421562895628,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_downside_operating_income_2027_v1,downside,2027,operating_income,forecast_v1,v1,4213.35442125,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_downside_operating_margin_pct_2027_v1,downside,2027,operating_margin_pct,forecast_v1,v1,4.2299999999999995,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_downside_other_operating_cf_2027_v1,downside,2027,other_operating_cf,forecast_v1,v1,50.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_post_dividend_capacity_2027_v1,downside,2027,post_dividend_capacity,forecast_v1,v1,1412.4399128956284,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_downside_pre_discretionary_ending_cash_2027_v1,downside,2027,pre_discretionary_ending_cash,forecast_v1,v1,7126.410253845628,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_downside_pretax_income_2027_v1,downside,2027,pretax_income,forecast_v1,v1,3795.49242125,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_downside_revenue_2027_v1,downside,2027,revenue,forecast_v1,v1,99606.4875,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_revenue_growth_pct_2027_v1,downside,2027,revenue_growth_pct,forecast_v1,v1,-2.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_sga_expense_2027_v1,downside,2027,sga_expense,forecast_v1,v1,20656.39337775,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_sga_pct_of_revenue_2027_v1,downside,2027,sga_pct_of_revenue,forecast_v1,v1,20.738,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_share_repurchases_2027_v1,downside,2027,share_repurchases,forecast_v1,v1,0.0,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_downside_total_debt_gaap_beginning_2027_v1,downside,2027,total_debt_gaap_beginning,forecast_v1,v1,14543.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_downside_total_debt_gaap_ending_2027_v1,downside,2027,total_debt_gaap_ending,forecast_v1,v1,14743.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_valuation_net_debt_2027_v1,downside,2027,valuation_net_debt,forecast_v1,v1,7616.589746154372,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_downside_accounts_payable_balance_2028_v1,downside,2028,accounts_payable_balance,forecast_v1,v1,10971.401224122423,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_downside_ap_cash_impact_2028_v1,downside,2028,ap_cash_impact,forecast_v1,v1,-218.32683741070286,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_downside_beginning_cash_2028_v1,downside,2028,beginning_cash,forecast_v1,v1,7126.410253845628,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_downside_capital_expenditure_2028_v1,downside,2028,capital_expenditure,forecast_v1,v1,2719.25710875,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_cost_of_sales_2028_v1,downside,2028,cost_of_sales,forecast_v1,v1,70783.23370401563,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_downside_da_cfo_addback_2028_v1,downside,2028,da_cfo_addback,forecast_v1,v1,3219.406184109375,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_da_pct_of_revenue_2028_v1,downside,2028,da_pct_of_revenue,forecast_v1,v1,2.632,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_proceeds_2028_v1,downside,2028,debt_proceeds,forecast_v1,v1,500.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_repayments_2028_v1,downside,2028,debt_repayments,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_deployable_capacity_2028_v1,downside,2028,deployable_capacity,forecast_v1,v1,5044.150870475735,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_downside_depreciation_amortization_opex_2028_v1,downside,2028,depreciation_amortization_opex,forecast_v1,v1,2556.1016822250003,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_diluted_eps_2028_v1,downside,2028,diluted_eps,forecast_v1,v1,5.122184763073828,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_downside_diluted_shares_2028_v1,downside,2028,diluted_shares,forecast_v1,v1,455.6,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividend_per_share_2028_v1,downside,2028,dividend_per_share,forecast_v1,v1,4.506145741878841,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividends_paid_2028_v1,downside,2028,dividends_paid,forecast_v1,v1,2053.0,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_downside_effective_tax_rate_pct_2028_v1,downside,2028,effective_tax_rate_pct,forecast_v1,v1,23.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_ending_cash_2028_v1,downside,2028,ending_cash,forecast_v1,v1,8257.640629850735,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_downside_finance_lease_liabilities_2028_v1,downside,2028,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_downside_financing_cash_flow_2028_v1,downside,2028,financing_cash_flow,forecast_v1,v1,-1853.0,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_free_cash_flow_2028_v1,downside,2028,free_cash_flow,forecast_v1,v1,2984.2303760051072,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_funding_warning_2028_v1,downside,2028,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_downside_gross_fcf_capacity_2028_v1,downside,2028,gross_fcf_capacity,forecast_v1,v1,2984.2303760051072,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_downside_gross_margin_pct_2028_v1,downside,2028,gross_margin_pct,forecast_v1,v1,27.115,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_gross_profit_2028_v1,downside,2028,gross_profit,forecast_v1,v1,26333.091608484374,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_downside_income_tax_expense_2028_v1,downside,2028,income_tax_expense,forecast_v1,v1,697.069476562312,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_downside_interest_expense_2028_v1,downside,2028,interest_expense,forecast_v1,v1,504.66200000000003,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_downside_interest_rate_pct_2028_v1,downside,2028,interest_rate_pct,forecast_v1,v1,3.4,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_inventory_balance_2028_v1,downside,2028,inventory_balance,forecast_v1,v1,12430.889640000001,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_inventory_cash_impact_2028_v1,downside,2028,inventory_cash_impact,forecast_v1,v1,318.7407599999988,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_downside_investing_cash_flow_2028_v1,downside,2028,investing_cash_flow,forecast_v1,v1,-2719.25710875,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_mandatory_financing_flows_2028_v1,downside,2028,mandatory_financing_flows,forecast_v1,v1,-1853.0,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_min_cash_buffer_2028_v1,downside,2028,min_cash_buffer,forecast_v1,v1,2913.489759375,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_near_term_debt_repayment_reserve_2028_v1,downside,2028,near_term_debt_repayment_reserve,forecast_v1,v1,300.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_downside_net_change_in_cash_2028_v1,downside,2028,net_change_in_cash,forecast_v1,v1,1131.2303760051072,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_downside_net_income_2028_v1,downside,2028,net_income,forecast_v1,v1,2333.667378056436,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_downside_net_other_income_2028_v1,downside,2028,net_other_income,forecast_v1,v1,80.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_operating_cash_flow_2028_v1,downside,2028,operating_cash_flow,forecast_v1,v1,5703.487484755107,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_downside_operating_income_2028_v1,downside,2028,operating_income,forecast_v1,v1,3455.3988546187484,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_downside_operating_margin_pct_2028_v1,downside,2028,operating_margin_pct,forecast_v1,v1,3.557999999999998,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_downside_other_operating_cf_2028_v1,downside,2028,other_operating_cf,forecast_v1,v1,50.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_post_dividend_capacity_2028_v1,downside,2028,post_dividend_capacity,forecast_v1,v1,931.2303760051072,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_downside_pre_discretionary_ending_cash_2028_v1,downside,2028,pre_discretionary_ending_cash,forecast_v1,v1,8257.640629850735,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_downside_pretax_income_2028_v1,downside,2028,pretax_income,forecast_v1,v1,3030.736854618748,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_downside_revenue_2028_v1,downside,2028,revenue,forecast_v1,v1,97116.3253125,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_revenue_growth_pct_2028_v1,downside,2028,revenue_growth_pct,forecast_v1,v1,-2.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_sga_expense_2028_v1,downside,2028,sga_expense,forecast_v1,v1,20321.591071640625,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_sga_pct_of_revenue_2028_v1,downside,2028,sga_pct_of_revenue,forecast_v1,v1,20.925,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_share_repurchases_2028_v1,downside,2028,share_repurchases,forecast_v1,v1,0.0,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_downside_total_debt_gaap_beginning_2028_v1,downside,2028,total_debt_gaap_beginning,forecast_v1,v1,14743.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_downside_total_debt_gaap_ending_2028_v1,downside,2028,total_debt_gaap_ending,forecast_v1,v1,14943.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_valuation_net_debt_2028_v1,downside,2028,valuation_net_debt,forecast_v1,v1,6685.359370149265,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_downside_accounts_payable_balance_2029_v1,downside,2029,accounts_payable_balance,forecast_v1,v1,10756.997148543795,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_downside_ap_cash_impact_2029_v1,downside,2029,ap_cash_impact,forecast_v1,v1,-214.40407557862818,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_downside_beginning_cash_2029_v1,downside,2029,beginning_cash,forecast_v1,v1,8257.640629850735,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_downside_capital_expenditure_2029_v1,downside,2029,capital_expenditure,forecast_v1,v1,2651.27568103125,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_cost_of_sales_2029_v1,downside,2029,cost_of_sales,forecast_v1,v1,69399.98160350835,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_downside_da_cfo_addback_2029_v1,downside,2029,da_cfo_addback,forecast_v1,v1,3257.28155098125,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_da_pct_of_revenue_2029_v1,downside,2029,da_pct_of_revenue,forecast_v1,v1,2.71,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_proceeds_2029_v1,downside,2029,debt_proceeds,forecast_v1,v1,500.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_repayments_2029_v1,downside,2029,debt_repayments,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_deployable_capacity_2029_v1,downside,2029,deployable_capacity,forecast_v1,v1,5786.86315245737,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_downside_depreciation_amortization_opex_2029_v1,downside,2029,depreciation_amortization_opex,forecast_v1,v1,2566.056105569531,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_diluted_eps_2029_v1,downside,2029,diluted_eps,forecast_v1,v1,3.886086485131448,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_downside_diluted_shares_2029_v1,downside,2029,diluted_shares,forecast_v1,v1,455.6,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividend_per_share_2029_v1,downside,2029,dividend_per_share,forecast_v1,v1,4.506145741878841,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividends_paid_2029_v1,downside,2029,dividends_paid,forecast_v1,v1,2053.0,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_downside_effective_tax_rate_pct_2029_v1,downside,2029,effective_tax_rate_pct,forecast_v1,v1,23.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_ending_cash_2029_v1,downside,2029,ending_cash,forecast_v1,v1,8927.515667847994,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_downside_finance_lease_liabilities_2029_v1,downside,2029,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_downside_financing_cash_flow_2029_v1,downside,2029,financing_cash_flow,forecast_v1,v1,-1853.0,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_free_cash_flow_2029_v1,downside,2029,free_cash_flow,forecast_v1,v1,2522.8750379972585,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_funding_warning_2029_v1,downside,2029,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_downside_gross_fcf_capacity_2029_v1,downside,2029,gross_fcf_capacity,forecast_v1,v1,2522.8750379972585,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_downside_gross_margin_pct_2029_v1,downside,2029,gross_margin_pct,forecast_v1,v1,26.707,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_gross_profit_2029_v1,downside,2029,gross_profit,forecast_v1,v1,25288.435576179145,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_downside_income_tax_expense_2029_v1,downside,2029,income_tax_expense,forecast_v1,v1,528.8509488363042,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_downside_interest_expense_2029_v1,downside,2029,interest_expense,forecast_v1,v1,511.46200000000005,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_downside_interest_rate_pct_2029_v1,downside,2029,interest_rate_pct,forecast_v1,v1,3.4,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_inventory_balance_2029_v1,downside,2029,inventory_balance,forecast_v1,v1,12120.117399000002,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_inventory_cash_impact_2029_v1,downside,2029,inventory_cash_impact,forecast_v1,v1,310.77224099999876,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_downside_investing_cash_flow_2029_v1,downside,2029,investing_cash_flow,forecast_v1,v1,-2651.27568103125,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_mandatory_financing_flows_2029_v1,downside,2029,mandatory_financing_flows,forecast_v1,v1,-1853.0,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_min_cash_buffer_2029_v1,downside,2029,min_cash_buffer,forecast_v1,v1,2840.6525153906246,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_near_term_debt_repayment_reserve_2029_v1,downside,2029,near_term_debt_repayment_reserve,forecast_v1,v1,300.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_downside_net_change_in_cash_2029_v1,downside,2029,net_change_in_cash,forecast_v1,v1,669.8750379972585,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_downside_net_income_2029_v1,downside,2029,net_income,forecast_v1,v1,1770.5010026258878,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_downside_net_other_income_2029_v1,downside,2029,net_other_income,forecast_v1,v1,80.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_operating_cash_flow_2029_v1,downside,2029,operating_cash_flow,forecast_v1,v1,5174.150719028508,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_downside_operating_income_2029_v1,downside,2029,operating_income,forecast_v1,v1,2730.813951462192,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_downside_operating_margin_pct_2029_v1,downside,2029,operating_margin_pct,forecast_v1,v1,2.884000000000005,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_downside_other_operating_cf_2029_v1,downside,2029,other_operating_cf,forecast_v1,v1,50.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_post_dividend_capacity_2029_v1,downside,2029,post_dividend_capacity,forecast_v1,v1,469.87503799725846,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_downside_pre_discretionary_ending_cash_2029_v1,downside,2029,pre_discretionary_ending_cash,forecast_v1,v1,8927.515667847994,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_downside_pretax_income_2029_v1,downside,2029,pretax_income,forecast_v1,v1,2299.351951462192,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_downside_revenue_2029_v1,downside,2029,revenue,forecast_v1,v1,94688.4171796875,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_revenue_growth_pct_2029_v1,downside,2029,revenue_growth_pct,forecast_v1,v1,-2.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_sga_expense_2029_v1,downside,2029,sga_expense,forecast_v1,v1,19991.56551914742,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_sga_pct_of_revenue_2029_v1,downside,2029,sga_pct_of_revenue,forecast_v1,v1,21.113,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_share_repurchases_2029_v1,downside,2029,share_repurchases,forecast_v1,v1,0.0,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_downside_total_debt_gaap_beginning_2029_v1,downside,2029,total_debt_gaap_beginning,forecast_v1,v1,14943.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_downside_total_debt_gaap_ending_2029_v1,downside,2029,total_debt_gaap_ending,forecast_v1,v1,15143.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_valuation_net_debt_2029_v1,downside,2029,valuation_net_debt,forecast_v1,v1,6215.484332152006,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_downside_accounts_payable_balance_2030_v1,downside,2030,accounts_payable_balance,forecast_v1,v1,10546.31305310856,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_downside_ap_cash_impact_2030_v1,downside,2030,ap_cash_impact,forecast_v1,v1,-210.68409543523376,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_downside_beginning_cash_2030_v1,downside,2030,beginning_cash,forecast_v1,v1,8927.515667847994,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_downside_capital_expenditure_2030_v1,downside,2030,capital_expenditure,forecast_v1,v1,2584.993789005469,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_cost_of_sales_2030_v1,downside,2030,cost_of_sales,forecast_v1,v1,68040.72937489394,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_downside_da_cfo_addback_2030_v1,downside,2030,da_cfo_addback,forecast_v1,v1,3290.3278085769607,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_da_pct_of_revenue_2030_v1,downside,2030,da_pct_of_revenue,forecast_v1,v1,2.788,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_proceeds_2030_v1,downside,2030,debt_proceeds,forecast_v1,v1,500.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_debt_repayments_2030_v1,downside,2030,debt_repayments,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_deployable_capacity_2030_v1,downside,2030,deployable_capacity,forecast_v1,v1,6087.522306305421,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_downside_depreciation_amortization_opex_2030_v1,downside,2030,depreciation_amortization_opex,forecast_v1,v1,2573.915244195445,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_diluted_eps_2030_v1,downside,2030,diluted_eps,forecast_v1,v1,2.7106891612204294,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_downside_diluted_shares_2030_v1,downside,2030,diluted_shares,forecast_v1,v1,455.6,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividend_per_share_2030_v1,downside,2030,dividend_per_share,forecast_v1,v1,4.506145741878841,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_dividends_paid_2030_v1,downside,2030,dividends_paid,forecast_v1,v1,2053.0,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_downside_effective_tax_rate_pct_2030_v1,downside,2030,effective_tax_rate_pct,forecast_v1,v1,23.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_ending_cash_2030_v1,downside,2030,ending_cash,forecast_v1,v1,9157.15850881128,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_downside_finance_lease_liabilities_2030_v1,downside,2030,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_downside_financing_cash_flow_2030_v1,downside,2030,financing_cash_flow,forecast_v1,v1,-1853.0,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_free_cash_flow_2030_v1,downside,2030,free_cash_flow,forecast_v1,v1,2082.6428409632863,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_funding_warning_2030_v1,downside,2030,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_downside_gross_fcf_capacity_2030_v1,downside,2030,gross_fcf_capacity,forecast_v1,v1,2082.6428409632863,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_downside_gross_margin_pct_2030_v1,downside,2030,gross_margin_pct,forecast_v1,v1,26.3,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_gross_profit_2030_v1,downside,2030,gross_profit,forecast_v1,v1,24280.47737530137,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_downside_income_tax_expense_2030_v1,downside,2030,income_tax_expense,forecast_v1,v1,368.89311146229403,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_downside_interest_expense_2030_v1,downside,2030,interest_expense,forecast_v1,v1,518.2620000000001,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_downside_interest_rate_pct_2030_v1,downside,2030,interest_rate_pct,forecast_v1,v1,3.4,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_inventory_balance_2030_v1,downside,2030,inventory_balance,forecast_v1,v1,11817.114464025002,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_inventory_cash_impact_2030_v1,downside,2030,inventory_cash_impact,forecast_v1,v1,303.00293497500024,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_downside_investing_cash_flow_2030_v1,downside,2030,investing_cash_flow,forecast_v1,v1,-2584.993789005469,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_downside_mandatory_financing_flows_2030_v1,downside,2030,mandatory_financing_flows,forecast_v1,v1,-1853.0,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_min_cash_buffer_2030_v1,downside,2030,min_cash_buffer,forecast_v1,v1,2769.6362025058597,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_near_term_debt_repayment_reserve_2030_v1,downside,2030,near_term_debt_repayment_reserve,forecast_v1,v1,300.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_downside_net_change_in_cash_2030_v1,downside,2030,net_change_in_cash,forecast_v1,v1,229.6428409632863,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_downside_net_income_2030_v1,downside,2030,net_income,forecast_v1,v1,1234.9899818520278,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_downside_net_other_income_2030_v1,downside,2030,net_other_income,forecast_v1,v1,80.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_operating_cash_flow_2030_v1,downside,2030,operating_cash_flow,forecast_v1,v1,4667.636629968755,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_downside_operating_income_2030_v1,downside,2030,operating_income,forecast_v1,v1,2042.145093314322,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_downside_operating_margin_pct_2030_v1,downside,2030,operating_margin_pct,forecast_v1,v1,2.212000000000002,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_downside_other_operating_cf_2030_v1,downside,2030,other_operating_cf,forecast_v1,v1,50.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_post_dividend_capacity_2030_v1,downside,2030,post_dividend_capacity,forecast_v1,v1,29.64284096328629,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_downside_pre_discretionary_ending_cash_2030_v1,downside,2030,pre_discretionary_ending_cash,forecast_v1,v1,9157.15850881128,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_downside_pretax_income_2030_v1,downside,2030,pretax_income,forecast_v1,v1,1603.8830933143217,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_downside_revenue_2030_v1,downside,2030,revenue,forecast_v1,v1,92321.20675019531,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_downside_revenue_growth_pct_2030_v1,downside,2030,revenue_growth_pct,forecast_v1,v1,-2.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_sga_expense_2030_v1,downside,2030,sga_expense,forecast_v1,v1,19664.4170377916,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_downside_sga_pct_of_revenue_2030_v1,downside,2030,sga_pct_of_revenue,forecast_v1,v1,21.3,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_downside_share_repurchases_2030_v1,downside,2030,share_repurchases,forecast_v1,v1,0.0,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_downside_total_debt_gaap_beginning_2030_v1,downside,2030,total_debt_gaap_beginning,forecast_v1,v1,15143.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_downside_total_debt_gaap_ending_2030_v1,downside,2030,total_debt_gaap_ending,forecast_v1,v1,15343.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_downside_valuation_net_debt_2030_v1,downside,2030,valuation_net_debt,forecast_v1,v1,6185.841491188719,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_upside_accounts_payable_balance_2026_v1,upside,2026,accounts_payable_balance,forecast_v1,v1,13611.569016500001,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_upside_ap_cash_impact_2026_v1,upside,2026,ap_cash_impact,forecast_v1,v1,989.5690165000015,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_upside_beginning_cash_2026_v1,upside,2026,beginning_cash,forecast_v1,v1,5488.0,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_upside_capital_expenditure_2026_v1,upside,2026,capital_expenditure,forecast_v1,v1,4640.7062,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_cost_of_sales_2026_v1,upside,2026,cost_of_sales,forecast_v1,v1,77780.39438000001,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_upside_da_cfo_addback_2026_v1,upside,2026,da_cfo_addback,forecast_v1,v1,3416.854844,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_da_pct_of_revenue_2026_v1,upside,2026,da_pct_of_revenue,forecast_v1,v1,2.678,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_proceeds_2026_v1,upside,2026,debt_proceeds,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_repayments_2026_v1,upside,2026,debt_repayments,forecast_v1,v1,1000.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_deployable_capacity_2026_v1,upside,2026,deployable_capacity,forecast_v1,v1,2638.826055880003,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_upside_depreciation_amortization_opex_2026_v1,upside,2026,depreciation_amortization_opex,forecast_v1,v1,2890.188652,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_diluted_eps_2026_v1,upside,2026,diluted_eps,forecast_v1,v1,8.341713934166139,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_upside_diluted_shares_2026_v1,upside,2026,diluted_shares,forecast_v1,v1,448.766,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividend_per_share_2026_v1,upside,2026,dividend_per_share,forecast_v1,v1,4.686391571553995,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividends_paid_2026_v1,upside,2026,dividends_paid,forecast_v1,v1,2103.0932000000003,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_upside_effective_tax_rate_pct_2026_v1,upside,2026,effective_tax_rate_pct,forecast_v1,v1,21.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_ending_cash_2026_v1,upside,2026,ending_cash,forecast_v1,v1,5727.837625146001,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_upside_finance_lease_liabilities_2026_v1,upside,2026,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_upside_financing_cash_flow_2026_v1,upside,2026,financing_cash_flow,forecast_v1,v1,-3951.7836307340012,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_free_cash_flow_2026_v1,upside,2026,free_cash_flow,forecast_v1,v1,4191.6212558800025,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_funding_warning_2026_v1,upside,2026,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_upside_gross_fcf_capacity_2026_v1,upside,2026,gross_fcf_capacity,forecast_v1,v1,4191.6212558800025,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_upside_gross_margin_pct_2026_v1,upside,2026,gross_margin_pct,forecast_v1,v1,27.93,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_gross_profit_2026_v1,upside,2026,gross_profit,forecast_v1,v1,30143.005620000004,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_upside_income_tax_expense_2026_v1,upside,2026,income_tax_expense,forecast_v1,v1,1025.2836726200005,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_upside_interest_expense_2026_v1,upside,2026,interest_expense,forecast_v1,v1,405.79699999999997,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_upside_interest_rate_pct_2026_v1,upside,2026,interest_rate_pct,forecast_v1,v1,2.9,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_inventory_balance_2026_v1,upside,2026,inventory_balance,forecast_v1,v1,11871.574,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_inventory_cash_impact_2026_v1,upside,2026,inventory_cash_impact,forecast_v1,v1,432.4259999999995,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_upside_investing_cash_flow_2026_v1,upside,2026,investing_cash_flow,forecast_v1,v1,-4640.7062,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_mandatory_financing_flows_2026_v1,upside,2026,mandatory_financing_flows,forecast_v1,v1,-2803.0932000000003,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_min_cash_buffer_2026_v1,upside,2026,min_cash_buffer,forecast_v1,v1,3237.702,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_near_term_debt_repayment_reserve_2026_v1,upside,2026,near_term_debt_repayment_reserve,forecast_v1,v1,1000.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_upside_net_change_in_cash_2026_v1,upside,2026,net_change_in_cash,forecast_v1,v1,239.8376251460013,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_upside_net_income_2026_v1,upside,2026,net_income,forecast_v1,v1,3743.4775953800017,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_upside_net_other_income_2026_v1,upside,2026,net_other_income,forecast_v1,v1,100.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_operating_cash_flow_2026_v1,upside,2026,operating_cash_flow,forecast_v1,v1,8832.327455880002,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_upside_operating_income_2026_v1,upside,2026,operating_income,forecast_v1,v1,5074.558268000002,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_upside_operating_margin_pct_2026_v1,upside,2026,operating_margin_pct,forecast_v1,v1,4.702000000000002,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_upside_other_operating_cf_2026_v1,upside,2026,other_operating_cf,forecast_v1,v1,250.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_post_dividend_capacity_2026_v1,upside,2026,post_dividend_capacity,forecast_v1,v1,2088.5280558800023,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_upside_pre_discretionary_ending_cash_2026_v1,upside,2026,pre_discretionary_ending_cash,forecast_v1,v1,6876.528055880003,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_upside_pretax_income_2026_v1,upside,2026,pretax_income,forecast_v1,v1,4768.761268000002,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_upside_revenue_2026_v1,upside,2026,revenue,forecast_v1,v1,107923.40000000001,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_revenue_growth_pct_2026_v1,upside,2026,revenue_growth_pct,forecast_v1,v1,3.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_sga_expense_2026_v1,upside,2026,sga_expense,forecast_v1,v1,22178.258700000002,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_sga_pct_of_revenue_2026_v1,upside,2026,sga_pct_of_revenue,forecast_v1,v1,20.55,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_share_repurchases_2026_v1,upside,2026,share_repurchases,forecast_v1,v1,1148.6904307340012,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_upside_total_debt_gaap_beginning_2026_v1,upside,2026,total_debt_gaap_beginning,forecast_v1,v1,14343.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_upside_total_debt_gaap_ending_2026_v1,upside,2026,total_debt_gaap_ending,forecast_v1,v1,13643.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_valuation_net_debt_2026_v1,upside,2026,valuation_net_debt,forecast_v1,v1,7915.162374853999,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_upside_accounts_payable_balance_2027_v1,upside,2027,accounts_payable_balance,forecast_v1,v1,13977.508126582,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_upside_ap_cash_impact_2027_v1,upside,2027,ap_cash_impact,forecast_v1,v1,365.9391100819994,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_upside_beginning_cash_2027_v1,upside,2027,beginning_cash,forecast_v1,v1,5727.837625146001,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_upside_capital_expenditure_2027_v1,upside,2027,capital_expenditure,forecast_v1,v1,4779.927386,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_cost_of_sales_2027_v1,upside,2027,cost_of_sales,forecast_v1,v1,79871.47500904,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_upside_da_cfo_addback_2027_v1,upside,2027,da_cfo_addback,forecast_v1,v1,3657.200255800001,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_da_pct_of_revenue_2027_v1,upside,2027,da_pct_of_revenue,forecast_v1,v1,2.755,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_proceeds_2027_v1,upside,2027,debt_proceeds,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_repayments_2027_v1,upside,2027,debt_repayments,forecast_v1,v1,1000.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_deployable_capacity_2027_v1,upside,2027,deployable_capacity,forecast_v1,v1,1840.797198969,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_upside_depreciation_amortization_opex_2027_v1,upside,2027,depreciation_amortization_opex,forecast_v1,v1,3062.4883601,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_diluted_eps_2027_v1,upside,2027,diluted_eps,forecast_v1,v1,9.422650163719116,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_upside_diluted_shares_2027_v1,upside,2027,diluted_shares,forecast_v1,v1,442.03451,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividend_per_share_2027_v1,upside,2027,dividend_per_share,forecast_v1,v1,4.8738472344161545,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividends_paid_2027_v1,upside,2027,dividends_paid,forecast_v1,v1,2154.40867408,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_upside_effective_tax_rate_pct_2027_v1,upside,2027,effective_tax_rate_pct,forecast_v1,v1,21.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_ending_cash_2027_v1,upside,2027,ending_cash,forecast_v1,v1,5544.34431036635,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_upside_finance_lease_liabilities_2027_v1,upside,2027,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_upside_financing_cash_flow_2027_v1,upside,2027,financing_cash_flow,forecast_v1,v1,-3485.6946226826485,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_free_cash_flow_2027_v1,upside,2027,free_cash_flow,forecast_v1,v1,3302.2013079029975,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_funding_warning_2027_v1,upside,2027,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_upside_gross_fcf_capacity_2027_v1,upside,2027,gross_fcf_capacity,forecast_v1,v1,3302.2013079029975,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_upside_gross_margin_pct_2027_v1,upside,2027,gross_margin_pct,forecast_v1,v1,28.148,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_gross_profit_2027_v1,upside,2027,gross_profit,forecast_v1,v1,31289.62699096,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_upside_income_tax_expense_2027_v1,upside,2027,income_tax_expense,forecast_v1,v1,1140.7698825789998,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_upside_interest_expense_2027_v1,upside,2027,interest_expense,forecast_v1,v1,385.49699999999996,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_upside_interest_rate_pct_2027_v1,upside,2027,interest_rate_pct,forecast_v1,v1,2.9,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_inventory_balance_2027_v1,upside,2027,inventory_balance,forecast_v1,v1,12227.721220000001,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_inventory_cash_impact_2027_v1,upside,2027,inventory_cash_impact,forecast_v1,v1,-356.14722000000074,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_upside_investing_cash_flow_2027_v1,upside,2027,investing_cash_flow,forecast_v1,v1,-4779.927386,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_mandatory_financing_flows_2027_v1,upside,2027,mandatory_financing_flows,forecast_v1,v1,-2854.40867408,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_min_cash_buffer_2027_v1,upside,2027,min_cash_buffer,forecast_v1,v1,3334.8330600000004,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_near_term_debt_repayment_reserve_2027_v1,upside,2027,near_term_debt_repayment_reserve,forecast_v1,v1,1000.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_upside_net_change_in_cash_2027_v1,upside,2027,net_change_in_cash,forecast_v1,v1,-183.49331477965097,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_upside_net_income_2027_v1,upside,2027,net_income,forecast_v1,v1,4165.136548020999,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_upside_net_other_income_2027_v1,upside,2027,net_other_income,forecast_v1,v1,100.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_operating_cash_flow_2027_v1,upside,2027,operating_cash_flow,forecast_v1,v1,8082.128693902998,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_upside_operating_income_2027_v1,upside,2027,operating_income,forecast_v1,v1,5591.403430599999,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_upside_operating_margin_pct_2027_v1,upside,2027,operating_margin_pct,forecast_v1,v1,5.029999999999999,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_upside_other_operating_cf_2027_v1,upside,2027,other_operating_cf,forecast_v1,v1,250.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_post_dividend_capacity_2027_v1,upside,2027,post_dividend_capacity,forecast_v1,v1,1147.7926338229977,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_upside_pre_discretionary_ending_cash_2027_v1,upside,2027,pre_discretionary_ending_cash,forecast_v1,v1,6175.630258969,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_upside_pretax_income_2027_v1,upside,2027,pretax_income,forecast_v1,v1,5305.906430599999,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_upside_revenue_2027_v1,upside,2027,revenue,forecast_v1,v1,111161.10200000001,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_revenue_growth_pct_2027_v1,upside,2027,revenue_growth_pct,forecast_v1,v1,3.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_sga_expense_2027_v1,upside,2027,sga_expense,forecast_v1,v1,22635.735200260002,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_sga_pct_of_revenue_2027_v1,upside,2027,sga_pct_of_revenue,forecast_v1,v1,20.363,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_share_repurchases_2027_v1,upside,2027,share_repurchases,forecast_v1,v1,631.2859486026487,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_upside_total_debt_gaap_beginning_2027_v1,upside,2027,total_debt_gaap_beginning,forecast_v1,v1,13643.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_upside_total_debt_gaap_ending_2027_v1,upside,2027,total_debt_gaap_ending,forecast_v1,v1,12943.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_valuation_net_debt_2027_v1,upside,2027,valuation_net_debt,forecast_v1,v1,7398.65568963365,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_upside_accounts_payable_balance_2028_v1,upside,2028,accounts_payable_balance,forecast_v1,v1,14353.353539040427,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_upside_ap_cash_impact_2028_v1,upside,2028,ap_cash_impact,forecast_v1,v1,375.8454124584259,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_upside_beginning_cash_2028_v1,upside,2028,beginning_cash,forecast_v1,v1,5544.34431036635,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_upside_capital_expenditure_2028_v1,upside,2028,capital_expenditure,forecast_v1,v1,4923.325207580001,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_cost_of_sales_2028_v1,upside,2028,cost_of_sales,forecast_v1,v1,82019.16308023101,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_upside_da_cfo_addback_2028_v1,upside,2028,da_cfo_addback,forecast_v1,v1,3910.0361822990008,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_da_pct_of_revenue_2028_v1,upside,2028,da_pct_of_revenue,forecast_v1,v1,2.833,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_proceeds_2028_v1,upside,2028,debt_proceeds,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_repayments_2028_v1,upside,2028,debt_repayments,forecast_v1,v1,1000.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_deployable_capacity_2028_v1,upside,2028,deployable_capacity,forecast_v1,v1,2054.8697027301187,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_upside_depreciation_amortization_opex_2028_v1,upside,2028,depreciation_amortization_opex,forecast_v1,v1,3243.6698402498005,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_diluted_eps_2028_v1,upside,2028,diluted_eps,forecast_v1,v1,10.580185345684272,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_upside_diluted_shares_2028_v1,upside,2028,diluted_shares,forecast_v1,v1,435.40399235,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividend_per_share_2028_v1,upside,2028,dividend_per_share,forecast_v1,v1,5.068801123792801,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividends_paid_2028_v1,upside,2028,dividends_paid,forecast_v1,v1,2206.976245727552,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_upside_effective_tax_rate_pct_2028_v1,upside,2028,effective_tax_rate_pct,forecast_v1,v1,21.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_ending_cash_2028_v1,upside,2028,ending_cash,forecast_v1,v1,5584.775860240046,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_upside_finance_lease_liabilities_2028_v1,upside,2028,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_upside_financing_cash_flow_2028_v1,upside,2028,financing_cash_flow,forecast_v1,v1,-3811.9481400176246,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_free_cash_flow_2028_v1,upside,2028,free_cash_flow,forecast_v1,v1,3852.3796898913206,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_funding_warning_2028_v1,upside,2028,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_upside_gross_fcf_capacity_2028_v1,upside,2028,gross_fcf_capacity,forecast_v1,v1,3852.3796898913206,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_upside_gross_margin_pct_2028_v1,upside,2028,gross_margin_pct,forecast_v1,v1,28.365,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_gross_profit_2028_v1,upside,2028,gross_profit,forecast_v1,v1,32476.771979769004,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_upside_income_tax_expense_2028_v1,upside,2028,income_tax_expense,forecast_v1,v1,1261.6953018503032,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_upside_interest_expense_2028_v1,upside,2028,interest_expense,forecast_v1,v1,365.197,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_upside_interest_rate_pct_2028_v1,upside,2028,interest_rate_pct,forecast_v1,v1,2.9,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_inventory_balance_2028_v1,upside,2028,inventory_balance,forecast_v1,v1,12594.552856600003,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_inventory_cash_impact_2028_v1,upside,2028,inventory_cash_impact,forecast_v1,v1,-366.83163660000173,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_upside_investing_cash_flow_2028_v1,upside,2028,investing_cash_flow,forecast_v1,v1,-4923.325207580001,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_mandatory_financing_flows_2028_v1,upside,2028,mandatory_financing_flows,forecast_v1,v1,-2906.976245727552,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_min_cash_buffer_2028_v1,upside,2028,min_cash_buffer,forecast_v1,v1,3434.8780518000003,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_near_term_debt_repayment_reserve_2028_v1,upside,2028,near_term_debt_repayment_reserve,forecast_v1,v1,1000.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_upside_net_change_in_cash_2028_v1,upside,2028,net_change_in_cash,forecast_v1,v1,40.431549873695985,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_upside_net_income_2028_v1,upside,2028,net_income,forecast_v1,v1,4606.654939313898,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_upside_net_other_income_2028_v1,upside,2028,net_other_income,forecast_v1,v1,100.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_operating_cash_flow_2028_v1,upside,2028,operating_cash_flow,forecast_v1,v1,8775.704897471322,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_upside_operating_income_2028_v1,upside,2028,operating_income,forecast_v1,v1,6133.5472411642,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_upside_operating_margin_pct_2028_v1,upside,2028,operating_margin_pct,forecast_v1,v1,5.356999999999999,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_upside_other_operating_cf_2028_v1,upside,2028,other_operating_cf,forecast_v1,v1,250.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_post_dividend_capacity_2028_v1,upside,2028,post_dividend_capacity,forecast_v1,v1,1645.4034441637687,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_upside_pre_discretionary_ending_cash_2028_v1,upside,2028,pre_discretionary_ending_cash,forecast_v1,v1,6489.747754530119,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_upside_pretax_income_2028_v1,upside,2028,pretax_income,forecast_v1,v1,5868.3502411642,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_upside_revenue_2028_v1,upside,2028,revenue,forecast_v1,v1,114495.93506000002,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_revenue_growth_pct_2028_v1,upside,2028,revenue_growth_pct,forecast_v1,v1,3.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_sga_expense_2028_v1,upside,2028,sga_expense,forecast_v1,v1,23099.554898355003,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_sga_pct_of_revenue_2028_v1,upside,2028,sga_pct_of_revenue,forecast_v1,v1,20.175,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_share_repurchases_2028_v1,upside,2028,share_repurchases,forecast_v1,v1,904.9718942900728,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_upside_total_debt_gaap_beginning_2028_v1,upside,2028,total_debt_gaap_beginning,forecast_v1,v1,12943.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_upside_total_debt_gaap_ending_2028_v1,upside,2028,total_debt_gaap_ending,forecast_v1,v1,12243.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_valuation_net_debt_2028_v1,upside,2028,valuation_net_debt,forecast_v1,v1,6658.224139759954,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_upside_accounts_payable_balance_2029_v1,upside,2029,accounts_payable_balance,forecast_v1,v1,14739.169918932434,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_upside_ap_cash_impact_2029_v1,upside,2029,ap_cash_impact,forecast_v1,v1,385.8163798920068,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_upside_beginning_cash_2029_v1,upside,2029,beginning_cash,forecast_v1,v1,5584.775860240046,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_upside_capital_expenditure_2029_v1,upside,2029,capital_expenditure,forecast_v1,v1,5071.024963807401,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_cost_of_sales_2029_v1,upside,2029,cost_of_sales,forecast_v1,v1,84223.82810818533,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_upside_da_cfo_addback_2029_v1,upside,2029,da_cfo_addback,forecast_v1,v1,4174.750784157721,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_da_pct_of_revenue_2029_v1,upside,2029,da_pct_of_revenue,forecast_v1,v1,2.91,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_proceeds_2029_v1,upside,2029,debt_proceeds,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_repayments_2029_v1,upside,2029,debt_repayments,forecast_v1,v1,1000.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_deployable_capacity_2029_v1,upside,2029,deployable_capacity,forecast_v1,v1,2517.4885928677227,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_upside_depreciation_amortization_opex_2029_v1,upside,2029,depreciation_amortization_opex,forecast_v1,v1,3431.7866615533803,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_diluted_eps_2029_v1,upside,2029,diluted_eps,forecast_v1,v1,11.821119016358878,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_upside_diluted_shares_2029_v1,upside,2029,diluted_shares,forecast_v1,v1,428.87293246475,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividend_per_share_2029_v1,upside,2029,dividend_per_share,forecast_v1,v1,5.2715531687445125,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividends_paid_2029_v1,upside,2029,dividends_paid,forecast_v1,v1,2260.8264661233043,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_upside_effective_tax_rate_pct_2029_v1,upside,2029,effective_tax_rate_pct,forecast_v1,v1,21.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_ending_cash_2029_v1,upside,2029,ending_cash,forecast_v1,v1,5861.562566931801,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_upside_finance_lease_liabilities_2029_v1,upside,2029,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_upside_financing_cash_flow_2029_v1,upside,2029,financing_cash_flow,forecast_v1,v1,-4154.676885413226,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_free_cash_flow_2029_v1,upside,2029,free_cash_flow,forecast_v1,v1,4431.46359210498,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_funding_warning_2029_v1,upside,2029,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_upside_gross_fcf_capacity_2029_v1,upside,2029,gross_fcf_capacity,forecast_v1,v1,4431.46359210498,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_upside_gross_margin_pct_2029_v1,upside,2029,gross_margin_pct,forecast_v1,v1,28.582,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_gross_profit_2029_v1,upside,2029,gross_profit,forecast_v1,v1,33706.98500361468,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_upside_income_tax_expense_2029_v1,upside,2029,income_tax_expense,forecast_v1,v1,1388.5324397140641,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_upside_interest_expense_2029_v1,upside,2029,interest_expense,forecast_v1,v1,344.897,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_upside_interest_rate_pct_2029_v1,upside,2029,interest_rate_pct,forecast_v1,v1,2.9,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_inventory_balance_2029_v1,upside,2029,inventory_balance,forecast_v1,v1,12972.389442298003,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_inventory_cash_impact_2029_v1,upside,2029,inventory_cash_impact,forecast_v1,v1,-377.8365856979999,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_upside_investing_cash_flow_2029_v1,upside,2029,investing_cash_flow,forecast_v1,v1,-5071.024963807401,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_mandatory_financing_flows_2029_v1,upside,2029,mandatory_financing_flows,forecast_v1,v1,-2960.8264661233043,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_min_cash_buffer_2029_v1,upside,2029,min_cash_buffer,forecast_v1,v1,3537.9243933540006,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_near_term_debt_repayment_reserve_2029_v1,upside,2029,near_term_debt_repayment_reserve,forecast_v1,v1,1000.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_upside_net_change_in_cash_2029_v1,upside,2029,net_change_in_cash,forecast_v1,v1,276.78670669175426,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_upside_net_income_2029_v1,upside,2029,net_income,forecast_v1,v1,5069.757977560654,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_upside_net_other_income_2029_v1,upside,2029,net_other_income,forecast_v1,v1,100.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_operating_cash_flow_2029_v1,upside,2029,operating_cash_flow,forecast_v1,v1,9502.488555912381,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_upside_operating_income_2029_v1,upside,2029,operating_income,forecast_v1,v1,6703.1874172747175,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_upside_operating_margin_pct_2029_v1,upside,2029,operating_margin_pct,forecast_v1,v1,5.684000000000004,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_upside_other_operating_cf_2029_v1,upside,2029,other_operating_cf,forecast_v1,v1,250.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_post_dividend_capacity_2029_v1,upside,2029,post_dividend_capacity,forecast_v1,v1,2170.637125981676,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_upside_pre_discretionary_ending_cash_2029_v1,upside,2029,pre_discretionary_ending_cash,forecast_v1,v1,7055.412986221723,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_upside_pretax_income_2029_v1,upside,2029,pretax_income,forecast_v1,v1,6458.290417274718,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_upside_revenue_2029_v1,upside,2029,revenue,forecast_v1,v1,117930.81311180002,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_revenue_growth_pct_2029_v1,upside,2029,revenue_growth_pct,forecast_v1,v1,3.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_sga_expense_2029_v1,upside,2029,sga_expense,forecast_v1,v1,23572.010924786584,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_sga_pct_of_revenue_2029_v1,upside,2029,sga_pct_of_revenue,forecast_v1,v1,19.988,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_share_repurchases_2029_v1,upside,2029,share_repurchases,forecast_v1,v1,1193.8504192899218,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_upside_total_debt_gaap_beginning_2029_v1,upside,2029,total_debt_gaap_beginning,forecast_v1,v1,12243.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_upside_total_debt_gaap_ending_2029_v1,upside,2029,total_debt_gaap_ending,forecast_v1,v1,11543.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_valuation_net_debt_2029_v1,upside,2029,valuation_net_debt,forecast_v1,v1,5681.437433068199,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11
+fct_upside_accounts_payable_balance_2030_v1,upside,2030,accounts_payable_balance,forecast_v1,v1,15135.00469314219,USD_millions,ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100,unvalidated,2026-03-11
+fct_upside_ap_cash_impact_2030_v1,upside,2030,ap_cash_impact,forecast_v1,v1,395.8347742097558,USD_millions,ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1),unvalidated,2026-03-11
+fct_upside_beginning_cash_2030_v1,upside,2030,beginning_cash,forecast_v1,v1,5861.562566931801,USD_millions,beginning_cash_t = ending_cash_(t-1),unvalidated,2026-03-11
+fct_upside_capital_expenditure_2030_v1,upside,2030,capital_expenditure,forecast_v1,v1,5223.155712721623,USD_millions,capex_t = revenue_t * capex_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_cost_of_sales_2030_v1,upside,2030,cost_of_sales,forecast_v1,v1,86485.74110366966,USD_millions,cost_of_sales_t = revenue_t - gross_profit_t,unvalidated,2026-03-11
+fct_upside_da_cfo_addback_2030_v1,upside,2030,da_cfo_addback,forecast_v1,v1,4450.614542188843,USD_millions,da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_da_pct_of_revenue_2030_v1,upside,2030,da_pct_of_revenue,forecast_v1,v1,2.988,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_proceeds_2030_v1,upside,2030,debt_proceeds,forecast_v1,v1,300.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_debt_repayments_2030_v1,upside,2030,debt_repayments,forecast_v1,v1,1000.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_deployable_capacity_2030_v1,upside,2030,deployable_capacity,forecast_v1,v1,3241.942976854246,USD_millions,"deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",unvalidated,2026-03-11
+fct_upside_depreciation_amortization_opex_2030_v1,upside,2030,depreciation_amortization_opex,forecast_v1,v1,3629.485876654002,USD_millions,da_opex_t = revenue_t * da_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_diluted_eps_2030_v1,upside,2030,diluted_eps,forecast_v1,v1,13.152905432847838,USD_per_share,diluted_eps_t = net_income_t / diluted_shares_t,unvalidated,2026-03-11
+fct_upside_diluted_shares_2030_v1,upside,2030,diluted_shares,forecast_v1,v1,422.4398384777788,USD_millions,diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividend_per_share_2030_v1,upside,2030,dividend_per_share,forecast_v1,v1,5.4824152954942935,USD_per_share,dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_dividends_paid_2030_v1,upside,2030,dividends_paid,forecast_v1,v1,2315.9906318967132,USD_millions,dividends_paid_t = dividend_per_share_t * diluted_shares_t,unvalidated,2026-03-11
+fct_upside_effective_tax_rate_pct_2030_v1,upside,2030,effective_tax_rate_pct,forecast_v1,v1,21.5,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_ending_cash_2030_v1,upside,2030,ending_cash,forecast_v1,v1,6387.56170771648,USD_millions,ending_cash_t = beginning_cash_t + net_change_in_cash_t,unvalidated,2026-03-11
+fct_upside_finance_lease_liabilities_2030_v1,upside,2030,finance_lease_liabilities,forecast_v1,v1,2113.0,USD_millions,Assumption value applied this year (held flat),unvalidated,2026-03-11
+fct_upside_financing_cash_flow_2030_v1,upside,2030,financing_cash_flow,forecast_v1,v1,-4514.434026189098,USD_millions,financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_free_cash_flow_2030_v1,upside,2030,free_cash_flow,forecast_v1,v1,5040.433166973778,USD_millions,fcf_t = operating_cash_flow_t - capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_funding_warning_2030_v1,upside,2030,funding_warning,forecast_v1,v1,0.0,boolean,funding_warning_t = (ending_cash_t < min_cash_buffer_t),unvalidated,2026-03-11
+fct_upside_gross_fcf_capacity_2030_v1,upside,2030,gross_fcf_capacity,forecast_v1,v1,5040.433166973778,USD_millions,gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow),unvalidated,2026-03-11
+fct_upside_gross_margin_pct_2030_v1,upside,2030,gross_margin_pct,forecast_v1,v1,28.8,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_gross_profit_2030_v1,upside,2030,gross_profit,forecast_v1,v1,34982.99640148436,USD_millions,gross_profit_t = revenue_t * gross_margin_pct_t/100,unvalidated,2026-03-11
+fct_upside_income_tax_expense_2030_v1,upside,2030,income_tax_expense,forecast_v1,v1,1521.79225224412,USD_millions,income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100,unvalidated,2026-03-11
+fct_upside_interest_expense_2030_v1,upside,2030,interest_expense,forecast_v1,v1,324.597,USD_millions,"interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",unvalidated,2026-03-11
+fct_upside_interest_rate_pct_2030_v1,upside,2030,interest_rate_pct,forecast_v1,v1,2.9,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_inventory_balance_2030_v1,upside,2030,inventory_balance,forecast_v1,v1,13361.561125566941,USD_millions,inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_inventory_cash_impact_2030_v1,upside,2030,inventory_cash_impact,forecast_v1,v1,-389.17168326893807,USD_millions,inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)),unvalidated,2026-03-11
+fct_upside_investing_cash_flow_2030_v1,upside,2030,investing_cash_flow,forecast_v1,v1,-5223.155712721623,USD_millions,investing_cf_t = -capital_expenditure_t,unvalidated,2026-03-11
+fct_upside_mandatory_financing_flows_2030_v1,upside,2030,mandatory_financing_flows,forecast_v1,v1,-3015.9906318967132,USD_millions,mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_min_cash_buffer_2030_v1,upside,2030,min_cash_buffer,forecast_v1,v1,3644.062125154621,USD_millions,min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_near_term_debt_repayment_reserve_2030_v1,upside,2030,near_term_debt_repayment_reserve,forecast_v1,v1,1000.0,USD_millions,near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder),unvalidated,2026-03-11
+fct_upside_net_change_in_cash_2030_v1,upside,2030,net_change_in_cash,forecast_v1,v1,525.9991407846792,USD_millions,net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t,unvalidated,2026-03-11
+fct_upside_net_income_2030_v1,upside,2030,net_income,forecast_v1,v1,5556.31124656574,USD_millions,net_income_t = pretax_income_t - income_tax_expense_t,unvalidated,2026-03-11
+fct_upside_net_other_income_2030_v1,upside,2030,net_other_income,forecast_v1,v1,100.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_operating_cash_flow_2030_v1,upside,2030,operating_cash_flow,forecast_v1,v1,10263.5888796954,USD_millions,cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t,unvalidated,2026-03-11
+fct_upside_operating_income_2030_v1,upside,2030,operating_income,forecast_v1,v1,7302.70049880986,USD_millions,operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t,unvalidated,2026-03-11
+fct_upside_operating_margin_pct_2030_v1,upside,2030,operating_margin_pct,forecast_v1,v1,6.012,percent,operating_margin_pct_t = operating_income_t / revenue_t * 100,unvalidated,2026-03-11
+fct_upside_other_operating_cf_2030_v1,upside,2030,other_operating_cf,forecast_v1,v1,250.0,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_post_dividend_capacity_2030_v1,upside,2030,post_dividend_capacity,forecast_v1,v1,2724.4425350770643,USD_millions,post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t,unvalidated,2026-03-11
+fct_upside_pre_discretionary_ending_cash_2030_v1,upside,2030,pre_discretionary_ending_cash,forecast_v1,v1,7886.005102008867,USD_millions,pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t,unvalidated,2026-03-11
+fct_upside_pretax_income_2030_v1,upside,2030,pretax_income,forecast_v1,v1,7078.10349880986,USD_millions,pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t,unvalidated,2026-03-11
+fct_upside_revenue_2030_v1,upside,2030,revenue,forecast_v1,v1,121468.73750515401,USD_millions,revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100),unvalidated,2026-03-11
+fct_upside_revenue_growth_pct_2030_v1,upside,2030,revenue_growth_pct,forecast_v1,v1,3.0,percent,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_sga_expense_2030_v1,upside,2030,sga_expense,forecast_v1,v1,24050.810026020496,USD_millions,sga_expense_t = revenue_t * sga_pct_of_revenue_t/100,unvalidated,2026-03-11
+fct_upside_sga_pct_of_revenue_2030_v1,upside,2030,sga_pct_of_revenue,forecast_v1,v1,19.8,USD_millions,Assumption value applied this year,unvalidated,2026-03-11
+fct_upside_share_repurchases_2030_v1,upside,2030,share_repurchases,forecast_v1,v1,1498.4433942923854,USD_millions,"repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",unvalidated,2026-03-11
+fct_upside_total_debt_gaap_beginning_2030_v1,upside,2030,total_debt_gaap_beginning,forecast_v1,v1,11543.0,USD_millions,total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1),unvalidated,2026-03-11
+fct_upside_total_debt_gaap_ending_2030_v1,upside,2030,total_debt_gaap_ending,forecast_v1,v1,10843.0,USD_millions,total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t,unvalidated,2026-03-11
+fct_upside_valuation_net_debt_2030_v1,upside,2030,valuation_net_debt,forecast_v1,v1,4455.43829228352,USD_millions,valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t,unvalidated,2026-03-11

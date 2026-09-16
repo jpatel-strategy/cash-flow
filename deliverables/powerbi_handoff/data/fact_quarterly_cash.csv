@@ -1,0 +1,11 @@
+instant_fact_id,metric,as_of_date,value_normalized,normalized_unit,accession_number,filed_at,restatement_status,information_cutoff
+if_qf_9bbaae9cd3e5,cash_and_equivalents_balance_sheet,2025-02-01,4762.0,USD_millions,0000027419-25-000018,2025-03-12,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_7806f6c11eb4,cash_and_equivalents_balance_sheet,2025-05-03,2887.0,USD_millions,0000027419-25-000101,2025-05-30,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_b4d3d7bae5ac,cash_and_equivalents_balance_sheet,2025-08-02,4341.0,USD_millions,0000027419-25-000118,2025-08-29,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_fa887121c6bd,cash_and_equivalents_balance_sheet,2025-11-01,3822.0,USD_millions,0000027419-25-000126,2025-11-26,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_ebe7f50abba7,cash_and_equivalents_balance_sheet,2026-01-31,5488.0,USD_millions,0000027419-26-000016,2026-03-11,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_0f7dfd5f31e4,cash_and_equivalents_rollforward,2025-02-01,4762.0,USD_millions,0000027419-25-000018,2025-03-12,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_2634357467b5,cash_and_equivalents_rollforward,2025-05-03,2887.0,USD_millions,0000027419-25-000101,2025-05-30,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_ee1ed08552c4,cash_and_equivalents_rollforward,2025-08-02,4341.0,USD_millions,0000027419-25-000118,2025-08-29,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_99b39760d3b2,cash_and_equivalents_rollforward,2025-11-01,3822.0,USD_millions,0000027419-25-000126,2025-11-26,as_originally_filed,2026-09-15T04:37:21Z
+if_qf_3433955277a5,cash_and_equivalents_rollforward,2026-01-31,5488.0,USD_millions,0000027419-26-000016,2026-03-11,as_originally_filed,2026-09-15T04:37:21Z

@@ -1,0 +1,11 @@
+fiscal_year,year_label,period_type,is_historical,is_forecast
+2021,FY2021,Historical,1,0
+2022,FY2022,Historical,1,0
+2023,FY2023,Historical,1,0
+2024,FY2024,Historical,1,0
+2025,FY2025,Historical,1,0
+2026,FY2026,Forecast,0,1
+2027,FY2027,Forecast,0,1
+2028,FY2028,Forecast,0,1
+2029,FY2029,Forecast,0,1
+2030,FY2030,Forecast,0,1
