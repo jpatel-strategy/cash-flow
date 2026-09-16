@@ -525,6 +525,166 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
             COMMIT;
         """,
     ),
+    TableMigration(
+        migration_id="0015_forecast_scenarios",
+        description=(
+            "Create forecast_scenarios (empty). Milestone 3B: implements, unchanged, the schema "
+            "proposed in docs/milestone_3_forecast_schema_proposal.md Section 2.1 (approved as a "
+            "proposal 2026-09-16, implemented 2026-09-16 once Milestone 3A's forecast corrections "
+            "passed every validation gate). One row per scenario (base/upside/downside). "
+            "information_cutoff_accession points at the FY2025 10-K via the existing filings table "
+            "-- the forecast cutoff is registered evidence, never a bare string."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS forecast_scenarios (
+                scenario_id                  TEXT PRIMARY KEY,
+                scenario_name                TEXT NOT NULL,
+                description                  TEXT NOT NULL,
+                information_cutoff           TEXT NOT NULL,
+                information_cutoff_accession TEXT NOT NULL REFERENCES filings(accession_number),
+                version                      TEXT NOT NULL DEFAULT 'v1',
+                created_at                   TEXT NOT NULL
+            );
+        """,
+    ),
+    TableMigration(
+        migration_id="0016_forecast_assumptions",
+        description=(
+            "Create forecast_assumptions (empty). Milestone 3B, per the proposal's Section 2.2. "
+            "Directly persists target_cash.forecast.Assumption unchanged -- every field of that "
+            "dataclass has a matching column. review_status starts at 'proposed' for every row this "
+            "round produces; only a human reviewer may advance it to 'reviewed'/'approved'."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS forecast_assumptions (
+                assumption_id         TEXT PRIMARY KEY,
+                scenario_id           TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                forecast_year         INTEGER NOT NULL,
+                metric                TEXT NOT NULL,
+                value                 REAL NOT NULL,
+                unit                  TEXT NOT NULL,
+                rationale             TEXT NOT NULL,
+                historical_reference  TEXT NOT NULL,
+                source_evidence       TEXT NOT NULL,
+                information_cutoff    TEXT NOT NULL,
+                review_status         TEXT NOT NULL DEFAULT 'proposed'
+                                          CHECK (review_status IN ('proposed', 'reviewed', 'approved', 'rejected')),
+                version               TEXT NOT NULL DEFAULT 'v1',
+                created_at            TEXT NOT NULL,
+                UNIQUE (scenario_id, metric, forecast_year, version)
+            );
+            CREATE INDEX IF NOT EXISTS idx_forecast_assumptions_scenario_metric
+                ON forecast_assumptions(scenario_id, metric);
+        """,
+    ),
+    TableMigration(
+        migration_id="0017_forecast_facts",
+        description=(
+            "Create forecast_facts (empty). Milestone 3B, per the proposal's Section 2.3. One row "
+            "per (scenario, fiscal_year, metric) -- every field of target_cash.forecast.ForecastYear "
+            "becomes its own row, matching annual_facts' one-row-per-metric grain. "
+            "CHECK (fiscal_year >= 2026) is the structural historical/forecast separation: a forecast "
+            "row can never land in the FY2021-FY2025 historical range, and this table is entirely "
+            "separate from annual_facts, so no query can accidentally blend the two."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS forecast_facts (
+                forecast_fact_id           TEXT PRIMARY KEY,
+                scenario_id                TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year                INTEGER NOT NULL CHECK (fiscal_year >= 2026),
+                metric                     TEXT NOT NULL,
+                metric_definition_version  TEXT NOT NULL,
+                assumption_version         TEXT NOT NULL,
+                value                      REAL NOT NULL,
+                unit                       TEXT NOT NULL DEFAULT 'USD_millions',
+                formula                    TEXT NOT NULL,
+                validation_status          TEXT NOT NULL DEFAULT 'unvalidated'
+                                               CHECK (validation_status IN ('pass', 'fail', 'blocked', 'unvalidated')),
+                information_cutoff         TEXT NOT NULL,
+                created_at                 TEXT NOT NULL,
+                UNIQUE (scenario_id, metric, fiscal_year, assumption_version)
+            );
+            CREATE INDEX IF NOT EXISTS idx_forecast_facts_scenario_year ON forecast_facts(scenario_id, fiscal_year);
+        """,
+    ),
+    TableMigration(
+        migration_id="0018_forecast_lineage",
+        description=(
+            "Create forecast_lineage (empty). Milestone 3B, per the proposal's Section 2.4. "
+            "Generalizes annual_lineage's two-input-kind CHECK (exactly one of raw/annual) to three "
+            "input kinds with 'at least one', because a forecast fact routinely combines a prior-year "
+            "forecast fact, a historical annual_facts anchor, and an assumption in one formula."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS forecast_lineage (
+                forecast_lineage_id       TEXT PRIMARY KEY,
+                forecast_fact_id          TEXT NOT NULL REFERENCES forecast_facts(forecast_fact_id),
+                input_historical_fact_id  TEXT REFERENCES annual_facts(annual_fact_id),
+                input_forecast_fact_id    TEXT REFERENCES forecast_facts(forecast_fact_id),
+                input_assumption_id       TEXT REFERENCES forecast_assumptions(assumption_id),
+                operation                 TEXT NOT NULL,
+                sequence                  INTEGER NOT NULL,
+                CHECK (
+                    (input_historical_fact_id IS NOT NULL)
+                    + (input_forecast_fact_id IS NOT NULL)
+                    + (input_assumption_id IS NOT NULL) >= 1
+                )
+            );
+            CREATE INDEX IF NOT EXISTS idx_forecast_lineage_fact ON forecast_lineage(forecast_fact_id);
+        """,
+    ),
+    TableMigration(
+        migration_id="0019_forecast_validation_results",
+        description=(
+            "Create forecast_validation_results (empty). Milestone 3B, per the proposal's Section "
+            "2.5. One row per target_cash.forecast.ValidationResult per persistence run. "
+            "scenario_id/fiscal_year are nullable because several checks (scenario_ordering, "
+            "information_cutoff_compliance, no_historical_forecast_mixing, "
+            "cumulative_capacity_no_double_counting when reported per-scenario only) are not scoped "
+            "to a single scenario/year."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS forecast_validation_results (
+                validation_result_id  TEXT PRIMARY KEY,
+                check_name            TEXT NOT NULL,
+                scenario_id           TEXT REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year           INTEGER,
+                status                TEXT NOT NULL CHECK (status IN ('PASS', 'FAIL', 'WARNING')),
+                detail                TEXT NOT NULL,
+                forecast_version      TEXT NOT NULL,
+                run_at                TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_forecast_validation_check ON forecast_validation_results(check_name);
+        """,
+    ),
+    TableMigration(
+        migration_id="0020_investment_capacity_results",
+        description=(
+            "Create investment_capacity_results (empty). Milestone 3B, per the proposal's Section "
+            "2.6. methodology_note is NOT NULL with no default by design: deployable_capacity must "
+            "never be persisted as a bare number without the liquidity-buffer/seasonality/covenant/"
+            "discretion caveats attached, so the schema makes it structurally impossible to insert "
+            "the figure without also storing that explanation."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS investment_capacity_results (
+                investment_capacity_result_id     TEXT PRIMARY KEY,
+                scenario_id                       TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year                        INTEGER NOT NULL,
+                gross_fcf_capacity                 REAL NOT NULL,
+                post_dividend_capacity             REAL NOT NULL,
+                pre_discretionary_ending_cash      REAL NOT NULL,
+                min_cash_buffer                    REAL NOT NULL,
+                near_term_debt_repayment_reserve   REAL NOT NULL,
+                deployable_capacity                REAL NOT NULL,
+                cumulative_deployable_capacity     REAL,
+                funding_warning                    INTEGER NOT NULL DEFAULT 0 CHECK (funding_warning IN (0, 1)),
+                methodology_note                   TEXT NOT NULL,
+                information_cutoff                 TEXT NOT NULL,
+                UNIQUE (scenario_id, fiscal_year)
+            );
+        """,
+    ),
 )
 
 

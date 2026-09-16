@@ -72,17 +72,25 @@ lines.append(
 )
 lines.append("")
 lines.append(
-    "**Milestone 3A correction round applied.** This version reflects the Milestone 3A internal "
-    "review and correction pass: (1) fixed the cumulative-deployable-capacity double-counting "
-    "defect (Section 4c); (2) extended the capital-allocation no-double-counting proof to "
-    "explicitly cover management-selected deployment and debt repayment (Section 4a, identity c); "
-    "(3) added scenario narratives establishing each scenario as a coherent business condition "
-    "(Section 7); (4) added validation check 21, `cumulative_capacity_no_double_counting`. As of "
-    "this document's generation (the Milestone 3A commit), no forecast schema is implemented and "
-    "no forecast fact is persisted -- `data/curated/target_cash.db` is unchanged. Milestone 3B "
-    "(additive schema, backed-up, transactional, idempotency-verified persistence of this exact, "
-    "now-corrected assumption set) follows as a separate commit; see `docs/decisions.md` for its "
-    "record once complete."
+    "**Milestone 3A correction round applied.** (1) fixed the cumulative-deployable-capacity "
+    "double-counting defect (Section 4c); (2) extended the capital-allocation no-double-counting "
+    "proof to explicitly cover management-selected deployment and debt repayment (Section 4a, "
+    "identity c); (3) added scenario narratives establishing each scenario as a coherent business "
+    "condition (Section 7); (4) added validation check 21, `cumulative_capacity_no_double_counting`."
+)
+lines.append("")
+lines.append(
+    "**Milestone 3B persisted this exact, corrected assumption set.** The additive schema proposed "
+    "in `docs/milestone_3_forecast_schema_proposal.md` is now implemented (migrations "
+    "0015-0020) and populated: 3 forecast_scenarios, 105 forecast_assumptions, 765 forecast_facts "
+    "(full grain -- every ForecastYear field with a non-null value, for every scenario and forecast "
+    "year), 1,533 forecast_lineage rows (also full grain, via build_full_lineage()), 229 "
+    "forecast_validation_results, and 15 investment_capacity_results rows. Persisted "
+    "transactionally, with a pre-write database backup and independent SHA-256 re-verification, "
+    "and proven idempotent by re-running the exact same persistence twice with zero row-count "
+    "change. Post-write integrity (zero orphan lineage, zero duplicate facts/assumptions/investment-"
+    "capacity rows, zero missing assumptions, zero scenario mixing, zero historical/forecast year "
+    "overlap) passed in full. See `docs/decisions.md` for the complete Milestone 3B record."
 )
 lines.append("")
 lines.append("---")

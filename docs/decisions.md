@@ -2492,3 +2492,105 @@ passed (328 pre-existing + 13 new Milestone 3A tests).
 **No forecast schema is implemented and no forecast fact is persisted by
 this commit.** Milestone 3B (additive schema + persistence, backed up,
 transactional, idempotency-verified) follows as a separate commit.
+
+## 2026-09-16 — Milestone 3B: forecast schema implemented and persisted
+
+Implements, unchanged, the schema `docs/milestone_3_forecast_schema_proposal.md`
+proposed and the reviewer previously reviewed: 6 additive migrations
+(`0015_forecast_scenarios` through `0020_investment_capacity_results`),
+each a plain `CREATE TABLE IF NOT EXISTS` (+ index), applied via the same
+`apply_safe_migrations` path every earlier migration uses. No existing
+table is altered.
+
+**Full-grain persistence, not representative.** The Milestone 3 reviewer
+package's `build_lineage()` (10 tracked metrics) stays as-is for that
+document, but persistence itself uses a new `build_full_lineage()`
+covering all 51 persistable `ForecastYear` fields (a new `FIELD_SPECS`
+registry maps every field to its formula and same-year/cross-year/
+assumption inputs) — because the governing instructions require "zero
+orphan lineage" as a persistence gate, which a 10-metric subset cannot
+satisfy. `management_selected_deployment` (always `None` this round) is
+the one field never persisted as a fact: there is nothing to derive a
+lineage row for a value that is not itself a derived quantity.
+
+**One real bug found and fixed before the first write**: `build_full_lineage()`
+originally incremented its `sequence` counter once per (input_field,
+offset) pair rather than once per emitted row. `dividend_per_share`'s
+FY2026 cross-year anchor cites TWO historical metrics (`dividends_paid`
+and `diluted_shares`) in one such pair, so both rows shared the same
+`sequence` and therefore the same deterministic `forecast_lineage_id` —
+a real collision, caught by comparing preflight-computed row counts (1,533
+generated) against actual persisted counts (1,530) on the very first test
+run against a scratch copy of the database, before the real database was
+ever touched. Fixed by incrementing `sequence` inside the per-citation
+loop; a dedicated regression test
+(`test_build_full_lineage_no_duplicate_lineage_ids_within_one_run`)
+guards against a recurrence.
+
+**Persistence gate**: `target_cash.forecast.validate_all()` must show
+zero `FAIL` across all 21 checks (`WARNING` is allowed — e.g. a disclosed
+funding-warning finding is a real result, not a computation error).
+Implemented in `src/target_cash/forecast_persistence.py`
+(`compute_forecast_preflight` / `persist_forecast` /
+`verify_forecast_persistence_integrity`), mirroring
+`annual_persistence.py`'s discipline: a preflight plan from pure in-memory
+computation, one atomic transaction, deterministic IDs
+(`forecast_fact_id = f"fct_{scenario}_{metric}_{fiscal_year}_{version}"`,
+etc.) with `ON CONFLICT DO UPDATE` for idempotency, and a post-write
+integrity report. Wired into a new CLI command, `target_cash
+persist-forecast`, which backs up the database and independently
+re-verifies the backup's SHA-256 before writing, exactly like
+`persist-annual`.
+
+**Run for real against the active database** (2026-09-16), after
+confirming the preflight was authorized (0 validation failures) against a
+scratch copy first: backup taken at
+`data/curated/target_cash.db.backup-20260916T010849Z` (SHA-256
+`900dc1fd741143755ee81c052931411af6478fb464207180dd75f1c8570477b1`,
+matching the pre-persistence database exactly). Persisted 3
+`forecast_scenarios`, 105 `forecast_assumptions`, 765 `forecast_facts`,
+1,533 `forecast_lineage`, 229 `forecast_validation_results`, and 15
+`investment_capacity_results` rows. Post-write integrity: zero orphan
+lineage, zero duplicate facts/assumptions/investment-capacity rows, zero
+missing assumptions, zero scenario mixing, zero historical/forecast year
+overlap — all passed. Re-ran the identical persistence a second time
+against the real database and confirmed byte-for-byte identical row
+counts in every forecast table, proving idempotency on the actual
+production data, not only in a test fixture. Milestone 1/2 tables are
+unchanged: `annual_facts`=488, `annual_lineage`=384,
+`annual_fact_observations`=686, `raw_facts`=1293, `filings`=8 — identical
+to their values before this round.
+
+**Clean-room rebuild extended**: `scripts/clean_room_rebuild.py` now runs
+`persist-forecast` immediately after `persist-annual` in the same
+from-scratch clean room, so the forecast layer is proven reproducible
+from nothing but the 8 registered source filings, not only from the
+active database. `scripts/compare_databases.py` gained export functions
+for all 6 forecast tables (`forecast_scenarios`, `forecast_assumptions`,
+`forecast_facts`, `forecast_lineage`, `forecast_validation_results`,
+`investment_capacity_results`), excluding wall-clock `created_at`/`run_at`
+columns from the canonical comparison for the same reason
+`quarterly_facts.as_of_date` has always been excluded — every primary key
+in the new tables is deterministic (not `uuid.uuid4()`-derived), so no ID
+needs normalization either.
+
+**Design decisions recorded**: (1) `forecast_facts.metric_definition_version`
+pins to a new constant, `"forecast_v1"`, not to `config/metric_definitions.csv`
+— that file versions historical XBRL-tag mappings, and has no rows for
+forecast-only metrics like `deployable_capacity` or `valuation_net_debt`.
+(2) `forecast_facts.assumption_version` is the single project-wide
+assumption-set version (`"v1"`) for every fact this round, not a
+per-assumption composite version vector — every assumption currently
+shares that same version, so a composite tracking scheme would add
+complexity with no observable benefit yet; revisit if assumptions are
+ever revised independently of each other. (3) `forecast_facts.validation_status`
+defaults to `'unvalidated'` for every persisted row, mirroring
+`annual_facts`' own discipline — the 21 checks validate the FORECAST
+(scenario/year grain), not each individual persisted fact row
+individually, so no automatic per-fact "pass" is assigned at insert time.
+
+**Tests**: `tests/unit/test_forecast_persistence.py` (16 new tests,
+built against a real `sql/schema.sql` + migrations database seeded with
+FY2021-FY2025 `annual_facts` rows generated directly from
+`forecast.HISTORICAL`) plus 5 new tests in `test_forecast.py` for
+`build_full_lineage()`. Full suite: 363 passed.

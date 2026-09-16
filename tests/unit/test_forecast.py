@@ -834,3 +834,76 @@ def test_scenario_narratives_cite_real_assumption_values():
     assert "+3.0%" in f.SCENARIO_NARRATIVES["upside"]
     assert "-2.5%" in f.SCENARIO_NARRATIVES["downside"]
     assert base_growth == 1.0 and upside_growth == 3.0 and downside_growth == -2.5
+
+
+def test_cumulative_deployable_capacity_through_each_year_matches_totals():
+    forecasts = f.run_all_scenarios()
+    for years in forecasts.values():
+        series = f.cumulative_deployable_capacity_through_each_year(years)
+        assert len(series) == len(years)
+        assert series[-1] == pytest.approx(f.cumulative_deployable_capacity(years))
+        # With nothing ever deployed, the running series is just each year's own deployable_capacity.
+        assert series == [pytest.approx(y.deployable_capacity) for y in years]
+
+
+# --- Milestone 3B: full-grain lineage ---------------------------------------
+
+
+def test_build_full_lineage_covers_every_field_every_year():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    for scenario, years in forecasts.items():
+        rows = f.build_full_lineage(years, assumptions)
+        fact_ids_with_lineage = {r["forecast_fact_id"] for r in rows}
+        expected = {f.forecast_fact_id(scenario, field, y.fiscal_year) for y in years for field in f.FIELD_SPECS}
+        assert expected.issubset(fact_ids_with_lineage)
+
+
+def test_build_full_lineage_every_row_satisfies_check_constraint():
+    """Mirrors forecast_lineage's CHECK: exactly-at-least-one of the three input kinds set."""
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    rows = f.build_full_lineage(forecasts["base"], assumptions)
+    for r in rows:
+        set_count = sum(x is not None for x in (
+            r["input_historical_fact_id"], r["input_forecast_fact_id"], r["input_assumption_id"]
+        ))
+        assert set_count == 1, r
+
+
+def test_build_full_lineage_fy2026_cross_year_fields_cite_historical_facts():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    rows = f.build_full_lineage(forecasts["base"], assumptions)
+    revenue_2026_rows = [r for r in rows if r["forecast_fact_id"] == f.forecast_fact_id("base", "revenue", 2026)]
+    hist_citations = [r for r in revenue_2026_rows if r["input_historical_fact_id"]]
+    assert hist_citations
+    assert hist_citations[0]["input_historical_fact_id"] == f.annual_fact_id_for("revenue", 2025)
+
+
+def test_build_full_lineage_no_duplicate_lineage_ids_within_one_run():
+    """Regression test: dividend_per_share's FY2026 cross-year anchor cites
+    TWO historical metrics (dividends_paid and diluted_shares) in the same
+    cross_year_inputs iteration. An earlier version incremented `sequence`
+    once per (input_field, offset) pair rather than once per emitted row,
+    so both citations shared the same sequence number and therefore the
+    same forecast_lineage_id -- a real, caught collision bug."""
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    for scenario, years in forecasts.items():
+        rows = f.build_full_lineage(years, assumptions)
+        seq_keys = [(r["forecast_fact_id"], r["sequence"]) for r in rows]
+        assert len(seq_keys) == len(set(seq_keys)), f"duplicate (fact_id, sequence) in {scenario}"
+        lineage_ids = [f"{fid}_lin_{seq}" for fid, seq in seq_keys]
+        assert len(lineage_ids) == len(set(lineage_ids))
+
+
+def test_build_full_lineage_later_years_cite_prior_forecast_facts_not_historical():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    rows = f.build_full_lineage(forecasts["base"], assumptions)
+    revenue_2028_rows = [r for r in rows if r["forecast_fact_id"] == f.forecast_fact_id("base", "revenue", 2028)]
+    forecast_citations = [r for r in revenue_2028_rows if r["input_forecast_fact_id"]]
+    assert forecast_citations
+    assert forecast_citations[0]["input_forecast_fact_id"] == f.forecast_fact_id("base", "revenue", 2027)
+    assert all(r["input_historical_fact_id"] is None for r in revenue_2028_rows)

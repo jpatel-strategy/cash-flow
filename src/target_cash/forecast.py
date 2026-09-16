@@ -1205,6 +1205,193 @@ def build_lineage(years: list[ForecastYear], assumptions: list[Assumption]) -> l
     return entries
 
 
+# --- Full-grain field lineage (Milestone 3B persistence) -------------------
+# build_lineage() above stays REPRESENTATIVE (10 tracked metrics) -- it is
+# what the Milestone 3 reviewer package already documents and tests. This
+# section instead maps EVERY persistable ForecastYear field to its formula
+# and inputs, for full-grain forecast_lineage persistence (Milestone 3B's
+# "zero orphan lineage" gate requires every forecast_facts row to have at
+# least one lineage row, not just the 10 representative ones).
+
+# (formula, same_year_inputs, cross_year_inputs, assumption_inputs).
+# cross_year_inputs are (field_name, -1) meaning "this field's own value one
+# year earlier" -- resolved to a prior forecast_facts row, or to a HISTORICAL
+# anchor (via FIELD_HISTORICAL_ANCHOR below) at FY2026, the first forecast year.
+FIELD_SPECS: dict[str, tuple[str, list[str], list[tuple[str, int]], list[str]]] = {
+    "revenue": ("revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t/100)", [], [("revenue", -1)], ["revenue_growth_pct"]),
+    "revenue_growth_pct": ("Assumption value applied this year", [], [], ["revenue_growth_pct"]),
+    "cost_of_sales": ("cost_of_sales_t = revenue_t - gross_profit_t", ["revenue", "gross_profit"], [], []),
+    "gross_profit": ("gross_profit_t = revenue_t * gross_margin_pct_t/100", ["revenue"], [], ["gross_margin_pct"]),
+    "gross_margin_pct": ("Assumption value applied this year", [], [], ["gross_margin_pct"]),
+    "sga_expense": ("sga_expense_t = revenue_t * sga_pct_of_revenue_t/100", ["revenue"], [], ["sga_pct_of_revenue"]),
+    "sga_pct_of_revenue": ("Assumption value applied this year", [], [], ["sga_pct_of_revenue"]),
+    "depreciation_amortization_opex": ("da_opex_t = revenue_t * da_pct_of_revenue_t/100", ["revenue"], [], ["da_pct_of_revenue"]),
+    "da_pct_of_revenue": ("Assumption value applied this year", [], [], ["da_pct_of_revenue"]),
+    "operating_income": ("operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t",
+                          ["gross_profit", "sga_expense", "depreciation_amortization_opex"], [], []),
+    "operating_margin_pct": ("operating_margin_pct_t = operating_income_t / revenue_t * 100",
+                              ["operating_income", "revenue"], [], []),
+    "total_debt_gaap_beginning": ("total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1)", [],
+                                   [("total_debt_gaap_ending", -1)], []),
+    "total_debt_gaap_ending": ("total_debt_gaap_ending_t = total_debt_gaap_beginning_t + debt_proceeds_t - debt_repayments_t",
+                                ["total_debt_gaap_beginning", "debt_proceeds", "debt_repayments"], [], []),
+    "debt_proceeds": ("Assumption value applied this year", [], [], ["debt_proceeds_musd"]),
+    "debt_repayments": ("Assumption value applied this year", [], [], ["debt_repayments_musd"]),
+    "interest_rate_pct": ("Assumption value applied this year", [], [], ["interest_rate_pct"]),
+    "interest_expense": ("interest_expense_t = interest_rate_pct_t/100 * avg(total_debt_gaap_beginning_t, total_debt_gaap_ending_t)",
+                          ["total_debt_gaap_beginning", "total_debt_gaap_ending"], [], ["interest_rate_pct"]),
+    "net_other_income": ("Assumption value applied this year", [], [], ["net_other_income_musd"]),
+    "pretax_income": ("pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t",
+                       ["operating_income", "interest_expense", "net_other_income"], [], []),
+    "effective_tax_rate_pct": ("Assumption value applied this year", [], [], ["effective_tax_rate_pct"]),
+    "income_tax_expense": ("income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t/100",
+                            ["pretax_income"], [], ["effective_tax_rate_pct"]),
+    "net_income": ("net_income_t = pretax_income_t - income_tax_expense_t", ["pretax_income", "income_tax_expense"], [], []),
+    "diluted_shares": ("diluted_shares_t = diluted_shares_(t-1) * (1 + diluted_share_change_pct_t/100)", [],
+                        [("diluted_shares", -1)], ["diluted_share_change_pct"]),
+    "diluted_eps": ("diluted_eps_t = net_income_t / diluted_shares_t", ["net_income", "diluted_shares"], [], []),
+    "da_cfo_addback": ("da_cfo_addback_t = revenue_t * da_cfo_addback_pct_of_revenue_t/100", ["revenue"], [],
+                        ["da_cfo_addback_pct_of_revenue"]),
+    "inventory_balance": ("inventory_balance_t = revenue_t * inventory_pct_of_revenue_t/100", ["revenue"], [],
+                           ["inventory_pct_of_revenue"]),
+    "inventory_cash_impact": ("inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1))",
+                               ["inventory_balance"], [("inventory_balance", -1)], []),
+    "accounts_payable_balance": ("ap_balance_t = cost_of_sales_t * ap_pct_of_cogs_t/100", ["cost_of_sales"], [],
+                                  ["ap_pct_of_cogs"]),
+    "ap_cash_impact": ("ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1)",
+                        ["accounts_payable_balance"], [("accounts_payable_balance", -1)], []),
+    "other_operating_cf": ("Assumption value applied this year", [], [], ["other_operating_cf_musd"]),
+    "operating_cash_flow": ("cfo_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t + ap_cash_impact_t + other_operating_cf_t",
+                             ["net_income", "da_cfo_addback", "inventory_cash_impact", "ap_cash_impact", "other_operating_cf"], [], []),
+    "capital_expenditure": ("capex_t = revenue_t * capex_pct_of_revenue_t/100", ["revenue"], [], ["capex_pct_of_revenue"]),
+    "free_cash_flow": ("fcf_t = operating_cash_flow_t - capital_expenditure_t", ["operating_cash_flow", "capital_expenditure"], [], []),
+    "investing_cash_flow": ("investing_cf_t = -capital_expenditure_t", ["capital_expenditure"], [], []),
+    "dividend_per_share": ("dps_t = dps_(t-1) * (1 + dividend_per_share_growth_pct_t/100)", [],
+                            [("dividend_per_share", -1)], ["dividend_per_share_growth_pct"]),
+    "dividends_paid": ("dividends_paid_t = dividend_per_share_t * diluted_shares_t",
+                        ["dividend_per_share", "diluted_shares"], [], []),
+    "share_repurchases": ("repurchases_t = max(0, (free_cash_flow_t - dividends_paid_t) * buyback_payout_pct_t/100)",
+                           ["free_cash_flow", "dividends_paid"], [], ["buyback_payout_pct_of_post_dividend_fcf"]),
+    "financing_cash_flow": ("financing_cf_t = -dividends_paid_t - share_repurchases_t + debt_proceeds_t - debt_repayments_t",
+                             ["dividends_paid", "share_repurchases", "debt_proceeds", "debt_repayments"], [], []),
+    "net_change_in_cash": ("net_change_cash_t = operating_cash_flow_t + investing_cash_flow_t + financing_cash_flow_t",
+                            ["operating_cash_flow", "investing_cash_flow", "financing_cash_flow"], [], []),
+    "beginning_cash": ("beginning_cash_t = ending_cash_(t-1)", [], [("ending_cash", -1)], []),
+    "ending_cash": ("ending_cash_t = beginning_cash_t + net_change_in_cash_t", ["beginning_cash", "net_change_in_cash"], [], []),
+    "finance_lease_liabilities": ("Assumption value applied this year (held flat)", [], [], ["finance_lease_liabilities_musd"]),
+    "gross_fcf_capacity": ("gross_fcf_capacity_t = operating_cash_flow_t - capital_expenditure_t (alias of free_cash_flow)",
+                            ["operating_cash_flow", "capital_expenditure"], [], []),
+    "post_dividend_capacity": ("post_dividend_capacity_t = free_cash_flow_t - dividends_paid_t",
+                                ["free_cash_flow", "dividends_paid"], [], []),
+    "mandatory_financing_flows": ("mandatory_financing_flows_t = -dividends_paid_t + debt_proceeds_t - debt_repayments_t",
+                                   ["dividends_paid", "debt_proceeds", "debt_repayments"], [], []),
+    "pre_discretionary_ending_cash": (
+        "pre_disc_ending_cash_t = beginning_cash_t + operating_cash_flow_t + investing_cash_flow_t + mandatory_financing_flows_t",
+        ["beginning_cash", "operating_cash_flow", "investing_cash_flow", "mandatory_financing_flows"], [], []),
+    "min_cash_buffer": ("min_cash_buffer_t = revenue_t * min_cash_buffer_pct_of_revenue_t/100", ["revenue"], [],
+                         ["min_cash_buffer_pct_of_revenue"]),
+    "near_term_debt_repayment_reserve": ("near_term_reserve_t = debt_repayments_t (proxy -- no disclosed maturity ladder)",
+                                          ["debt_repayments"], [], []),
+    "deployable_capacity": (
+        "deployable_capacity_t = max(0, pre_discretionary_ending_cash_t - min_cash_buffer_t - near_term_debt_repayment_reserve_t)",
+        ["pre_discretionary_ending_cash", "min_cash_buffer", "near_term_debt_repayment_reserve"], [], []),
+    "funding_warning": ("funding_warning_t = (ending_cash_t < min_cash_buffer_t)", ["ending_cash", "min_cash_buffer"], [], []),
+    "valuation_net_debt": ("valuation_net_debt_t = total_debt_gaap_ending_t - ending_cash_t",
+                            ["total_debt_gaap_ending", "ending_cash"], [], []),
+}
+
+# HISTORICAL anchors for cross_year_inputs at FY2026 (the first forecast
+# year, where "prior year" means the FY2025 historical fact, not another
+# forecast_facts row).
+FIELD_HISTORICAL_ANCHOR: dict[str, list[str]] = {
+    "revenue": ["revenue"],
+    "total_debt_gaap_ending": ["total_debt_gaap"],
+    "diluted_shares": ["diluted_shares"],
+    "inventory_balance": ["inventory"],
+    "accounts_payable_balance": ["accounts_payable"],
+    "dividend_per_share": ["dividends_paid", "diluted_shares"],
+    "ending_cash": ["cash_and_equivalents_balance_sheet"],
+}
+
+
+def forecast_fact_id(scenario: str, metric: str, fiscal_year: int, version: str = "v1") -> str:
+    return f"fct_{scenario}_{metric}_{fiscal_year}_{version}"
+
+
+def build_full_lineage(
+    years: list[ForecastYear], assumptions: list[Assumption], version: str = "v1"
+) -> list[dict]:
+    """Full-grain lineage: every one of FIELD_SPECS' ~51 persistable metrics,
+    for every forecast year, gets its own lineage row(s) -- unlike
+    build_lineage() above, which covers only 10 representative metrics.
+    Returns plain dicts (not ForecastLineageEntry) ready for
+    forecast_persistence.py to write into forecast_lineage; `management_
+    selected_deployment` is intentionally excluded (its value is None this
+    round -- there is nothing to derive a lineage row for a fact that isn't
+    persisted).
+    """
+    by_key: dict[tuple[str, str, int], str] = {}
+    for a in assumptions:
+        by_key[(a.scenario, a.metric, a.forecast_year)] = a.assumption_id
+
+    def asm_id_for(s: str, metric: str, fy: int) -> str | None:
+        return by_key.get((s, metric, fy)) or by_key.get((s, metric, 0))
+
+    rows = []
+    for y in years:
+        s, fy = y.scenario, y.fiscal_year
+        for field, (formula, same_year, cross_year, asm_metrics) in FIELD_SPECS.items():
+            sequence = 0
+            for input_field in same_year:
+                sequence += 1
+                rows.append({
+                    "forecast_fact_id": forecast_fact_id(s, field, fy, version),
+                    "input_historical_fact_id": None,
+                    "input_forecast_fact_id": forecast_fact_id(s, input_field, fy, version),
+                    "input_assumption_id": None,
+                    "operation": formula, "sequence": sequence,
+                })
+            for input_field, offset in cross_year:
+                prior_fy = fy + offset
+                if prior_fy in FORECAST_YEARS:
+                    sequence += 1
+                    rows.append({
+                        "forecast_fact_id": forecast_fact_id(s, field, fy, version),
+                        "input_historical_fact_id": None,
+                        "input_forecast_fact_id": forecast_fact_id(s, input_field, prior_fy, version),
+                        "input_assumption_id": None,
+                        "operation": formula, "sequence": sequence,
+                    })
+                else:
+                    # A field can cite MORE THAN ONE historical anchor metric
+                    # (e.g. dividend_per_share's FY2026 anchor needs both
+                    # dividends_paid AND diluted_shares) -- each gets its own
+                    # sequence number so no two lineage rows for the same
+                    # fact ever share a deterministic ID (forecast_lineage_id
+                    # is derived from forecast_fact_id + sequence).
+                    for hist_metric in FIELD_HISTORICAL_ANCHOR.get(input_field, FIELD_HISTORICAL_ANCHOR.get(field, [])):
+                        sequence += 1
+                        rows.append({
+                            "forecast_fact_id": forecast_fact_id(s, field, fy, version),
+                            "input_historical_fact_id": annual_fact_id_for(hist_metric, 2025),
+                            "input_forecast_fact_id": None,
+                            "input_assumption_id": None,
+                            "operation": formula, "sequence": sequence,
+                        })
+            for asm_metric in asm_metrics:
+                sequence += 1
+                aid = asm_id_for(s, asm_metric, fy)
+                if aid:
+                    rows.append({
+                        "forecast_fact_id": forecast_fact_id(s, field, fy, version),
+                        "input_historical_fact_id": None,
+                        "input_forecast_fact_id": None,
+                        "input_assumption_id": aid,
+                        "operation": formula, "sequence": sequence,
+                    })
+    return rows
+
+
 # --- Validation (item 12: 18 named checks) ---------------------------------
 
 _TOL = 1e-6
@@ -2171,6 +2358,23 @@ def cumulative_deployable_capacity(years: list[ForecastYear]) -> float:
     terminal_capacity = years[-1].deployable_capacity
     total_deployed = sum(y.management_selected_deployment or 0.0 for y in years)
     return terminal_capacity + total_deployed
+
+
+def cumulative_deployable_capacity_through_each_year(years: list[ForecastYear]) -> list[float]:
+    """Same non-double-counting definition as cumulative_deployable_capacity,
+    computed as a running series -- one value per year, each equal to that
+    year's own deployable_capacity plus everything deployed up to and
+    including that year. The final entry equals cumulative_deployable_capacity(years).
+    Used for persistence (investment_capacity_results.cumulative_deployable_capacity),
+    so a reviewer can see the running total at any point in the horizon, not
+    only at the end.
+    """
+    running_deployed = 0.0
+    out = []
+    for y in years:
+        running_deployed += y.management_selected_deployment or 0.0
+        out.append(y.deployable_capacity + running_deployed)
+    return out
 
 
 def sensitivity_table(

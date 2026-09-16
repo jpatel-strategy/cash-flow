@@ -4,7 +4,9 @@ No Milestone 1 or Milestone 2 data, mapping, lineage, observation, or migration 
 
 This supersedes the prior round's summary-level `docs/milestone_3_forecast_engine_proposal.md` for reviewer purposes: that document is left in place unmodified as a historical record, but this package is the complete evidence base -- full assumption matrix, full forecast outputs, full validation and sensitivity results.
 
-**Milestone 3A correction round applied.** This version reflects the Milestone 3A internal review and correction pass: (1) fixed the cumulative-deployable-capacity double-counting defect (Section 4c); (2) extended the capital-allocation no-double-counting proof to explicitly cover management-selected deployment and debt repayment (Section 4a, identity c); (3) added scenario narratives establishing each scenario as a coherent business condition (Section 7); (4) added validation check 21, `cumulative_capacity_no_double_counting`. As of this document's generation (the Milestone 3A commit), no forecast schema is implemented and no forecast fact is persisted -- `data/curated/target_cash.db` is unchanged. Milestone 3B (additive schema, backed-up, transactional, idempotency-verified persistence of this exact, now-corrected assumption set) follows as a separate commit; see `docs/decisions.md` for its record once complete.
+**Milestone 3A correction round applied.** (1) fixed the cumulative-deployable-capacity double-counting defect (Section 4c); (2) extended the capital-allocation no-double-counting proof to explicitly cover management-selected deployment and debt repayment (Section 4a, identity c); (3) added scenario narratives establishing each scenario as a coherent business condition (Section 7); (4) added validation check 21, `cumulative_capacity_no_double_counting`.
+
+**Milestone 3B persisted this exact, corrected assumption set.** The additive schema proposed in `docs/milestone_3_forecast_schema_proposal.md` is now implemented (migrations 0015-0020) and populated: 3 forecast_scenarios, 105 forecast_assumptions, 765 forecast_facts (full grain -- every ForecastYear field with a non-null value, for every scenario and forecast year), 1,533 forecast_lineage rows (also full grain, via build_full_lineage()), 229 forecast_validation_results, and 15 investment_capacity_results rows. Persisted transactionally, with a pre-write database backup and independent SHA-256 re-verification, and proven idempotent by re-running the exact same persistence twice with zero row-count change. Post-write integrity (zero orphan lineage, zero duplicate facts/assumptions/investment-capacity rows, zero missing assumptions, zero scenario mixing, zero historical/forecast year overlap) passed in full. See `docs/decisions.md` for the complete Milestone 3B record.
 
 ---
 
@@ -1248,39 +1250,50 @@ Raw-fact citations for `depreciation_amortization_cfo_addback` (the one metric s
 ### 12d. Tests Executed and Exact Results
 
 ```
-........................................................................ [ 21%]
-........................................................................ [ 42%]
-........................................................................ [ 63%]
-........................................................................ [ 84%]
-.....................................................                    [100%]
-341 passed in 1.07s
+........................................................................ [ 19%]
+........................................................................ [ 39%]
+........................................................................ [ 59%]
+........................................................................ [ 79%]
+........................................................................ [ 99%]
+...                                                                      [100%]
+363 passed in 1.51s
 ```
 
 `tests/unit/test_forecast.py` alone:
 ```
-........................................................................ [ 91%]
-.......                                                                  [100%]
-79 passed in 0.09s
+........................................................................ [ 84%]
+.............                                                            [100%]
+85 passed in 0.10s
 ```
 
 ### 12e. Git Diff Summary
 
 Working-tree diff stat at generation time (uncommitted changes this round):
 ```
-docs/decisions.md                           |  69 +++++++++++
- docs/milestone_3_forecast_review_package.md | 177 +++++++++++++++++----------
- scripts/build_milestone_3_review_package.py | 107 +++++++++++-----
- src/target_cash/forecast.py                 | 181 +++++++++++++++++++++++++++-
- tests/unit/test_forecast.py                 | 139 ++++++++++++++++++++-
- 5 files changed, 573 insertions(+), 100 deletions(-)
+docs/decisions.md                           | 102 ++++++++++++++
+ docs/milestone_3_forecast_review_package.md |  47 ++++---
+ scripts/build_milestone_3_review_package.py |  30 ++--
+ scripts/clean_room_rebuild.py               |  12 ++
+ scripts/compare_databases.py                |  91 +++++++++++++
+ src/target_cash/cli.py                      |  72 ++++++++++
+ src/target_cash/forecast.py                 | 204 ++++++++++++++++++++++++++++
+ src/target_cash/migrations.py               | 160 ++++++++++++++++++++++
+ tests/unit/test_forecast.py                 |  73 ++++++++++
+ 9 files changed, 761 insertions(+), 30 deletions(-)
 ```
 `git status --short`:
 ```
 M docs/decisions.md
  M docs/milestone_3_forecast_review_package.md
  M scripts/build_milestone_3_review_package.py
+ M scripts/clean_room_rebuild.py
+ M scripts/compare_databases.py
+ M src/target_cash/cli.py
  M src/target_cash/forecast.py
+ M src/target_cash/migrations.py
  M tests/unit/test_forecast.py
+?? src/target_cash/forecast_persistence.py
+?? tests/unit/test_forecast_persistence.py
 ```
 
 No file under `data/`, `src/target_cash/migrations.py`, `config/metric_definitions.csv`, or any other Milestone 1/2 module appears in either listing above -- confirming this round did not touch historical facts, mappings, lineage, observations, or migrations.

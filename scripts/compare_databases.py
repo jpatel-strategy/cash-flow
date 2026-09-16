@@ -28,6 +28,16 @@ annual_facts.information_cutoff is also NOT excluded -- it comes from
 config/model.yml's fixed `information_cutoff` field, not a wall-clock
 timestamp, so it is identical across any two runs against the same config.
 
+Milestone 3B: forecast_scenarios.created_at, forecast_assumptions.created_at,
+forecast_facts.created_at, and forecast_validation_results.run_at are
+EXCLUDED for the same reason as quarterly_facts.as_of_date -- wall-clock
+insertion timestamps. Every forecast_* primary key (forecast_fact_id,
+forecast_lineage_id, validation_result_id, investment_capacity_result_id)
+IS included and needs no normalization: target_cash.forecast_persistence
+builds them all deterministically (forecast_fact_id = f"fct_{scenario}_
+{metric}_{fiscal_year}_{version}", etc.), the same discipline as
+annual_facts.annual_fact_id.
+
 Usage: python compare_databases.py <db_a> <db_b> <validate_json_a> <validate_json_b>
 """
 import hashlib
@@ -125,6 +135,81 @@ def export_annual_lineage(conn):
     return [list(r) for r in rows]
 
 
+def export_forecast_scenarios(conn):
+    # created_at excluded: a wall-clock insertion timestamp, like
+    # quarterly_facts.as_of_date above -- not a property of the analytical
+    # content, and different between any two independent persistence runs.
+    rows = conn.execute(
+        """
+        SELECT scenario_id, scenario_name, description, information_cutoff,
+               information_cutoff_accession, version
+        FROM forecast_scenarios ORDER BY scenario_id
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_forecast_assumptions(conn):
+    rows = conn.execute(
+        """
+        SELECT assumption_id, scenario_id, forecast_year, metric, value, unit, rationale,
+               historical_reference, source_evidence, information_cutoff, review_status, version
+        FROM forecast_assumptions ORDER BY scenario_id, metric, forecast_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_forecast_facts(conn):
+    rows = conn.execute(
+        """
+        SELECT forecast_fact_id, scenario_id, fiscal_year, metric, metric_definition_version,
+               assumption_version, value, unit, formula, validation_status, information_cutoff
+        FROM forecast_facts ORDER BY scenario_id, metric, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_forecast_lineage(conn):
+    rows = conn.execute(
+        """
+        SELECT ff.scenario_id, ff.metric, ff.fiscal_year, fl.forecast_lineage_id,
+               fl.input_historical_fact_id, fl.input_forecast_fact_id, fl.input_assumption_id,
+               fl.operation, fl.sequence
+        FROM forecast_lineage fl JOIN forecast_facts ff ON ff.forecast_fact_id = fl.forecast_fact_id
+        ORDER BY ff.scenario_id, ff.metric, ff.fiscal_year, fl.sequence
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_forecast_validation_results(conn):
+    # run_at excluded (wall-clock timestamp); validation_result_id is
+    # deterministic (built from check_name/scenario/fiscal_year/version, not
+    # a random id) so it IS included, same rationale as annual_fact_id above.
+    rows = conn.execute(
+        """
+        SELECT validation_result_id, check_name, scenario_id, fiscal_year, status, detail, forecast_version
+        FROM forecast_validation_results ORDER BY check_name, scenario_id, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_investment_capacity_results(conn):
+    rows = conn.execute(
+        """
+        SELECT investment_capacity_result_id, scenario_id, fiscal_year, gross_fcf_capacity,
+               post_dividend_capacity, pre_discretionary_ending_cash, min_cash_buffer,
+               near_term_debt_repayment_reserve, deployable_capacity, cumulative_deployable_capacity,
+               funding_warning, methodology_note, information_cutoff
+        FROM investment_capacity_results ORDER BY scenario_id, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
 def export_period_facts_unified(conn):
     rows = conn.execute(
         """
@@ -156,6 +241,12 @@ def export_db(db_path):
         "annual_fact_observations": export_annual_fact_observations(conn),
         "annual_lineage": export_annual_lineage(conn),
         "period_facts_unified": export_period_facts_unified(conn),
+        "forecast_scenarios": export_forecast_scenarios(conn),
+        "forecast_assumptions": export_forecast_assumptions(conn),
+        "forecast_facts": export_forecast_facts(conn),
+        "forecast_lineage": export_forecast_lineage(conn),
+        "forecast_validation_results": export_forecast_validation_results(conn),
+        "investment_capacity_results": export_investment_capacity_results(conn),
     }
     conn.close()
     return {name: {"row_count": len(rows), "sha256": sha256_of(rows)} for name, rows in exports.items()}

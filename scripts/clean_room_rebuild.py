@@ -164,6 +164,16 @@ def main() -> int:
             return 1
         validate_final = run_cli(tmp_dir, "validate", "--config", "config/model.yml")
 
+        # Milestone 3B: forecast persistence, run in the SAME clean room,
+        # against the SAME from-scratch-rebuilt annual_facts this script just
+        # produced -- proves the forecast layer is reproducible from nothing
+        # but the registered sources too, not only from the active database.
+        persist_forecast = run_cli(tmp_dir, "persist-forecast", "--config", "config/model.yml")
+        if persist_forecast.get("status") != "ok":
+            print("persist-forecast did not succeed in the clean room:", file=sys.stderr)
+            print(json.dumps(persist_forecast, indent=2), file=sys.stderr)
+            return 1
+
         db_path = tmp_dir / "data" / "curated" / "target_cash.db"
         print()
         print("=== Clean-room result ===")
@@ -175,6 +185,8 @@ def main() -> int:
         print(f"concept_equivalence_rules_total: {seed_reference['concept_equivalence_rules_total']}")
         print(f"persist_annual.written: {persist_annual.get('written')}")
         print(f"persist_annual.integrity.all_passed: {persist_annual.get('integrity', {}).get('all_passed')}")
+        print(f"persist_forecast.written: {persist_forecast.get('written')}")
+        print(f"persist_forecast.integrity.all_passed: {persist_forecast.get('integrity', {}).get('all_passed')}")
         m1 = validate_final.get("milestone_1_validation", {})
         for k in ("gate_passed", "checks_run", "checks_passed", "checks_failed", "checks_blocked", "checks_unavailable"):
             print(f"validate.milestone_1_validation.{k}: {m1.get(k)}")
