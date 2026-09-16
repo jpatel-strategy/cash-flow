@@ -2288,3 +2288,138 @@ suite: 298 passed (262 pre-existing + 36 new), 0 failures.
 
 **Stopped for reviewer approval per explicit instruction.** No forecast
 fact is persisted; no DCF, Excel, Power BI, or website work has begun.
+
+## 2026-09-16 — Milestone 3 reviewer audit package: complete evidence, not a summary
+
+The reviewer rejected the prior round's summary-level deliverable
+(`docs/milestone_3_forecast_engine_proposal.md`) as insufficient to
+approve from — a summary that omits the assumptions and computed outputs
+cannot be reviewed. This round produced a complete, non-summarized
+evidence package (`docs/milestone_3_forecast_review_package.md`,
+generated live by `scripts/build_milestone_3_review_package.py`) without
+implementing any schema or persisting any forecast fact. Still an
+**evidence-review round only** — no Milestone 1/2 historical fact,
+mapping, lineage, observation, or migration was touched.
+
+**Complete assumption matrix (item 1).** 57 (metric, scenario)
+combinations expanded to 285 (metric, scenario, fiscal-year) rows, each
+carrying its own FY2021-FY2025 historical series, min/median/max,
+rationale, dependency, source-metric citation, cutoff, status, and
+version — not a sample, the full set. `build_assumption_matrix()` joins
+metadata registries (`ASSUMPTION_AREA`, `ASSUMPTION_NAME`,
+`ASSUMPTION_DRIVER_TYPE`, `ASSUMPTION_HISTORICAL_SERIES`,
+`ASSUMPTION_SOURCE_METRICS`, `ASSUMPTION_DEPENDS_ON`) onto the existing
+`Assumption` rows rather than threading 6 new fields through
+`build_assumptions()`'s 100+ existing call sites.
+
+**Real fact-ID citation, not a placeholder.** Confirmed by direct query
+that every one of the 488 `annual_facts` rows follows the deterministic
+pattern `annual:{metric}:{fiscal_year}:{analytical_view}` (`SELECT
+COUNT(*) FROM annual_facts WHERE annual_fact_id != 'annual:' || metric ||
+':' || fiscal_year || ':' || analytical_view` returns 0). `HISTORICAL`'s
+one metric sourced outside `annual_facts`
+(`depreciation_amortization_cfo_addback`) cites its real `raw_facts`
+fact_id instead, looked up via `latest_restated_duration` /a direct
+`raw_facts` query against the live database (read-only).
+
+**Self-caught correction: other-operating-cash-adjustments year
+attribution was wrong.** Building `historical_other_operating_cf_residual()`
+as a genuine programmatic re-derivation (rather than the hand-computed
+figures embedded in the prior round's assumption rationale) surfaced a
+real error: the earlier text attributed the four FY2022-FY2025 residual
+values ("-282, +126, +194, +1458") to the wrong fiscal years in sequence.
+The correct, verified attribution is FY2022=+$126M, FY2023=+$1,458M,
+FY2024=+$194M, FY2025=-$282M — the set of values and the median were
+already right, only the per-year labeling was wrong. Corrected in
+`build_assumptions()`'s rationale strings once an independently-callable
+derivation existed to check against.
+
+**"Recommended" language removed from the minimum-cash-buffer
+assumption**, per the reviewer's explicit instruction. The 3%-of-revenue
+figure remains wired into the base assumption set (so a concrete number
+flows through `deployable_capacity`), but its rationale now says
+"candidate policy, not yet endorsed" and points at the full 5-policy
+comparison. No policy is declared final this round.
+
+**Other-operating-cash-adjustments plug detection, proven not just
+asserted (item 3).** Added `other_operating_cf_not_a_plug` (validation
+check 19): the assumption must be identical across all 5 forecast years
+within a scenario, which a backward-solved plug could not be.
+`demo_backward_solved_cfo_plug()` deliberately recomputes the figure
+backward from a flat $7,500M CFO target and confirms the check fails —
+proof the detector actually works, not merely unreachable.
+
+**Capital allocation waterfall implemented as a genuinely independent
+recomputation (item 4).** `capital_allocation_waterfall()` runs the exact
+8-step order of operations the reviewer specified as an isolated
+running-balance sequence — different code from `_run_from_metrics`' own
+block-formula arithmetic — and reconciles to the identical `ending_cash`
+for all 15 scenario-years (`capital_allocation_waterfall_reconciliation`,
+check 20). `verify_no_double_counting()` proves, with real numbers every
+year, that `ending_cash = pre_discretionary_ending_cash -
+share_repurchases` and `pre_discretionary_ending_cash =
+deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve`
+— establishing that deployable capacity and the executed repurchase are
+two alternative *readings* of the same total, never additive components
+of a shared pool. Repurchases are explicitly classified: a fixed
+forecast assumption, never a use of deployable capacity, never a
+residual, never zero-pending-selection.
+
+**Minimum-cash-buffer 5-policy comparison (item 5), computed as a
+post-hoc overlay** since buffer choice never feeds back into CFO/FCF —
+fixed-dollar, %-of-revenue, %-of-opex, historical 25th-percentile, and a
+hybrid max-of-two. `ending_cash` is proven identical across all 5
+policies per scenario/year (a structural consequence of the model, not
+an assumption); only required minimum and deployable capacity move.
+
+**Seasonality overlay grounded in real data, not an invented haircut
+(item 6).** Found genuine FY2025 quarterly cash balances already
+ingested at Milestone 1 (`instant_facts`, one full fiscal year: Q1
+$2,887M trough, Q4/year-end $5,488M) — the only year with quarterly
+granularity in the 8-filing registered source set. Trough/year-end =
+52.6%, rounded up (more conservative) to a 50% haircut, applied to
+`pre_discretionary_ending_cash` to estimate the intra-year cash low. This
+single-year-sample limitation is stated explicitly wherever the overlay
+is used. The overlay is not a quarterly forecast — no FY2026-FY2030
+quarterly value is fabricated anywhere.
+
+**Historical-to-forecast handoff and cutoff audit (items 10-11)** confirm,
+live: 0 of 33 scenario/metric handoff transitions are flagged as a cliff
+(every FY2026 assumption sits within 1.5x historical experience or its
+own metric's threshold), and all 8 registered sources' `filed_at` dates
+are on or before the 2026-03-11 cutoff, with the cutoff accession
+(`0000027419-26-000016`, the FY2025 10-K) confirmed as the latest by
+direct sort.
+
+**Validation inventory honestly self-classified (item 8), per the
+reviewer's explicit instruction not to present a passed arithmetic
+invariant as independent evidence.** Of the 20 named checks, 11 are
+arithmetic invariants (re-verify the same formula the engine used —
+valuable, but not independent proof), 1
+(`capital_allocation_waterfall_reconciliation`) is a genuinely
+independent reasonableness test computed via a different code path, 7
+are structural/completeness/policy checks with no formula to
+independently re-derive, and 1 (`scenario_ordering`) is a
+scenario-comparative check. `VALIDATION_CHECK_METADATA` records this
+classification, plus category/formula/tolerance/gate-consequence/
+corruption-test/example-failure for all 20, keyed 1:1 against every
+check `validate_all()` actually emits (verified by test).
+
+**Sensitivity extended**: all 6 one-variable tables now also report
+cumulative FY2026-FY2030 deployable capacity, and a new two-variable
+table (`two_variable_sensitivity`, revenue growth x gross margin) is
+included.
+
+**Deliverables**: `src/target_cash/forecast.py` extended (no existing
+function's behavior changed, only additions, plus the two rationale-text
+corrections above), `tests/unit/test_forecast.py` (30 new tests, 66
+total in that file), `docs/milestone_3_forecast_review_package.md` (the
+complete audit package), `scripts/build_milestone_3_review_package.py`
+(its live generator). Full suite: 328 passed (298 pre-existing + 30 new),
+0 failures. `data/`, `src/target_cash/migrations.py`, and
+`config/metric_definitions.csv` are untouched — confirmed by the git diff
+recorded inside the generated package itself.
+
+**Stopped for reviewer approval, as instructed.** No forecast schema
+migration written, no forecast fact persisted, no DCF/Excel/Power
+BI/website work begun.

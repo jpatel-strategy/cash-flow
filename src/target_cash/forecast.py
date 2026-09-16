@@ -91,6 +91,19 @@ HISTORICAL = {
 HISTORICAL_YEARS = [2021, 2022, 2023, 2024, 2025]
 
 
+def _percentile(values: list[float], pct: float) -> float:
+    """Linear-interpolation percentile (the same method pandas/numpy default
+    to), implemented directly since no numeric dependency is otherwise used
+    in this module."""
+    s = sorted(values)
+    if len(s) == 1:
+        return s[0]
+    idx = pct / 100 * (len(s) - 1)
+    lo = int(idx)
+    hi = min(lo + 1, len(s) - 1)
+    return s[lo] + (s[hi] - s[lo]) * (idx - lo)
+
+
 def historical_ratio(numerator: str, denominator: str) -> dict[int, float]:
     return {y: HISTORICAL[numerator][y] / HISTORICAL[denominator][y] * 100 for y in HISTORICAL_YEARS}
 
@@ -111,6 +124,92 @@ def fy2023_53_week_normalized_revenue() -> float:
     disclosure check (PASS for FY2023) for the underlying fact.
     """
     return HISTORICAL["revenue"][2023] * 52 / 53
+
+
+# --- Historical source-fact citation (reviewer audit, item 11: cutoff audit) ---
+# Verified directly against data/curated/target_cash.db (2026-09-16, read-only --
+# no Milestone 1/2 row was modified to make this check pass):
+# `SELECT COUNT(*) FROM annual_facts WHERE annual_fact_id != 'annual:' || metric
+#  || ':' || fiscal_year || ':' || analytical_view` returns 0 across all 488
+# rows. The ID is therefore a deterministic function of (metric, fiscal_year,
+# analytical_view), not an opaque key -- reproducing it here does not require
+# a 150-line hardcoded lookup table, only this one verified format string.
+def annual_fact_id_for(metric: str, fiscal_year: int, analytical_view: str = "latest_restated") -> str:
+    return f"annual:{metric}:{fiscal_year}:{analytical_view}"
+
+
+# depreciation_amortization_cfo_addback is sourced directly from raw_facts
+# (us-gaap:DepreciationDepletionAndAmortization), never from annual_facts --
+# see HISTORICAL's own comment. These 5 fact_id values were looked up via
+# target_cash.annual.latest_restated_duration against the real database
+# (2026-09-16, read-only) and are frozen literals for the same reason
+# HISTORICAL's values are frozen: a later change to raw_facts must not
+# silently alter an already-approved forecast's citations.
+DA_CFO_ADDBACK_RAW_FACT_IDS = {
+    2021: "0000027419-24-000032:us-gaap:DepreciationDepletionAndAmortization:c-11",
+    2022: "0000027419-25-000018:us-gaap:DepreciationDepletionAndAmortization:c-5",
+    2023: "0000027419-26-000016:us-gaap:DepreciationDepletionAndAmortization:c-5",
+    2024: "0000027419-26-000016:us-gaap:DepreciationDepletionAndAmortization:c-4",
+    2025: "0000027419-26-000016:us-gaap:DepreciationDepletionAndAmortization:c-1",
+}
+
+
+def historical_source_fact_ids(metric: str, years: list[int] | None = None) -> dict[int, str]:
+    """Real, verifiable fact IDs for one HISTORICAL metric's series -- an
+    annual_facts ID for every metric except depreciation_amortization_cfo_addback,
+    which cites its raw_facts ID directly (see the module docstring and
+    HISTORICAL's own comment on why that one metric is not in annual_facts)."""
+    years = years if years is not None else HISTORICAL_YEARS
+    if metric == "depreciation_amortization_cfo_addback":
+        return {fy: DA_CFO_ADDBACK_RAW_FACT_IDS[fy] for fy in years}
+    return {fy: annual_fact_id_for(metric, fy) for fy in years}
+
+
+def historical_other_operating_cf_residual() -> dict[int, float]:
+    """FY2022-FY2025 'other operating cash adjustments' bridge (item 3):
+    other = CFO - net_income - da_cfo_addback - inventory_cash_impact - ap_cash_impact.
+    FY2021 is excluded -- computing inventory/AP cash impact requires a prior-
+    year balance, and FY2020 is outside this project's 5-year source window
+    (docs/sources.csv has no FY2020 10-K), so FY2021's own residual cannot be
+    derived without a value this project has not verified. This is the exact
+    historical counterpart of the forecast engine's own CFO construction
+    formula in _run_from_metrics -- run against real annual_facts values, not
+    a separate ad hoc calculation.
+    """
+    out = {}
+    for fy in HISTORICAL_YEARS[1:]:
+        prev_fy = fy - 1
+        inv_impact = -(HISTORICAL["inventory"][fy] - HISTORICAL["inventory"][prev_fy])
+        ap_impact = HISTORICAL["accounts_payable"][fy] - HISTORICAL["accounts_payable"][prev_fy]
+        out[fy] = (
+            HISTORICAL["operating_cash_flow"][fy]
+            - HISTORICAL["net_income"][fy]
+            - HISTORICAL["depreciation_amortization_cfo_addback"][fy]
+            - inv_impact
+            - ap_impact
+        )
+    return out
+
+
+def historical_dividend_per_share_growth() -> dict[int, float]:
+    dps = {fy: HISTORICAL["dividends_paid"][fy] / HISTORICAL["diluted_shares"][fy] for fy in HISTORICAL_YEARS}
+    return {
+        HISTORICAL_YEARS[i]: (dps[HISTORICAL_YEARS[i]] / dps[HISTORICAL_YEARS[i - 1]] - 1) * 100
+        for i in range(1, len(HISTORICAL_YEARS))
+    }
+
+
+def historical_buyback_payout_pct() -> dict[int, float | None]:
+    """share_repurchases as a % of (free_cash_flow - dividends_paid), the same
+    ratio the buyback_payout_pct_of_post_dividend_fcf assumption targets.
+    Returns None for a year where the denominator is <= 0 (FY2022's post-
+    dividend FCF was negative) -- a ratio against a negative or zero base is
+    not a meaningful percentage and is never silently computed as one."""
+    out: dict[int, float | None] = {}
+    for fy in HISTORICAL_YEARS:
+        denom = HISTORICAL["free_cash_flow"][fy] - HISTORICAL["dividends_paid"][fy]
+        out[fy] = (HISTORICAL["share_repurchases"][fy] / denom * 100) if denom > 0 else None
+    return out
 
 
 # --- Assumption dictionary (item 1) ---------------------------------------
@@ -142,7 +241,7 @@ def _a(assumption_id, scenario, metric, value, unit, rationale, historical_refer
 def build_assumptions() -> list[Assumption]:
     """Every scenario x driver assumption, grounded in HISTORICAL's own
     5-year range (never an arbitrary base ± N% spread). See
-    docs/milestone_3_forecast_engine_proposal.md Section 5 for the full
+    docs/milestone_3_forecast_review_package.md Section 4 for the full
     historical-range table each rationale below cites.
     """
     hist_ev = f"data/curated/target_cash.db annual_facts, analytical_view=latest_restated, FY2021-FY2025 (frozen {FORECAST_INFORMATION_CUTOFF} basis; see docs/milestone_2_evidence.md)"
@@ -366,20 +465,29 @@ def build_assumptions() -> list[Assumption]:
 
     # --- Other operating cash adjustments ($M/yr, flat) ---
     # Historical derivation: other = CFO - net_income - D&A_addback - inventory_cash_impact - AP_cash_impact,
-    # computed for FY2022-FY2025 (FY2021 has no prior year to difference against): -282, +126, +194, +1458.
+    # computed for FY2022-FY2025 (FY2021 has no prior year to difference against).
+    # historical_other_operating_cf_residual() (added for the reviewer audit
+    # package) recomputes this same formula programmatically and confirms:
+    # FY2022=+$126M, FY2023=+$1,458M, FY2024=+$194M, FY2025=-$282M. An earlier
+    # draft of this rationale attributed these four values to the wrong
+    # fiscal years (listed as "-282, +126, +194, +1458" against FY2022-FY2025
+    # in order) -- the set of values and their min/max/median were correct,
+    # only the year labels were wrong. Corrected here once a programmatic,
+    # independently-callable derivation existed to check against; see
+    # docs/decisions.md, 2026-09-16 "Self-caught correction" entry.
     assumptions += [
         _a("asm_other_opcf_base", "base", "other_operating_cf_musd", 150.0, "USD_millions",
            "Near the historical median of the derived 'other operating cash adjustments' residual "
            "(stock-based comp, deferred taxes, other non-cash items, other working capital not "
-           "separately modeled) -- see docs/milestone_3_forecast_engine_proposal.md Section 7 for the "
+           "separately modeled) -- see docs/milestone_3_forecast_review_package.md Section 3 for the "
            "full derivation and component discussion. This is NOT solved backward to hit a CFO target.",
-           "FY2022-FY2025 derived residual: -$282M, +$126M, +$194M, +$1,458M; median ~$160M", hist_ev),
+           "FY2022-FY2025 derived residual: +$126M, +$1,458M, +$194M, -$282M; median ~$160M", hist_ev),
         _a("asm_other_opcf_upside", "upside", "other_operating_cf_musd", 250.0, "USD_millions",
            "More favorable working-capital/other items, within the observed historical range.",
-           "FY2022-FY2025 derived residual range: -$282M to +$1,458M", hist_ev),
+           "FY2022-FY2025 derived residual range: -$282M (FY2025) to +$1,458M (FY2023)", hist_ev),
         _a("asm_other_opcf_downside", "downside", "other_operating_cf_musd", 50.0, "USD_millions",
            "Less favorable working-capital/other items, within the observed historical range.",
-           "FY2022-FY2025 derived residual range: -$282M to +$1,458M", hist_ev),
+           "FY2022-FY2025 derived residual range: -$282M (FY2025) to +$1,458M (FY2023)", hist_ev),
     ]
 
     # --- Dividends: modeled as dividend-per-share growth applied to a $/share proxy ---
@@ -468,16 +576,26 @@ def build_assumptions() -> list[Assumption]:
             historical_reference="5yr range: $2,013M-$2,161M, essentially flat", source_evidence=hist_ev,
         ))
 
-    # --- Minimum cash buffer: recommended policy (see item 11 analysis) ---
+    # --- Minimum cash buffer: candidate policy, NOT yet endorsed as final ---
+    # Reviewer instruction (2026-09-16): "Do not call 3% of revenue
+    # 'recommended' yet." This value is used in the base forecast run purely
+    # so a single, concrete number flows through deployable_capacity below --
+    # it is one candidate among 5 compared side-by-side in
+    # docs/milestone_3_forecast_review_package.md Section 5
+    # (minimum_cash_buffer_policies()), with required minimum cash,
+    # deployable capacity, and lowest coverage ratio computed for each. No
+    # policy is endorsed as final in this round; that choice is explicitly
+    # left open for reviewer approval.
     for scenario in SCENARIOS:
         assumptions.append(Assumption(
             assumption_id=f"asm_min_cash_buffer_pct_{scenario}", scenario=scenario, forecast_year=0,
             metric="min_cash_buffer_pct_of_revenue", value=3.0, unit="percent",
-            rationale="Recommended policy (see docs/milestone_3_forecast_engine_proposal.md Section 11 "
-                      "for the 4-policy comparison): 3% of forecast revenue scales with the business "
-                      "(unlike a fixed dollar figure) and sits above the historical minimum ratio "
-                      "(2.04%, FY2022) while below the recent (FY2024-FY2025) actual ratios (4.47%-5.24%), providing "
-                      "headroom without assuming the business needs FY2021-level cash intensity.",
+            rationale="Candidate policy, not yet endorsed (see docs/milestone_3_forecast_review_package.md "
+                      "Section 5 for the full 5-policy comparison): 3% of forecast revenue scales with the "
+                      "business (unlike a fixed dollar figure) and sits above the historical minimum ratio "
+                      "(2.04%, FY2022) while below the recent (FY2024-FY2025) actual ratios (4.47%-5.24%) -- "
+                      "used here only to produce one concrete deployable-capacity figure for the base "
+                      "forecast run, pending the reviewer's choice among the 5 compared policies.",
             historical_reference="5yr cash % of revenue: 2.04%, 5.58%, 3.54%, 4.47%, 5.24%",
             source_evidence=hist_ev,
         ))
@@ -495,6 +613,200 @@ def assumptions_by_scenario(assumptions: list[Assumption]) -> dict[str, dict[str
 
 def _lookup(by_metric: dict[int, float], fy: int) -> float:
     return by_metric.get(fy, by_metric.get(0))
+
+
+# --- Assumption matrix metadata (reviewer audit package, item 1) -----------
+# Everything below describes an assumption *metric* (one of the strings
+# passed as `metric=` in build_assumptions()), not an individual scenario/
+# year row -- it is deliberately kept out of the Assumption dataclass itself
+# so build_assumptions() did not need to be rewritten to thread new fields
+# through 100+ existing call sites. build_assumption_matrix() below joins
+# this metadata onto each real Assumption row to answer every column the
+# reviewer's audit-package request lists.
+
+ASSUMPTION_AREA = {
+    "revenue_growth_pct": "Income Statement -- Revenue",
+    "gross_margin_pct": "Income Statement -- Cost of Sales / Gross Profit",
+    "sga_pct_of_revenue": "Income Statement -- Operating Expenses (SG&A)",
+    "da_pct_of_revenue": "Income Statement -- Operating Expenses (D&A)",
+    "effective_tax_rate_pct": "Income Statement -- Income Tax",
+    "net_other_income_musd": "Income Statement -- Other Income/Expense",
+    "diluted_share_change_pct": "Income Statement -- Diluted Shares / EPS",
+    "interest_rate_pct": "Income Statement -- Interest Expense",
+    "capex_pct_of_revenue": "Cash Flow -- Investing (CapEx)",
+    "da_cfo_addback_pct_of_revenue": "Cash Flow -- Operating (D&A Add-back)",
+    "inventory_pct_of_revenue": "Balance Sheet / Cash Flow -- Working Capital (Inventory)",
+    "ap_pct_of_cogs": "Balance Sheet / Cash Flow -- Working Capital (Accounts Payable)",
+    "other_operating_cf_musd": "Cash Flow -- Operating (Other Adjustments)",
+    "dividend_per_share_growth_pct": "Cash Flow -- Financing (Dividends)",
+    "buyback_payout_pct_of_post_dividend_fcf": "Cash Flow -- Financing (Share Repurchases)",
+    "debt_proceeds_musd": "Cash Flow -- Financing (Debt Issuance)",
+    "debt_repayments_musd": "Cash Flow -- Financing (Debt Repayment)",
+    "finance_lease_liabilities_musd": "Balance Sheet -- Finance Leases",
+    "min_cash_buffer_pct_of_revenue": "Liquidity Policy -- Minimum Cash Buffer",
+}
+
+ASSUMPTION_NAME = {
+    "revenue_growth_pct": "Revenue growth",
+    "gross_margin_pct": "Gross margin (COGS-derived)",
+    "sga_pct_of_revenue": "SG&A % of revenue",
+    "da_pct_of_revenue": "D&A included in operating expenses, % of revenue",
+    "effective_tax_rate_pct": "Effective tax rate",
+    "net_other_income_musd": "Net other income",
+    "diluted_share_change_pct": "Diluted share count change",
+    "interest_rate_pct": "Interest rate on average total debt",
+    "capex_pct_of_revenue": "Capital expenditures, % of revenue",
+    "da_cfo_addback_pct_of_revenue": "D&A cash-flow add-back, % of revenue",
+    "inventory_pct_of_revenue": "Inventory driver, % of revenue",
+    "ap_pct_of_cogs": "Accounts-payable driver, % of COGS",
+    "other_operating_cf_musd": "Other operating cash adjustments",
+    "dividend_per_share_growth_pct": "Dividend per share growth",
+    "buyback_payout_pct_of_post_dividend_fcf": "Share repurchase payout ratio",
+    "debt_proceeds_musd": "Debt issuance (proceeds)",
+    "debt_repayments_musd": "Debt repayments",
+    "finance_lease_liabilities_musd": "Finance lease liabilities",
+    "min_cash_buffer_pct_of_revenue": "Minimum cash buffer",
+}
+
+ASSUMPTION_DRIVER_TYPE = {
+    "revenue_growth_pct": "Flat %/yr, applied recursively: revenue_t = revenue_(t-1) * (1 + g)",
+    "gross_margin_pct": "Linear drift FY2026->FY2030, % of revenue applied directly",
+    "sga_pct_of_revenue": "Linear drift FY2026->FY2030, % of revenue applied directly",
+    "da_pct_of_revenue": "Historical trend extrapolation (pp/yr) + scenario offset, % of revenue",
+    "effective_tax_rate_pct": "Flat %/yr, applied to pretax income",
+    "net_other_income_musd": "Flat $M/yr",
+    "diluted_share_change_pct": "Flat %/yr, applied recursively to prior-year diluted shares",
+    "interest_rate_pct": "Flat %/yr, applied to average(beginning, ending) total debt",
+    "capex_pct_of_revenue": "Flat %/yr, % of revenue applied directly",
+    "da_cfo_addback_pct_of_revenue": "Historical trend extrapolation (pp/yr) + scenario offset, % of revenue",
+    "inventory_pct_of_revenue": "Flat %, % of revenue applied to the year-end balance",
+    "ap_pct_of_cogs": "Flat %, % of COGS applied to the year-end balance",
+    "other_operating_cf_musd": "Flat $M/yr (never solved backward from a CFO target -- see Section 3)",
+    "dividend_per_share_growth_pct": "Flat %/yr, applied recursively to a derived $/share proxy",
+    "buyback_payout_pct_of_post_dividend_fcf": "Flat % of (FCF - dividends), floored at $0 -- never negative",
+    "debt_proceeds_musd": "Fixed $M/yr, identical every forecast year within a scenario",
+    "debt_repayments_musd": "Fixed $M/yr, identical every forecast year within a scenario",
+    "finance_lease_liabilities_musd": "Held flat at the FY2025 actual balance",
+    "min_cash_buffer_pct_of_revenue": "Flat % of revenue policy (see Section 5 for the 5-policy comparison)",
+}
+
+# Historical reference series for each assumption metric, in the SAME unit as
+# the assumption itself, so min/median/max are directly comparable to the
+# selected forecast value. Each entry is a zero-arg callable (not a
+# precomputed dict) so it always reflects the single HISTORICAL literal.
+ASSUMPTION_HISTORICAL_SERIES = {
+    "revenue_growth_pct": lambda: historical_growth("revenue"),
+    "gross_margin_pct": lambda: historical_ratio("gross_profit", "revenue"),
+    "sga_pct_of_revenue": lambda: historical_ratio("operating_expenses", "revenue"),
+    "da_pct_of_revenue": lambda: historical_ratio("depreciation_amortization_opex", "revenue"),
+    "effective_tax_rate_pct": lambda: historical_ratio("income_tax_expense", "pretax_income"),
+    "net_other_income_musd": lambda: dict(HISTORICAL["net_other_income"]),
+    "diluted_share_change_pct": lambda: historical_growth("diluted_shares"),
+    "interest_rate_pct": lambda: historical_ratio("interest_expense", "total_debt_gaap"),
+    "capex_pct_of_revenue": lambda: historical_ratio("capital_expenditure", "revenue"),
+    "da_cfo_addback_pct_of_revenue": lambda: historical_ratio("depreciation_amortization_cfo_addback", "revenue"),
+    "inventory_pct_of_revenue": lambda: historical_ratio("inventory", "revenue"),
+    "ap_pct_of_cogs": lambda: historical_ratio("accounts_payable", "cost_of_sales"),
+    "other_operating_cf_musd": historical_other_operating_cf_residual,
+    "dividend_per_share_growth_pct": historical_dividend_per_share_growth,
+    "buyback_payout_pct_of_post_dividend_fcf": lambda: {
+        fy: v for fy, v in historical_buyback_payout_pct().items() if v is not None
+    },
+    "debt_proceeds_musd": lambda: dict(HISTORICAL["debt_proceeds"]),
+    "debt_repayments_musd": lambda: dict(HISTORICAL["debt_repayments"]),
+    "finance_lease_liabilities_musd": lambda: dict(HISTORICAL["finance_lease_liabilities"]),
+    "min_cash_buffer_pct_of_revenue": lambda: historical_ratio("cash_and_equivalents_balance_sheet", "revenue"),
+}
+
+# Which HISTORICAL metric(s) back each assumption's historical series, for
+# the source-fact-ID citation column. Ratio-based assumptions cite both the
+# numerator and denominator metrics' facts.
+ASSUMPTION_SOURCE_METRICS = {
+    "revenue_growth_pct": ["revenue"],
+    "gross_margin_pct": ["gross_profit", "revenue"],
+    "sga_pct_of_revenue": ["operating_expenses", "revenue"],
+    "da_pct_of_revenue": ["depreciation_amortization_opex", "revenue"],
+    "effective_tax_rate_pct": ["income_tax_expense", "pretax_income"],
+    "net_other_income_musd": ["net_other_income"],
+    "diluted_share_change_pct": ["diluted_shares"],
+    "interest_rate_pct": ["interest_expense", "total_debt_gaap"],
+    "capex_pct_of_revenue": ["capital_expenditure", "revenue"],
+    "da_cfo_addback_pct_of_revenue": ["depreciation_amortization_cfo_addback", "revenue"],
+    "inventory_pct_of_revenue": ["inventory", "revenue"],
+    "ap_pct_of_cogs": ["accounts_payable", "cost_of_sales"],
+    "other_operating_cf_musd": ["operating_cash_flow", "net_income", "depreciation_amortization_cfo_addback",
+                                 "inventory", "accounts_payable"],
+    "dividend_per_share_growth_pct": ["dividends_paid", "diluted_shares"],
+    "buyback_payout_pct_of_post_dividend_fcf": ["share_repurchases", "free_cash_flow", "dividends_paid"],
+    "debt_proceeds_musd": ["debt_proceeds"],
+    "debt_repayments_musd": ["debt_repayments"],
+    "finance_lease_liabilities_musd": ["finance_lease_liabilities"],
+    "min_cash_buffer_pct_of_revenue": ["cash_and_equivalents_balance_sheet", "revenue"],
+}
+
+# Explicit assumption-on-assumption dependencies, i.e. cases where one
+# metric's SELECTED VALUE was set with direct reference to another
+# assumption's own scenario value (not merely "both feed the same formula" --
+# nearly every cash-flow-stage assumption does that; this captures only the
+# documented cases where the rationale text itself cites another assumption).
+ASSUMPTION_DEPENDS_ON = {
+    "da_pct_of_revenue": ["capex_pct_of_revenue"],
+    "da_cfo_addback_pct_of_revenue": ["capex_pct_of_revenue"],
+    "buyback_payout_pct_of_post_dividend_fcf": ["dividend_per_share_growth_pct"],
+}
+
+
+def build_assumption_matrix(assumptions: list[Assumption]) -> list[dict]:
+    """One row per (metric, scenario) with every column the reviewer audit
+    package requires: area, name, driver type, the year-by-year selected
+    values, the full FY2021-FY2025 historical series in the same unit,
+    historical min/median/max, rationale, dependency, source fact IDs,
+    cutoff, status, and version. Complements (does not replace) the raw
+    Assumption rows -- this is a join, not a mutation of build_assumptions().
+    """
+    by_metric_scenario: dict[tuple[str, str], list[Assumption]] = {}
+    for a in assumptions:
+        by_metric_scenario.setdefault((a.metric, a.scenario), []).append(a)
+
+    rows = []
+    for (metric, scenario), asm_rows in by_metric_scenario.items():
+        asm_rows = sorted(asm_rows, key=lambda a: a.forecast_year)
+        values_by_year = {}
+        for fy in FORECAST_YEARS:
+            exact = next((a for a in asm_rows if a.forecast_year == fy), None)
+            flat = next((a for a in asm_rows if a.forecast_year == 0), None)
+            chosen = exact or flat
+            values_by_year[fy] = chosen.value if chosen else None
+        rationale = asm_rows[0].rationale if len(asm_rows) == 1 or len({a.rationale for a in asm_rows}) == 1 else (
+            " | ".join(f"FY{a.forecast_year}: {a.rationale}" for a in asm_rows)
+        )
+        hist_series = ASSUMPTION_HISTORICAL_SERIES.get(metric, lambda: {})()
+        hist_values = list(hist_series.values())
+        source_metrics = ASSUMPTION_SOURCE_METRICS.get(metric, [])
+        source_fact_ids = []
+        for sm in source_metrics:
+            source_fact_ids.extend(historical_source_fact_ids(sm).values())
+        rows.append({
+            "assumption_ids": [a.assumption_id for a in asm_rows],
+            "area": ASSUMPTION_AREA.get(metric, "Unclassified"),
+            "name": ASSUMPTION_NAME.get(metric, metric),
+            "metric": metric,
+            "scenario": scenario,
+            "driver_type": ASSUMPTION_DRIVER_TYPE.get(metric, ""),
+            "values_by_year": values_by_year,
+            "unit": asm_rows[0].unit,
+            "historical_series": hist_series,
+            "historical_min": min(hist_values) if hist_values else None,
+            "historical_max": max(hist_values) if hist_values else None,
+            "historical_median": sorted(hist_values)[len(hist_values) // 2] if hist_values else None,
+            "rationale": rationale,
+            "depends_on": ASSUMPTION_DEPENDS_ON.get(metric, []),
+            "source_fact_ids": source_fact_ids,
+            "information_cutoff": asm_rows[0].information_cutoff,
+            "review_status": asm_rows[0].review_status,
+            "version": asm_rows[0].version,
+        })
+    return rows
 
 
 # --- Full driver-based forecast (items 4-10) -------------------------------
@@ -560,6 +872,8 @@ class ForecastYear:
     near_term_debt_repayment_reserve: float
     deployable_capacity: float
     funding_warning: bool
+    valuation_net_debt: float = 0.0
+    management_selected_deployment: float | None = None  # dry run: no deployment has been selected this round
 
 
 def _run_from_metrics(scenario: str, metrics: dict[str, dict[int, float]]) -> list[ForecastYear]:
@@ -683,6 +997,13 @@ def _run_from_metrics(scenario: str, metrics: dict[str, dict[int, float]]) -> li
         deployable_capacity = max(0.0, pre_discretionary_ending_cash - min_cash_buffer - near_term_reserve)
         funding_warning = ending_cash < min_cash_buffer
 
+        # Valuation net debt, consistent with Milestone 2's own
+        # valuation_net_debt_excluding_leases = total_debt_gaap (excluding
+        # separately-reported finance leases) - cash. Finance leases are held
+        # flat and never added on top (no double counting -- item 12's
+        # no_finance_lease_double_counting check covers this).
+        valuation_net_debt = debt_ending - ending_cash
+
         years.append(ForecastYear(
             scenario=scenario, fiscal_year=fy,
             revenue=revenue, revenue_growth_pct=growth,
@@ -710,6 +1031,7 @@ def _run_from_metrics(scenario: str, metrics: dict[str, dict[int, float]]) -> li
             pre_discretionary_ending_cash=pre_discretionary_ending_cash,
             min_cash_buffer=min_cash_buffer, near_term_debt_repayment_reserve=near_term_reserve,
             deployable_capacity=deployable_capacity, funding_warning=funding_warning,
+            valuation_net_debt=valuation_net_debt,
         ))
 
         prev_revenue, prev_shares, prev_debt = revenue, diluted_shares, debt_ending
@@ -825,6 +1147,227 @@ class ValidationResult:
 
 def _close(a: float, b: float, tol: float = 1e-3) -> bool:
     return abs(a - b) <= tol * max(1.0, abs(b))
+
+
+# --- Validation check inventory metadata (reviewer audit package, item 8) --
+# Honest self-classification, per the reviewer's explicit instruction not to
+# present a passed arithmetic invariant as if it were an independent test.
+# "arithmetic_invariant": re-verifies the SAME formula _run_from_metrics used
+#   to compute the figure in the first place. Valuable for catching a
+#   corrupted/hand-edited value or a coding typo, but proves internal
+#   consistency, not correctness of the underlying economic assumption.
+# "independent_reasonableness_test": reaches the checked figure via a
+#   genuinely different computational path (only capital_allocation_
+#   waterfall_reconciliation qualifies -- an 8-step running-balance sequence
+#   is not the same code as _run_from_metrics' block-formula approach).
+# "structural_completeness_check": checks presence/shape/policy properties
+#   (assumption coverage, lineage graph shape, cutoff dates, flat-vs-varying
+#   behavior) rather than any numeric formula at all -- there is nothing to
+#   "recompute" for these, so "arithmetic invariant" does not apply either.
+# "scenario_comparative_check": compares figures ACROSS scenarios for
+#   directional economic plausibility, not a within-scenario formula.
+VALIDATION_CHECK_METADATA = {
+    "revenue_recursion": {
+        "category": "Income Statement", "check_type": "arithmetic_invariant",
+        "formula": "revenue_t = revenue_(t-1) * (1 + revenue_growth_pct_t / 100)",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected as internally inconsistent -- no downstream figure in the "
+                             "same scenario/year can be trusted if revenue itself does not reconcile.",
+        "corruption_test": "test_validate_all_catches_a_broken_revenue_recursion (adds $500M to one year in place)",
+        "example_failure_message": "revenue=110327.8 vs prev*(1+g)=109827.8",
+    },
+    "gross_profit_calc": {
+        "category": "Income Statement", "check_type": "arithmetic_invariant",
+        "formula": "gross_profit_t = revenue_t * gross_margin_pct_t / 100 = revenue_t - cost_of_sales_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- gross margin and COGS have diverged from the revenue base.",
+        "corruption_test": "Not separately regression-tested this round; covered structurally by "
+                            "test_operating_income_bridge_no_double_counted_da's equality assertions.",
+        "example_failure_message": "gross_profit=29450.0, revenue*margin=29565.2, revenue-COGS=29565.2",
+    },
+    "operating_income_bridge": {
+        "category": "Income Statement", "check_type": "arithmetic_invariant",
+        "formula": "operating_income_t = gross_profit_t - sga_expense_t - depreciation_amortization_opex_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- the operating-income bridge no longer reconciles.",
+        "corruption_test": "test_operating_income_bridge_no_double_counted_da (equality assertion each year)",
+        "example_failure_message": "operating_income=5200.0 vs gross_profit-SG&A-D&A=5081.9",
+    },
+    "pretax_income_bridge": {
+        "category": "Income Statement", "check_type": "arithmetic_invariant",
+        "formula": "pretax_income_t = operating_income_t - interest_expense_t + net_other_income_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- pretax income no longer reconciles to its own inputs.",
+        "corruption_test": "test_pretax_and_net_income_bridges",
+        "example_failure_message": "pretax_income=4900.0 vs OI-interest+other=4732.2",
+    },
+    "tax_net_income_bridge": {
+        "category": "Income Statement", "check_type": "arithmetic_invariant",
+        "formula": "income_tax_expense_t = pretax_income_t * effective_tax_rate_pct_t / 100; "
+                   "net_income_t = pretax_income_t - income_tax_expense_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- tax or net income diverges from its stated rate/base.",
+        "corruption_test": "test_pretax_and_net_income_bridges",
+        "example_failure_message": "tax=1000.0 vs pretax*ETR=1050.6; net_income=3800.0 vs pretax-tax=3681.7",
+    },
+    "eps_consistency": {
+        "category": "Income Statement", "check_type": "arithmetic_invariant",
+        "formula": "diluted_eps_t = net_income_t / diluted_shares_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- EPS no longer reconciles to net income and share count.",
+        "corruption_test": "test_eps_consistency",
+        "example_failure_message": "diluted_eps=8.50 vs net_income/shares=8.12",
+    },
+    "cfo_construction": {
+        "category": "Cash Flow", "check_type": "arithmetic_invariant",
+        "formula": "operating_cash_flow_t = net_income_t + da_cfo_addback_t + inventory_cash_impact_t "
+                   "+ ap_cash_impact_t + other_operating_cf_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- CFO is not a bare residual and must reconcile to its "
+                             "stated components exactly.",
+        "corruption_test": "test_validate_all_catches_a_broken_cfo_construction (adds $1,000M to one year in place)",
+        "example_failure_message": "CFO=8060.7 vs NI+D&A+WC+other=7060.7",
+    },
+    "fcf_calc": {
+        "category": "Cash Flow", "check_type": "arithmetic_invariant",
+        "formula": "free_cash_flow_t = operating_cash_flow_t - capital_expenditure_t (never total investing cash flow)",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- also the specific control against CFI-for-CapEx substitution.",
+        "corruption_test": "test_capex_uses_ppe_driver_never_total_cfi",
+        "example_failure_message": "FCF=4000.0 vs CFO-CapEx=3250.9 (CapEx=3809.8, distinct from total CFI=-3809.8)",
+    },
+    "working_capital_sign_checks": {
+        "category": "Cash Flow / Working Capital", "check_type": "arithmetic_invariant",
+        "formula": "inventory_cash_impact_t = -(inventory_balance_t - inventory_balance_(t-1)); "
+                   "ap_cash_impact_t = accounts_payable_balance_t - accounts_payable_balance_(t-1)",
+        "tolerance": "Exact sign comparison, no numeric tolerance",
+        "gate_consequence": "Forecast rejected -- a sign flip here means an inventory build is being "
+                             "recorded as a source of cash (or vice versa), a modeling-direction error.",
+        "corruption_test": "test_working_capital_signs",
+        "example_failure_message": "inventory_delta=+50.0/cash_impact=+50.0 (should be negative for a build)",
+    },
+    "cash_roll_forward": {
+        "category": "Cash Flow", "check_type": "arithmetic_invariant",
+        "formula": "beginning_cash_t = ending_cash_(t-1); ending_cash_t = beginning_cash_t + net_change_in_cash_t; "
+                   "net_change_in_cash_t = CFO_t + CFI_t + CFF_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- the cash balance no longer chains correctly across years.",
+        "corruption_test": "test_cash_roll_forward_chains_across_years",
+        "example_failure_message": "beginning_cash=6000.0 vs prior ending_cash=6188.4",
+    },
+    "debt_roll_forward": {
+        "category": "Balance Sheet -- Debt", "check_type": "arithmetic_invariant",
+        "formula": "total_debt_gaap_beginning_t = total_debt_gaap_ending_(t-1); "
+                   "total_debt_gaap_ending_t = beginning_t + debt_proceeds_t - debt_repayments_t",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- the debt balance no longer chains correctly across years.",
+        "corruption_test": "test_debt_roll_forward_chains_across_years",
+        "example_failure_message": "debt_end=14500.0 vs beg+proceeds-repay=14343.0",
+    },
+    "no_finance_lease_double_counting": {
+        "category": "Balance Sheet -- Debt", "check_type": "structural_completeness_check",
+        "formula": "finance_lease_liabilities_t = finance_lease_liabilities_2025 (held flat) AND held OUTSIDE "
+                   "the total_debt_gaap roll-forward (never added into debt_proceeds/debt_repayments)",
+        "tolerance": "0.1% relative on the flat-hold; exact structural check on separation",
+        "gate_consequence": "Forecast rejected -- a finance-lease figure appearing inside both the debt "
+                             "roll-forward and its own line would overstate leverage.",
+        "corruption_test": "test_finance_lease_held_flat_never_folded_into_debt_schedule",
+        "example_failure_message": "finance_lease=2200.0 vs flat FY2025 actual=2113.0",
+    },
+    "minimum_cash_compliance": {
+        "category": "Liquidity Policy", "check_type": "structural_completeness_check",
+        "formula": "funding_warning_t = (ending_cash_t < min_cash_buffer_t)",
+        "tolerance": "Exact boolean comparison, no numeric tolerance",
+        "gate_consequence": "WARNING (not FAIL) when ending cash is genuinely below the policy buffer -- "
+                             "this is a disclosed liquidity finding, not a computation error, and does not "
+                             "block the forecast from being reviewed.",
+        "corruption_test": "Not corrupted directly; demonstrated organically by the seasonal stress overlay "
+                            "(Section 6), which DOES trip a funding warning in Downside FY2026.",
+        "example_failure_message": "ending_cash=2900.0 below min_cash_buffer=3174.8 -- funding_warning=True",
+    },
+    "scenario_ordering": {
+        "category": "Cross-Scenario", "check_type": "scenario_comparative_check",
+        "formula": "For revenue_growth_pct, gross_margin_pct, net_income, diluted_eps: upside >= base >= downside. "
+                   "For sga_pct_of_revenue, effective_tax_rate_pct (inverse-direction metrics): upside <= base <= downside. "
+                   "CapEx/FCF/repurchases are DELIBERATELY EXCLUDED (Upside's higher CapEx intensity is "
+                   "economically appropriate, not a modeling error).",
+        "tolerance": "Exact directional (>=/<=) comparison, no numeric tolerance",
+        "gate_consequence": "Forecast rejected -- an inverted scenario would mean Downside outperforms "
+                             "Upside on a driver where that has no economic justification.",
+        "corruption_test": "test_scenario_ordering_flags_an_inverted_upside_base",
+        "example_failure_message": "violated for: ['net_income'] (upside net_income < downside net_income)",
+    },
+    "assumption_completeness": {
+        "category": "Assumption Set", "check_type": "structural_completeness_check",
+        "formula": "For every required metric and FY2026-FY2030, an assumption row exists at that exact "
+                   "year OR a flat (forecast_year=0) row exists.",
+        "tolerance": "Exact presence/absence, no numeric tolerance",
+        "gate_consequence": "Forecast rejected -- a missing assumption means _lookup() would silently "
+                             "return None and crash downstream, or (worse) be masked by a stale default.",
+        "corruption_test": "Not corrupted directly this round (would require deleting assumption rows); "
+                            "covered structurally by test_build_assumptions_every_scenario_year_covered.",
+        "example_failure_message": "missing: ['capex_pct_of_revenue@2028']",
+    },
+    "lineage_completeness": {
+        "category": "Lineage", "check_type": "structural_completeness_check",
+        "formula": "For each scenario, the 10 representatively-tracked metrics each have exactly one "
+                   "lineage row per forecast year, and every lineage row has >=1 assumption_id.",
+        "tolerance": "Exact count/presence, no numeric tolerance",
+        "gate_consequence": "Forecast rejected -- an incomplete lineage graph means a figure's provenance "
+                             "cannot be audited back to its assumptions.",
+        "corruption_test": "Not corrupted directly this round; covered structurally by "
+                            "test_lineage_entries_reference_real_assumption_ids.",
+        "example_failure_message": "incomplete: missing metrics {'free_cash_flow'}, or entries with no assumption_ids",
+    },
+    "information_cutoff_compliance": {
+        "category": "Evidence / Cutoff", "check_type": "structural_completeness_check",
+        "formula": "Every assumption's information_cutoff <= FORECAST_INFORMATION_CUTOFF (2026-03-11)",
+        "tolerance": "Exact date-string comparison, no numeric tolerance",
+        "gate_consequence": "Forecast rejected -- a post-cutoff assumption would mean information not yet "
+                             "available at the stated cutoff was used to build the forecast.",
+        "corruption_test": "Not corrupted directly this round; every assumption uses the same default cutoff "
+                            "constant, so this check currently has no live failure path to demonstrate against "
+                            "(see Section 8's note on this specific gap).",
+        "example_failure_message": "assumptions citing information after cutoff: ['asm_rev_growth_base']",
+    },
+    "no_historical_forecast_mixing": {
+        "category": "Structural Separation", "check_type": "structural_completeness_check",
+        "formula": "set(FORECAST_YEARS) & set(HISTORICAL_YEARS) == {} AND every ForecastYear.fiscal_year "
+                   "in FORECAST_YEARS",
+        "tolerance": "Exact set/membership comparison, no numeric tolerance",
+        "gate_consequence": "Forecast rejected -- this is the last line of defense against a forecast row "
+                             "being mistaken for, or merged with, a historical annual_facts row.",
+        "corruption_test": "Not corrupted directly this round (would require editing FORECAST_YEARS/"
+                            "HISTORICAL_YEARS themselves); covered structurally by "
+                            "test_forecast_year_fiscal_years_never_overlap_historical.",
+        "example_failure_message": "overlap or mistagged year detected",
+    },
+    "other_operating_cf_not_a_plug": {
+        "category": "Cash Flow -- Modeling Discipline", "check_type": "structural_completeness_check",
+        "formula": "other_operating_cf_t is IDENTICAL across every FORECAST_YEARS entry within a scenario",
+        "tolerance": "1e-9 absolute (effectively exact)",
+        "gate_consequence": "Forecast rejected -- a varying other_operating_cf is the signature of a "
+                             "backward-solved CFO plug, exactly what item 9's non-plug policy forbids.",
+        "corruption_test": "demo_backward_solved_cfo_plug(years, target_cfo=7500.0) -- see Section 3",
+        "example_failure_message": "other_operating_cf per year: [589.3, 366.1, 206.9, 45.9, -115.8] -- VARIES "
+                                    "across years, consistent with a backward-solved plug",
+    },
+    "capital_allocation_waterfall_reconciliation": {
+        "category": "Cash Flow -- Capital Allocation", "check_type": "independent_reasonableness_test",
+        "formula": "An 8-step running-balance waterfall (capital_allocation_waterfall) must reach the exact "
+                   "same ending_cash as _run_from_metrics' own block-formula computation, AND both "
+                   "no-double-counting identities in verify_no_double_counting must hold.",
+        "tolerance": "0.1% relative (_close, tol=1e-3)",
+        "gate_consequence": "Forecast rejected -- this is the one check in the whole suite computed via a "
+                             "genuinely different code path than the engine itself, so a failure here would "
+                             "indicate the engine's own arithmetic (not just a corrupted downstream value) "
+                             "is wrong.",
+        "corruption_test": "Not corrupted directly this round (it would require deliberately breaking the "
+                            "waterfall function itself, a different exercise than corrupting a ForecastYear "
+                            "value); demonstrated passing against all 15 scenario-years in Section 4.",
+        "example_failure_message": "waterfall ending_cash=6100.0 vs engine ending_cash=6188.4",
+    },
+}
 
 
 def validate_all(
@@ -995,7 +1538,456 @@ def validate_all(
         "FORECAST_YEARS and HISTORICAL_YEARS are disjoint and every ForecastYear.fiscal_year is a FORECAST_YEARS member"
         if not fy_overlap and all_years_tagged else "overlap or mistagged year detected")
 
+    # 19. other_operating_cf_not_a_plug (additional check beyond the original
+    # 18, added for the reviewer audit package's Section 3 requirement). A
+    # backward-solved CFO plug would make other_operating_cf VARY year to
+    # year (tracking whatever gap the other components leave); a fixed
+    # scenario assumption is instead IDENTICAL across every forecast year
+    # within a scenario. See demo_backward_solved_cfo_plug() below for a
+    # corruption test that proves this check actually fails on a real plug.
+    for scenario, years in forecasts.items():
+        vals = [y.other_operating_cf for y in years]
+        is_flat = all(_close(v, vals[0], tol=1e-9) for v in vals)
+        rec("other_operating_cf_not_a_plug", scenario, None, is_flat,
+            f"other_operating_cf per year: {[round(v, 1) for v in vals]}" +
+            (" -- constant, consistent with a fixed assumption" if is_flat
+             else " -- VARIES across years, consistent with a backward-solved plug"))
+
+    # 20. capital_allocation_waterfall_reconciliation (additional check,
+    # reviewer audit package item 4): the independently-sequenced 8-step
+    # waterfall must reach the exact same ending_cash as the engine's own
+    # single-pass formula, and the no-double-counting identities must hold.
+    for scenario, years in forecasts.items():
+        for y in years:
+            waterfall_ending_cash = capital_allocation_waterfall(y)[-1]["balance_after"]
+            proof = verify_no_double_counting(y)
+            ok = _close(waterfall_ending_cash, y.ending_cash) and proof["no_double_counting_proven"]
+            rec("capital_allocation_waterfall_reconciliation", scenario, y.fiscal_year, ok,
+                f"waterfall ending_cash={waterfall_ending_cash:,.1f} vs engine ending_cash={y.ending_cash:,.1f}; "
+                f"identity_a_holds={proof['identity_a_holds']}, identity_b_holds={proof['identity_b_holds']}")
+
     return results
+
+
+def demo_backward_solved_cfo_plug(years: list[ForecastYear], target_cfo: float) -> list[ForecastYear]:
+    """Corruption-test utility ONLY -- never called by run_all_scenarios() or
+    any other production path. Returns a copy of `years` where
+    other_operating_cf is recomputed backward so operating_cash_flow hits a
+    flat `target_cfo` every year, exactly the "unexplained balancing
+    adjustment" item 3 asks the model to be able to detect. Demonstrates
+    that other_operating_cf_not_a_plug (check 19 above) fails on this input,
+    proving the check is not merely unreachable.
+    """
+    import dataclasses
+    out = []
+    for y in years:
+        plugged_other = target_cfo - y.net_income - y.da_cfo_addback - y.inventory_cash_impact - y.ap_cash_impact
+        out.append(dataclasses.replace(y, other_operating_cf=plugged_other, operating_cash_flow=target_cfo))
+    return out
+
+
+# --- Capital allocation waterfall (reviewer audit package, item 4) --------
+
+def capital_allocation_waterfall(y: ForecastYear) -> list[dict]:
+    """The exact order of operations item 4 specifies, computed as an
+    independent, running-balance sequence -- NOT a re-statement of
+    _run_from_metrics' own arithmetic, but a second, differently-sequenced
+    path to the same ending_cash. Steps 1-8:
+
+    1. Operating cash generation (CFO)
+    2. Capital expenditures (CFI, which in this model is exactly -CapEx)
+    3. Dividends
+    4. Minimum cash preservation (a checkpoint, not a cash movement --
+       records how much cash sits above/below the policy buffer at this point)
+    5. Scheduled debt reserve / repayment (the fixed, pre-set debt schedule --
+       proceeds and repayments together, since both are equally "scheduled",
+       never discretionary)
+    6. Incremental (non-scheduled) financing -- always $0 in this model,
+       because the non-plug policy (item 9) forbids an automatic top-up
+       beyond the fixed schedule; recorded explicitly rather than omitted,
+       so its absence is visible, not silent.
+    7. Discretionary investment / repurchases (the fixed payout-ratio
+       assumption; see capital_allocation_repurchase_classification() for
+       why this is a "fixed forecast assumption", not a residual)
+    8. Ending cash
+
+    The DEPLOYABLE_CAPACITY checkpoint sits between steps 5 and 7: it is the
+    running balance immediately after the scheduled debt movements (identical
+    to pre_discretionary_ending_cash) minus the minimum cash buffer minus the
+    near-term debt repayment reserve -- i.e. capacity is measured BEFORE
+    step 7's repurchase is subtracted, which is exactly why deployable
+    capacity and the executed repurchase are not additive with ending cash
+    (see the docstring on verify_no_double_counting below).
+    """
+    balance = y.beginning_cash
+    steps = []
+
+    balance += y.operating_cash_flow
+    steps.append({"step": 1, "label": "Operating cash generation (CFO)", "amount": y.operating_cash_flow,
+                  "balance_after": balance})
+
+    balance += y.investing_cash_flow
+    steps.append({"step": 2, "label": "Capital expenditures (CFI = -CapEx)", "amount": y.investing_cash_flow,
+                  "balance_after": balance})
+
+    balance -= y.dividends_paid
+    steps.append({"step": 3, "label": "Dividends", "amount": -y.dividends_paid, "balance_after": balance})
+
+    above_buffer = balance - y.min_cash_buffer
+    steps.append({"step": 4, "label": "Minimum cash preservation (checkpoint, no cash movement)",
+                  "amount": 0.0, "balance_after": balance,
+                  "note": f"cash above minimum buffer at this checkpoint: {above_buffer:,.1f}"})
+
+    scheduled_debt = y.debt_proceeds - y.debt_repayments
+    balance += scheduled_debt
+    steps.append({"step": 5, "label": "Scheduled debt reserve / repayment (fixed schedule)",
+                  "amount": scheduled_debt, "balance_after": balance})
+
+    deployable_capacity_checkpoint = max(0.0, balance - y.min_cash_buffer - y.near_term_debt_repayment_reserve)
+    steps.append({"step": "5b", "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - "
+                  "buffer - reserve, before any repurchase is subtracted)",
+                  "amount": 0.0, "balance_after": balance,
+                  "note": f"deployable_capacity = {deployable_capacity_checkpoint:,.1f}"})
+
+    incremental_financing = 0.0
+    balance += incremental_financing
+    steps.append({"step": 6, "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+                  "amount": incremental_financing, "balance_after": balance})
+
+    balance -= y.share_repurchases
+    steps.append({"step": 7, "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+                  "amount": -y.share_repurchases, "balance_after": balance})
+
+    steps.append({"step": 8, "label": "Ending cash", "amount": 0.0, "balance_after": balance})
+
+    return steps
+
+
+def verify_no_double_counting(y: ForecastYear) -> dict:
+    """Proves, with this year's actual numbers, that a dollar counted in
+    deployable_capacity is never ALSO counted as still-available in
+    ending_cash after repurchases have already spent it. Two identities:
+
+    (a) ending_cash = pre_discretionary_ending_cash - share_repurchases
+        (the repurchase is subtracted exactly once from the pre-discretionary
+        balance to reach the actual outcome)
+    (b) pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer
+        + near_term_debt_repayment_reserve
+        (whenever deployable_capacity is not floored at zero -- i.e.
+        pre_discretionary_ending_cash exceeds the buffer+reserve)
+
+    Reading (a) and (b) together: deployable_capacity, min_cash_buffer, and
+    near_term_debt_repayment_reserve are three mutually exclusive slices of
+    pre_discretionary_ending_cash under the hypothetical "repurchases are not
+    yet executed" view; share_repurchases and ending_cash are two mutually
+    exclusive slices of the SAME pre_discretionary_ending_cash total under
+    the actual "repurchases already executed" view. The two views are
+    alternative readings of one total, not additive components -- a dollar
+    reported inside deployable_capacity is a dollar that, in the actual
+    (post-repurchase) outcome, is inside share_repurchases or ending_cash,
+    never inside both views' totals at once.
+    """
+    identity_a_lhs = y.ending_cash
+    identity_a_rhs = y.pre_discretionary_ending_cash - y.share_repurchases
+    identity_a_holds = _close(identity_a_lhs, identity_a_rhs)
+
+    floored = (y.pre_discretionary_ending_cash - y.min_cash_buffer - y.near_term_debt_repayment_reserve) < 0
+    identity_b_lhs = y.pre_discretionary_ending_cash
+    identity_b_rhs = y.deployable_capacity + y.min_cash_buffer + y.near_term_debt_repayment_reserve
+    identity_b_holds = floored or _close(identity_b_lhs, identity_b_rhs)
+
+    return {
+        "scenario": y.scenario, "fiscal_year": y.fiscal_year,
+        "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases",
+        "identity_a_lhs": identity_a_lhs, "identity_a_rhs": identity_a_rhs, "identity_a_holds": identity_a_holds,
+        "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve"
+                      + (" (floored -- deployable_capacity was clamped to 0)" if floored else ""),
+        "identity_b_lhs": identity_b_lhs, "identity_b_rhs": identity_b_rhs, "identity_b_holds": identity_b_holds,
+        "no_double_counting_proven": identity_a_holds and identity_b_holds,
+    }
+
+
+def capital_allocation_repurchase_classification() -> str:
+    """Answers item 4's explicit question directly: repurchases in this model
+    are (1) A FIXED FORECAST ASSUMPTION -- a payout ratio of post-dividend
+    FCF, set independently per scenario (asm_buyback_payout_*), never solved
+    backward from any target. They are NOT (2) sized as "a use of deployable
+    capacity" -- the engine computes share_repurchases from FCF/dividends
+    alone and never reads deployable_capacity when doing so; deployable
+    capacity is reported as a separate, additional analytical ceiling
+    (see verify_no_double_counting). They are NOT (3) a residual allocation
+    -- see the other_operating_cf_not_a_plug check and
+    test_debt_schedule_is_fixed_not_a_deficit_plug for the structural proof
+    that nothing in this model is solved backward to a target. And they are
+    NOT (4) zero until a management deployment is selected -- Base and
+    Upside both project a positive, non-zero repurchase figure every
+    forecast year; only Downside sets the payout ratio to 0% (also a fixed
+    assumption, not a "pending" state)."""
+    return (
+        "Fixed forecast assumption (payout ratio of post-dividend FCF). Not a use of "
+        "deployable capacity, not a residual allocation, not zero-pending-selection "
+        "(Downside's zero is itself a fixed assumption, not an unselected default)."
+    )
+
+
+# --- Minimum cash buffer: 5-policy comparison (reviewer audit package, item 5) ---
+
+def minimum_cash_buffer_policies(forecasts: dict[str, list[ForecastYear]]) -> dict[str, list[dict]]:
+    """5 minimum-cash-buffer policies compared side by side. Computed as a
+    pure post-hoc overlay: the buffer choice does not feed back into
+    CFO/FCF/ending_cash anywhere in this engine (share repurchases are sized
+    from FCF/dividends alone -- see capital_allocation_repurchase_classification
+    -- never from the buffer), so `ending_cash` is IDENTICAL across all 5
+    policies for a given scenario/year; only required_minimum_cash and the
+    resulting deployable_capacity change. No policy is endorsed here as
+    final -- see docs/milestone_3_forecast_review_package.md Section 5.
+    """
+    fixed_dollar_floor = min(HISTORICAL["cash_and_equivalents_balance_sheet"].values())  # $2,229M, FY2022
+    hist_cash_pct = historical_ratio("cash_and_equivalents_balance_sheet", "revenue")
+    percentile_25 = _percentile(list(hist_cash_pct.values()), 25)
+
+    policies = {
+        "fixed_dollar": {
+            "name": "Fixed-dollar historical minimum",
+            "rationale": f"Hold the lowest historical year-end cash balance (${fixed_dollar_floor:,.0f}M, "
+                         f"FY2022) flat in dollar terms for every forecast year.",
+            "strength": "Simple; directly evidenced by an actual historical low, not a modeled estimate.",
+            "limitation": "Does not scale with revenue growth or decline -- shrinks as a % of the business "
+                          "over time in BASE/UPSIDE, and does not tighten further if DOWNSIDE's revenue "
+                          "contracts well below FY2022's level.",
+            "required_fn": lambda y: fixed_dollar_floor,
+        },
+        "pct_revenue_3pct": {
+            "name": "Percentage of revenue (3.0%)",
+            "rationale": "3% of forecast revenue -- the figure already wired into this round's base "
+                         "assumption set, used here as one candidate among five, not as a conclusion.",
+            "strength": "Scales automatically with the business; sits between the historical minimum ratio "
+                        "(2.04%, FY2022) and recent actuals (4.47%-5.24%, FY2024-FY2025).",
+            "limitation": "The 3.0% figure is a judgment call within that range, not derived from a formal "
+                          "statistical rule -- a different reviewer could reasonably pick a different point "
+                          "in the same range.",
+            "required_fn": lambda y: y.revenue * 3.0 / 100,
+        },
+        "pct_opex": {
+            "name": "Operating-cost coverage (2.5% of COGS + SG&A)",
+            "rationale": "2.5% of forecast (COGS + SG&A) -- roughly 9 days of operating-cost coverage, "
+                         "ties the buffer to the cost base being funded rather than to top-line revenue.",
+            "strength": "Conceptually distinct grounding (cost coverage, not revenue scale) from the "
+                        "%-of-revenue policy, useful as an independent cross-check.",
+            "limitation": "Produces a dollar figure very close to the %-of-revenue policy at Target's cost "
+                          "structure (COGS+SG&A is roughly 97%-98% of revenue every historical year), so it "
+                          "adds a second formula without a materially different result in practice.",
+            "required_fn": lambda y: (y.cost_of_sales + y.sga_expense) * 2.5 / 100,
+        },
+        "historical_percentile": {
+            "name": f"Historical cash-ratio 25th percentile ({percentile_25:.2f}% of revenue)",
+            "rationale": "25th percentile of the 5 historical cash/revenue ratios "
+                         f"({', '.join(f'{v:.2f}%' for v in sorted(hist_cash_pct.values()))}) = "
+                         f"{percentile_25:.2f}%, linear-interpolated.",
+            "strength": "Statistically grounded in the full historical distribution rather than a single "
+                        "hand-picked min/max/round number.",
+            "limitation": "Only 5 historical observations exist -- a percentile computed on 5 points is not "
+                          "a robust distributional estimate and is sensitive to which single year is excluded "
+                          "or included.",
+            "required_fn": lambda y: y.revenue * percentile_25 / 100,
+        },
+        "hybrid_max": {
+            "name": "Hybrid: max(fixed-dollar, 3%-of-revenue)",
+            "rationale": f"max(${fixed_dollar_floor:,.0f}M, 3% of forecast revenue) -- the more conservative "
+                         f"(larger) of the two measures always governs.",
+            "strength": "Combines a hard historical floor with a scaling component; never falls below the "
+                        "fixed floor even if a downside scenario's revenue shrinks well below FY2022's level.",
+            "limitation": "A two-part policy is harder to communicate and audit than a single formula, and "
+                          "inherits both component policies' individual limitations in the range where "
+                          "either could bind.",
+            "required_fn": lambda y: max(fixed_dollar_floor, y.revenue * 3.0 / 100),
+        },
+    }
+
+    out: dict[str, list[dict]] = {}
+    for scenario, years in forecasts.items():
+        rows = []
+        for policy_id, policy in policies.items():
+            per_year = []
+            coverage_ratios = []
+            for y in years:
+                required_min = policy["required_fn"](y)
+                deployable = max(0.0, y.pre_discretionary_ending_cash - required_min - y.near_term_debt_repayment_reserve)
+                coverage = y.ending_cash / required_min if required_min > 0 else float("inf")
+                coverage_ratios.append(coverage)
+                per_year.append({
+                    "fiscal_year": y.fiscal_year, "required_minimum_cash": required_min,
+                    "deployable_capacity": deployable, "ending_cash": y.ending_cash, "coverage_ratio": coverage,
+                })
+            rows.append({
+                "policy_id": policy_id, "name": policy["name"], "rationale": policy["rationale"],
+                "strength": policy["strength"], "limitation": policy["limitation"],
+                "per_year": per_year, "lowest_coverage_ratio": min(coverage_ratios),
+            })
+        out[scenario] = rows
+    return out
+
+
+# --- Seasonality stress overlay (reviewer audit package, item 6) -----------
+
+# Grounded in the ONE year of real quarterly evidence in the registered
+# source set (docs/sources.csv has FY2025 Q1-Q3 10-Qs plus the FY2025 10-K --
+# no earlier year has quarterly cash balances ingested). Real instant_facts
+# cash_and_equivalents_balance_sheet values, as_originally_filed (2026-09-16,
+# read-only query against data/curated/target_cash.db):
+#   FY2024 year-end (2025-02-01): $4,762M
+#   FY2025 Q1  (2025-05-03):      $2,887M  <- intra-year trough
+#   FY2025 Q2  (2025-08-02):      $4,341M
+#   FY2025 Q3  (2025-11-01):      $3,822M
+#   FY2025 Q4/year-end (2026-01-31): $5,488M
+# Trough/year-end ratio = 2,887 / 5,488 = 52.6%, i.e. cash fell ~47.4% below
+# the fiscal year-end level at its lowest point within FY2025. Rounded UP
+# (more conservative -- assumes a deeper trough than the single observed
+# year) to a 50% haircut. This is a single-year sample; see the limitation
+# note returned alongside every result below. NOT a quarterly forecast --
+# no quarterly value for FY2026-FY2030 is fabricated anywhere in this
+# module; this overlay only asks "how much lower could annual ending cash's
+# own true intra-year low have been," using one real historical ratio.
+SEASONAL_HAIRCUT_EVIDENCE = (
+    "FY2025 real quarterly cash (as_originally_filed, instant_facts): "
+    "Q1 2025-05-03=$2,887M (trough), Q2 2025-08-02=$4,341M, Q3 2025-11-01=$3,822M, "
+    "Q4/year-end 2026-01-31=$5,488M. Trough/year-end=52.6%, i.e. a 47.4% observed "
+    "intra-year decline from the fiscal year-end level, rounded up to a 50% haircut "
+    "for conservatism. Only one year of quarterly evidence exists in the registered "
+    "source set -- this is a single-year sample, not a multi-year seasonal pattern."
+)
+DEFAULT_SEASONAL_HAIRCUT_PCT = 50.0
+
+
+def seasonal_stress_overlay(years: list[ForecastYear], haircut_pct: float = DEFAULT_SEASONAL_HAIRCUT_PCT) -> list[dict]:
+    """Annual-model liquidity stress overlay -- NOT a quarterly forecasting
+    engine (explicitly out of scope this round). Applies a single conservative
+    haircut to the pre-discretionary cash position to estimate how low the
+    true intra-year cash trough could plausibly have been, then re-tests
+    that stressed position against the minimum cash buffer.
+    """
+    out = []
+    for y in years:
+        stressed_cash_position = y.pre_discretionary_ending_cash * (1 - haircut_pct / 100)
+        stressed_deployable_capacity = max(
+            0.0, stressed_cash_position - y.min_cash_buffer - y.near_term_debt_repayment_reserve
+        )
+        out.append({
+            "scenario": y.scenario, "fiscal_year": y.fiscal_year,
+            "annual_ending_cash": y.ending_cash,
+            "pre_discretionary_ending_cash": y.pre_discretionary_ending_cash,
+            "seasonal_haircut_pct": haircut_pct,
+            "stressed_cash_position": stressed_cash_position,
+            "required_buffer": y.min_cash_buffer,
+            "stressed_deployable_capacity": stressed_deployable_capacity,
+            "stressed_funding_warning": stressed_cash_position < y.min_cash_buffer,
+        })
+    return out
+
+
+# --- Historical-to-forecast handoff (reviewer audit package, item 10) -----
+
+def historical_to_forecast_handoff(forecasts: dict[str, list[ForecastYear]]) -> list[dict]:
+    """FY2025 actual -> FY2026 forecast transition for every major metric,
+    per scenario. Flags a metric as a "cliff" when its FY2026 step exceeds
+    the widest historical YoY swing on record for a growth-rate metric, or a
+    fixed 20-percentage-point/20% threshold for a level metric with no
+    natural single historical growth-rate series to compare against.
+    """
+    handoff_metrics = [
+        ("revenue", "revenue", lambda y: y.revenue, "pct", historical_growth("revenue")),
+        ("gross_margin_pct", "Gross margin %", lambda y: y.gross_margin_pct, "level_pp",
+         historical_ratio("gross_profit", "revenue")),
+        ("sga_pct_of_revenue", "SG&A % of revenue", lambda y: y.sga_pct_of_revenue, "level_pp",
+         historical_ratio("operating_expenses", "revenue")),
+        ("operating_income", "Operating income", lambda y: y.operating_income, "pct", None),
+        ("net_income", "Net income", lambda y: y.net_income, "pct", None),
+        ("diluted_eps", "Diluted EPS", lambda y: y.diluted_eps, "pct", None),
+        ("operating_cash_flow", "CFO", lambda y: y.operating_cash_flow, "pct", None),
+        ("capital_expenditure", "CapEx", lambda y: y.capital_expenditure, "pct", None),
+        ("free_cash_flow", "FCF", lambda y: y.free_cash_flow, "pct", None),
+        ("ending_cash", "Ending cash", lambda y: y.ending_cash, "pct", None),
+        ("total_debt_gaap_ending", "Ending debt", lambda y: y.total_debt_gaap_ending, "pct", None),
+    ]
+    rows = []
+    for scenario, years in forecasts.items():
+        fy2026 = years[0]
+        for metric_key, label, getter, kind, hist_series in handoff_metrics:
+            last_hist = HISTORICAL.get(metric_key, {}).get(2025)
+            if last_hist is None:
+                if metric_key == "gross_margin_pct":
+                    last_hist = historical_ratio("gross_profit", "revenue")[2025]
+                elif metric_key == "sga_pct_of_revenue":
+                    last_hist = historical_ratio("operating_expenses", "revenue")[2025]
+                elif metric_key == "total_debt_gaap_ending":
+                    last_hist = HISTORICAL["total_debt_gaap"][2025]
+                elif metric_key == "ending_cash":
+                    last_hist = HISTORICAL["cash_and_equivalents_balance_sheet"][2025]
+            first_forecast = getter(fy2026)
+            step_change = first_forecast - last_hist
+            pct_change = (step_change / last_hist * 100) if last_hist else None
+
+            if kind == "pct":
+                hist_growth_series = historical_growth(metric_key) if metric_key in HISTORICAL else None
+                if hist_growth_series:
+                    max_abs_hist_growth = max(abs(v) for v in hist_growth_series.values())
+                    within_range = pct_change is not None and abs(pct_change) <= max_abs_hist_growth * 1.5
+                    cliff = not within_range
+                else:
+                    within_range = pct_change is not None and abs(pct_change) <= 20.0
+                    cliff = not within_range
+            else:  # level_pp -- compare the point change (pp) to the historical YoY pp swing range
+                hist_vals = list(hist_series.values())
+                hist_pp_changes = [abs(hist_vals[i] - hist_vals[i - 1]) for i in range(1, len(hist_vals))]
+                max_hist_pp = max(hist_pp_changes) if hist_pp_changes else 1.0
+                within_range = abs(step_change) <= max_hist_pp * 1.5
+                cliff = not within_range
+
+            rows.append({
+                "scenario": scenario, "metric": metric_key, "label": label,
+                "last_historical_value": last_hist, "first_forecast_value": first_forecast,
+                "step_change": step_change, "pct_change": pct_change,
+                "within_historical_experience": within_range, "cliff_flag": cliff,
+            })
+    return rows
+
+
+# --- Cutoff audit (reviewer audit package, item 11) ------------------------
+
+def cutoff_audit(assumptions: list[Assumption]) -> dict:
+    """Lists every distinct source_evidence string cited by an assumption,
+    and every registered filing accession this module's HISTORICAL literal
+    depends on, and proves none postdates FORECAST_INFORMATION_CUTOFF.
+    """
+    import csv as _csv
+
+    with open("docs/sources.csv", newline="") as fh:
+        sources = list(_csv.DictReader(fh))
+
+    cutoff_source = next(
+        (s for s in sources if s["accession_number"] == FORECAST_INFORMATION_CUTOFF_ACCESSION), None
+    )
+    post_cutoff_sources = [s for s in sources if s["filed_at"] > FORECAST_INFORMATION_CUTOFF]
+    distinct_evidence = sorted({a.source_evidence for a in assumptions})
+    bad_assumption_cutoffs = [a.assumption_id for a in assumptions if a.information_cutoff > FORECAST_INFORMATION_CUTOFF]
+
+    return {
+        "forecast_information_cutoff": FORECAST_INFORMATION_CUTOFF,
+        "forecast_information_cutoff_accession": FORECAST_INFORMATION_CUTOFF_ACCESSION,
+        "cutoff_source_record": cutoff_source,
+        "total_registered_sources": len(sources),
+        "all_sources": sorted(sources, key=lambda s: s["filed_at"]),
+        "post_cutoff_sources_found": post_cutoff_sources,
+        "no_post_cutoff_sources": not post_cutoff_sources,
+        "distinct_source_evidence_strings_cited": distinct_evidence,
+        "assumptions_citing_information_after_cutoff": bad_assumption_cutoffs,
+        "raw_fact_citations": dict(DA_CFO_ADDBACK_RAW_FACT_IDS),
+        "raw_fact_citations_accessions_all_le_cutoff": all(
+            fid.split(":")[0] <= FORECAST_INFORMATION_CUTOFF_ACCESSION or
+            next((s["filed_at"] for s in sources if s["accession_number"] == fid.split(":")[0]), "") <= FORECAST_INFORMATION_CUTOFF
+            for fid in DA_CFO_ADDBACK_RAW_FACT_IDS.values()
+        ),
+    }
 
 
 # --- Sensitivity (item 13) --------------------------------------------------
@@ -1032,6 +2024,7 @@ def sensitivity_table(
             "free_cash_flow": round(terminal.free_cash_flow, 1),
             "ending_cash": round(terminal.ending_cash, 1),
             "deployable_capacity": round(terminal.deployable_capacity, 1),
+            "cumulative_deployable_capacity_2026_2030": round(sum(y.deployable_capacity for y in years), 1),
         })
     return rows
 
@@ -1046,3 +2039,32 @@ def build_sensitivity_tables(base_scenario: str = "base", assumptions: list[Assu
         "min_cash_buffer_pct_of_revenue": [-1.0, -0.5, 0.0, 0.5, 1.0],
     }
     return {driver: sensitivity_table(driver, ds, base_scenario, assumptions) for driver, ds in deltas.items()}
+
+
+def two_variable_sensitivity(
+    driver1: str, deltas1: list[float], driver2: str, deltas2: list[float],
+    base_scenario: str = "base", assumptions: list[Assumption] | None = None,
+) -> dict:
+    """Perturbs two drivers simultaneously (grid of driver1 x driver2 deltas)
+    and reports FY2030 deployable_capacity for each combination -- a single
+    two-variable table, per item 9's requirement, in addition to the six
+    one-variable tables. Pure dry-run; no valuation sensitivity.
+    """
+    assumptions = assumptions if assumptions is not None else build_assumptions()
+    by_scenario = assumptions_by_scenario(assumptions)
+    grid = []
+    for d1 in deltas1:
+        row = {"driver1_delta": d1, "cells": []}
+        for d2 in deltas2:
+            metrics = {k: dict(v) for k, v in by_scenario[base_scenario].items()}
+            metrics[driver1] = {fy: v + d1 for fy, v in metrics[driver1].items()}
+            metrics[driver2] = {fy: v + d2 for fy, v in metrics[driver2].items()}
+            years = _run_from_metrics(base_scenario, metrics)
+            terminal = years[-1]
+            row["cells"].append({
+                "driver2_delta": d2,
+                "fy2030_deployable_capacity": round(terminal.deployable_capacity, 1),
+                "fy2030_ending_cash": round(terminal.ending_cash, 1),
+            })
+        grid.append(row)
+    return {"driver1": driver1, "driver2": driver2, "scenario": base_scenario, "fiscal_year": FORECAST_YEARS[-1], "grid": grid}

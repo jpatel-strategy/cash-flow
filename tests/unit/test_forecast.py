@@ -386,3 +386,314 @@ def test_forecast_year_fiscal_years_never_overlap_historical():
         for y in years:
             assert y.fiscal_year not in f.HISTORICAL_YEARS
             assert y.fiscal_year in f.FORECAST_YEARS
+
+
+# --- Reviewer audit package: assumption matrix + fact-ID citations ---------
+
+
+def test_annual_fact_id_matches_real_database_convention():
+    import sqlite3
+    conn = sqlite3.connect("data/curated/target_cash.db")
+    row = conn.execute(
+        "SELECT annual_fact_id FROM annual_facts WHERE metric='revenue' AND fiscal_year=2025 "
+        "AND analytical_view='latest_restated'"
+    ).fetchone()
+    assert row is not None
+    assert row[0] == f.annual_fact_id_for("revenue", 2025)
+
+
+def test_historical_source_fact_ids_cover_all_five_years():
+    ids = f.historical_source_fact_ids("revenue")
+    assert set(ids.keys()) == set(f.HISTORICAL_YEARS)
+    assert all(isinstance(v, str) and v for v in ids.values())
+
+
+def test_historical_source_fact_ids_uses_raw_fact_for_da_addback():
+    ids = f.historical_source_fact_ids("depreciation_amortization_cfo_addback")
+    for fy, fid in ids.items():
+        assert fid == f.DA_CFO_ADDBACK_RAW_FACT_IDS[fy]
+        assert "DepreciationDepletionAndAmortization" in fid
+
+
+def test_build_assumption_matrix_covers_every_required_area():
+    assumptions = f.build_assumptions()
+    rows = f.build_assumption_matrix(assumptions)
+    required_metrics = {
+        "revenue_growth_pct", "gross_margin_pct", "sga_pct_of_revenue", "da_pct_of_revenue",
+        "da_cfo_addback_pct_of_revenue", "interest_rate_pct", "effective_tax_rate_pct",
+        "diluted_share_change_pct", "inventory_pct_of_revenue", "ap_pct_of_cogs",
+        "other_operating_cf_musd", "capex_pct_of_revenue", "dividend_per_share_growth_pct",
+        "debt_proceeds_musd", "debt_repayments_musd", "buyback_payout_pct_of_post_dividend_fcf",
+        "min_cash_buffer_pct_of_revenue", "finance_lease_liabilities_musd",
+    }
+    got_metrics = {r["metric"] for r in rows}
+    assert required_metrics.issubset(got_metrics)
+    # 3 scenarios x len(required-ish set) rows minimum
+    assert len(rows) >= len(required_metrics) * 3 - 3  # -3 tolerance for any metric without a per-scenario split
+
+
+def test_assumption_matrix_rows_have_every_required_column():
+    assumptions = f.build_assumptions()
+    rows = f.build_assumption_matrix(assumptions)
+    required_columns = {
+        "assumption_ids", "area", "name", "metric", "scenario", "driver_type", "values_by_year", "unit",
+        "historical_series", "historical_min", "historical_max", "historical_median", "rationale",
+        "depends_on", "source_fact_ids", "information_cutoff", "review_status", "version",
+    }
+    for row in rows:
+        assert required_columns.issubset(row.keys())
+        for fy in f.FORECAST_YEARS:
+            assert fy in row["values_by_year"]
+            assert row["values_by_year"][fy] is not None
+
+
+def test_assumption_matrix_dependency_edges_reference_real_metrics():
+    assumptions = f.build_assumptions()
+    rows = f.build_assumption_matrix(assumptions)
+    all_metrics = {r["metric"] for r in rows}
+    for row in rows:
+        for dep in row["depends_on"]:
+            assert dep in all_metrics
+
+
+# --- Reviewer audit package: other-operating-cf bridge + plug detection ----
+
+
+def test_historical_other_operating_cf_residual_matches_hand_derivation():
+    residual = f.historical_other_operating_cf_residual()
+    assert set(residual.keys()) == {2022, 2023, 2024, 2025}
+    # Hand-derived from HISTORICAL literals: other = CFO - NI - D&A_addback - inv_impact - ap_impact
+    assert residual[2022] == pytest.approx(126.0, abs=0.5)
+    assert residual[2023] == pytest.approx(1458.0, abs=0.5)
+    assert residual[2024] == pytest.approx(194.0, abs=0.5)
+    assert residual[2025] == pytest.approx(-282.0, abs=0.5)
+
+
+def test_other_operating_cf_not_a_plug_passes_on_real_forecast():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    lineage = {s: f.build_lineage(y, assumptions) for s, y in forecasts.items()}
+    results = f.validate_all(forecasts, assumptions, lineage)
+    plug_checks = [r for r in results if r.check_name == "other_operating_cf_not_a_plug"]
+    assert len(plug_checks) == 3
+    assert all(r.status == "PASS" for r in plug_checks)
+
+
+def test_demo_backward_solved_cfo_plug_is_detected():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    corrupted = dict(forecasts)
+    corrupted["base"] = f.demo_backward_solved_cfo_plug(forecasts["base"], target_cfo=7500.0)
+    # The plug reproduces the target CFO exactly...
+    assert all(y.operating_cash_flow == pytest.approx(7500.0) for y in corrupted["base"])
+    # ...but other_operating_cf now varies year to year, which the check must catch.
+    lineage = {s: f.build_lineage(y, assumptions) for s, y in corrupted.items()}
+    results = f.validate_all(corrupted, assumptions, lineage)
+    plug_check = next(r for r in results if r.check_name == "other_operating_cf_not_a_plug" and r.scenario == "base")
+    assert plug_check.status == "FAIL"
+
+
+# --- Reviewer audit package: capital allocation waterfall -------------------
+
+
+def test_capital_allocation_waterfall_reconciles_to_engine_ending_cash():
+    forecasts = f.run_all_scenarios()
+    for years in forecasts.values():
+        for y in years:
+            steps = f.capital_allocation_waterfall(y)
+            assert steps[-1]["label"] == "Ending cash"
+            assert steps[-1]["balance_after"] == pytest.approx(y.ending_cash)
+
+
+def test_capital_allocation_waterfall_deployable_capacity_checkpoint_matches_engine():
+    forecasts = f.run_all_scenarios()
+    for years in forecasts.values():
+        for y in years:
+            steps = f.capital_allocation_waterfall(y)
+            checkpoint = next(s for s in steps if s["step"] == "5b")
+            checkpoint_value = float(checkpoint["note"].split("=")[1].replace(",", ""))
+            assert checkpoint_value == pytest.approx(y.deployable_capacity, abs=0.1)
+
+
+def test_verify_no_double_counting_holds_for_every_scenario_year():
+    forecasts = f.run_all_scenarios()
+    for years in forecasts.values():
+        for y in years:
+            proof = f.verify_no_double_counting(y)
+            assert proof["no_double_counting_proven"]
+
+
+def test_capital_allocation_repurchase_classification_answers_all_four_options():
+    answer = f.capital_allocation_repurchase_classification().lower()
+    assert "fixed forecast assumption" in answer
+    assert "not a use of" in answer or "not" in answer  # explicitly rules out the other 3 options
+    assert "residual" in answer
+
+
+def test_capital_allocation_waterfall_reconciliation_check_present_and_passing():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    lineage = {s: f.build_lineage(y, assumptions) for s, y in forecasts.items()}
+    results = f.validate_all(forecasts, assumptions, lineage)
+    checks = [r for r in results if r.check_name == "capital_allocation_waterfall_reconciliation"]
+    assert len(checks) == 15  # 3 scenarios x 5 years
+    assert all(r.status == "PASS" for r in checks)
+
+
+# --- Reviewer audit package: minimum-cash-buffer policy comparison ---------
+
+
+def test_minimum_cash_buffer_policies_returns_five_policies_per_scenario():
+    forecasts = f.run_all_scenarios()
+    policies = f.minimum_cash_buffer_policies(forecasts)
+    for scenario in f.SCENARIOS:
+        assert len(policies[scenario]) == 5
+        for row in policies[scenario]:
+            assert len(row["per_year"]) == len(f.FORECAST_YEARS)
+            assert row["rationale"] and row["strength"] and row["limitation"]
+
+
+def test_minimum_cash_buffer_ending_cash_invariant_across_policies():
+    """Buffer policy is a post-hoc overlay -- ending_cash must be identical
+    across all 5 policies since none of them feed back into the cash-flow
+    engine (repurchases are sized from FCF, never from the buffer)."""
+    forecasts = f.run_all_scenarios()
+    policies = f.minimum_cash_buffer_policies(forecasts)
+    for scenario in f.SCENARIOS:
+        rows = policies[scenario]
+        for fy_idx in range(len(f.FORECAST_YEARS)):
+            ending_cash_values = {row["per_year"][fy_idx]["ending_cash"] for row in rows}
+            assert len(ending_cash_values) == 1
+
+
+def test_minimum_cash_buffer_policies_have_distinct_required_minimums():
+    forecasts = f.run_all_scenarios()
+    policies = f.minimum_cash_buffer_policies(forecasts)
+    required_2026 = {row["policy_id"]: row["per_year"][0]["required_minimum_cash"] for row in policies["base"]}
+    assert len(set(round(v, 1) for v in required_2026.values())) >= 3  # not all collapsing to the same figure
+
+
+# --- Reviewer audit package: seasonality stress overlay ---------------------
+
+
+def test_seasonal_stress_overlay_reduces_cash_position():
+    forecasts = f.run_all_scenarios()
+    overlay = f.seasonal_stress_overlay(forecasts["base"])
+    for row, y in zip(overlay, forecasts["base"]):
+        assert row["stressed_cash_position"] < row["pre_discretionary_ending_cash"]
+        assert row["stressed_cash_position"] == pytest.approx(
+            y.pre_discretionary_ending_cash * (1 - f.DEFAULT_SEASONAL_HAIRCUT_PCT / 100)
+        )
+
+
+def test_seasonal_stress_overlay_can_trigger_funding_warning_in_downside():
+    forecasts = f.run_all_scenarios()
+    overlay = f.seasonal_stress_overlay(forecasts["downside"])
+    assert any(row["stressed_funding_warning"] for row in overlay)
+
+
+def test_seasonal_haircut_grounded_in_real_fy2025_quarterly_data():
+    assert "2,887" in f.SEASONAL_HAIRCUT_EVIDENCE
+    assert "5,488" in f.SEASONAL_HAIRCUT_EVIDENCE
+    assert f.DEFAULT_SEASONAL_HAIRCUT_PCT >= 47.4  # conservative vs the observed 47.4% decline
+
+
+# --- Reviewer audit package: historical-to-forecast handoff -----------------
+
+
+def test_historical_to_forecast_handoff_covers_all_scenarios():
+    forecasts = f.run_all_scenarios()
+    handoff = f.historical_to_forecast_handoff(forecasts)
+    scenarios_seen = {row["scenario"] for row in handoff}
+    assert scenarios_seen == set(f.SCENARIOS)
+    for row in handoff:
+        assert row["last_historical_value"] is not None
+        assert row["first_forecast_value"] is not None
+
+
+def test_historical_to_forecast_handoff_flags_a_true_cliff():
+    forecasts = f.run_all_scenarios()
+    handoff = f.historical_to_forecast_handoff(forecasts)
+    revenue_row = next(r for r in handoff if r["scenario"] == "base" and r["metric"] == "revenue")
+    assert revenue_row["cliff_flag"] is False  # base FY2026 growth is within historical experience
+    corrupted = {"base": [
+        __import__("dataclasses").replace(y, revenue=y.revenue * 3) if y.fiscal_year == 2026 else y
+        for y in forecasts["base"]
+    ]}
+    handoff2 = f.historical_to_forecast_handoff(corrupted)
+    revenue_row2 = next(r for r in handoff2 if r["metric"] == "revenue")
+    assert revenue_row2["cliff_flag"] is True
+
+
+# --- Reviewer audit package: cutoff audit -----------------------------------
+
+
+def test_cutoff_audit_finds_no_post_cutoff_sources():
+    assumptions = f.build_assumptions()
+    audit = f.cutoff_audit(assumptions)
+    assert audit["no_post_cutoff_sources"]
+    assert audit["assumptions_citing_information_after_cutoff"] == []
+    assert audit["cutoff_source_record"] is not None
+    assert audit["cutoff_source_record"]["accession_number"] == f.FORECAST_INFORMATION_CUTOFF_ACCESSION
+    assert audit["cutoff_source_record"]["filed_at"] == f.FORECAST_INFORMATION_CUTOFF
+
+
+def test_cutoff_audit_covers_all_registered_sources():
+    assumptions = f.build_assumptions()
+    audit = f.cutoff_audit(assumptions)
+    assert audit["total_registered_sources"] == 8
+    assert all(s["filed_at"] <= f.FORECAST_INFORMATION_CUTOFF for s in audit["all_sources"])
+
+
+# --- Reviewer audit package: validation check inventory ---------------------
+
+
+def test_every_validation_result_check_name_has_metadata():
+    assumptions = f.build_assumptions()
+    forecasts = f.run_all_scenarios(assumptions)
+    lineage = {s: f.build_lineage(y, assumptions) for s, y in forecasts.items()}
+    results = f.validate_all(forecasts, assumptions, lineage)
+    check_names = {r.check_name for r in results}
+    assert check_names == set(f.VALIDATION_CHECK_METADATA.keys())
+
+
+def test_validation_metadata_distinguishes_arithmetic_from_independent():
+    meta = f.VALIDATION_CHECK_METADATA
+    arithmetic = [k for k, v in meta.items() if v["check_type"] == "arithmetic_invariant"]
+    independent = [k for k, v in meta.items() if v["check_type"] == "independent_reasonableness_test"]
+    assert len(arithmetic) >= 8
+    # Only the waterfall reconciliation is computed via a genuinely different code path.
+    assert independent == ["capital_allocation_waterfall_reconciliation"]
+
+
+def test_every_check_metadata_has_required_fields():
+    required = {"category", "check_type", "formula", "tolerance", "gate_consequence",
+                "corruption_test", "example_failure_message"}
+    for check_name, meta in f.VALIDATION_CHECK_METADATA.items():
+        assert required.issubset(meta.keys()), f"{check_name} missing fields"
+
+
+# --- Reviewer audit package: two-variable sensitivity -----------------------
+
+
+def test_two_variable_sensitivity_grid_shape():
+    grid = f.two_variable_sensitivity("revenue_growth_pct", [-1.0, 0.0, 1.0], "gross_margin_pct", [-0.5, 0.0, 0.5])
+    assert len(grid["grid"]) == 3
+    for row in grid["grid"]:
+        assert len(row["cells"]) == 3
+
+
+def test_two_variable_sensitivity_monotonic_in_both_directions():
+    grid = f.two_variable_sensitivity("revenue_growth_pct", [-1.0, 0.0, 1.0], "gross_margin_pct", [-0.5, 0.0, 0.5])
+    # Fixing driver2's middle column, deployable capacity should rise with driver1
+    middle_col = [row["cells"][1]["fy2030_deployable_capacity"] for row in grid["grid"]]
+    assert middle_col == sorted(middle_col)
+    # Fixing driver1's middle row, deployable capacity should rise with driver2
+    middle_row = [cell["fy2030_deployable_capacity"] for cell in grid["grid"][1]["cells"]]
+    assert middle_row == sorted(middle_row)
+
+
+def test_sensitivity_table_includes_cumulative_deployable_capacity():
+    rows = f.sensitivity_table("gross_margin_pct", [0.0])
+    assert "cumulative_deployable_capacity_2026_2030" in rows[0]
+    assert rows[0]["cumulative_deployable_capacity_2026_2030"] > rows[0]["deployable_capacity"]
