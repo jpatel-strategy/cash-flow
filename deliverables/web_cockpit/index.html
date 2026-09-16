@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Target Cash Flow &amp; Investment Capacity — Decision Cockpit</title>
+<meta name="description" content="An independent, public-data cash-flow and investment-capacity model for Target Corporation, built from SEC filings only.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%231F3864'/%3E%3Ctext x='50' y='66' font-size='46' font-family='Arial' font-weight='bold' fill='%23C9A227' text-anchor='middle'%3E%24%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">TGT</span>
+      <div>
+        <h1>Cash Flow &amp; Investment Capacity — Decision Cockpit</h1>
+        <p class="brand-sub">An independent, public-data model for Target Corporation (external case study)</p>
+      </div>
+    </div>
+    <div class="header-badges" id="header-badges" aria-live="polite">
+      <!-- populated by app.js: information cutoff + data-status badges -->
+    </div>
+  </div>
+  <nav class="site-nav" aria-label="Report sections">
+    <a href="#snapshot">Snapshot</a>
+    <a href="#historical">Historical</a>
+    <a href="#cash-distinctions">Cash Definitions</a>
+    <a href="#forecast">Forecast</a>
+    <a href="#bridge">Cash Bridge</a>
+    <a href="#waterfall">Capital Allocation</a>
+    <a href="#dcf">DCF Valuation</a>
+    <a href="#whatif">What-If Sandbox</a>
+    <a href="#evidence">Evidence &amp; Sources</a>
+    <a href="#about">About / Limitations</a>
+  </nav>
+</header>
+
+<main id="main">
+
+  <!-- ================= 1. EXECUTIVE SNAPSHOT ================= -->
+  <section id="snapshot" class="panel" aria-labelledby="snapshot-h">
+    <h2 id="snapshot-h">Executive Snapshot</h2>
+    <p class="panel-sub">Everything on this screen answers, in under 30 seconds: what happened, what's expected, how much cash was generated, how much can safely be deployed, and what changes it.</p>
+
+    <div class="scenario-selector" role="radiogroup" aria-label="Scenario selector">
+      <span class="scenario-label">Scenario:</span>
+      <button type="button" class="scenario-btn" data-scenario="base" role="radio" aria-checked="true">Base</button>
+      <button type="button" class="scenario-btn" data-scenario="upside" role="radio" aria-checked="false">Upside</button>
+      <button type="button" class="scenario-btn" data-scenario="downside" role="radio" aria-checked="false">Downside</button>
+    </div>
+
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>Revenue &amp; Free Cash Flow — Actual vs. Forecast</h3>
+        <div id="chart-revenue-fcf" class="chart-target" role="img" aria-label="Revenue and free cash flow chart"></div>
+        <p class="chart-note">Solid = actual (FY2021–FY2025, SEC-filed). Dashed = forecast (FY2026–FY2030, scenario-based).</p>
+      </div>
+      <div class="chart-card">
+        <h3>Deployable Capacity by Scenario, FY2030</h3>
+        <div id="chart-capacity-by-scenario" class="chart-target" role="img" aria-label="Deployable capacity by scenario bar chart"></div>
+        <p class="chart-note" id="capacity-note"></p>
+      </div>
+    </div>
+
+    <blockquote class="scenario-narrative" id="scenario-narrative-snapshot"></blockquote>
+  </section>
+
+  <!-- ================= 2. HISTORICAL FINANCIAL TRENDS ================= -->
+  <section id="historical" class="panel" aria-labelledby="historical-h">
+    <h2 id="historical-h">Historical Financial Trends (FY2021–FY2025, Actuals Only)</h2>
+    <p class="panel-sub">No forecast values appear on this section — every number is a filed, actual result.</p>
+    <div class="chart-card full">
+      <div id="chart-historical" class="chart-target" role="img" aria-label="Historical revenue, gross profit, operating income and net income chart"></div>
+    </div>
+    <div class="table-wrap">
+      <table id="table-historical" class="data-table">
+        <caption>Historical annual facts, latest-restated view, all values in $ millions unless noted</caption>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= 3. CASH-FLOW DEFINITIONS (anti-error panel) ================= -->
+  <section id="cash-distinctions" class="panel highlight" aria-labelledby="cash-distinctions-h">
+    <h2 id="cash-distinctions-h">Cash-Flow Definitions — FY2025 Reference Values</h2>
+    <p class="panel-sub">These four figures are frequently confused. Each is a distinct, independently sourced measure — never substituted for one another anywhere in this project.</p>
+    <div class="definition-grid" id="cash-definitions-grid"></div>
+  </section>
+
+  <!-- ================= 4. SCENARIO FORECAST EXPLORER ================= -->
+  <section id="forecast" class="panel" aria-labelledby="forecast-h">
+    <h2 id="forecast-h">Scenario Forecast Explorer (FY2026–FY2030)</h2>
+    <p class="panel-sub">Uses the scenario selected above. Forecast, not fact — built entirely from information available as of the FY2025 10-K.</p>
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>Revenue, Gross Profit, Operating Income, Net Income</h3>
+        <div id="chart-forecast-income" class="chart-target" role="img" aria-label="Forecast income statement chart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Diluted EPS &amp; Margins</h3>
+        <div id="chart-forecast-margins" class="chart-target" role="img" aria-label="Forecast EPS and margins chart"></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table-forecast" class="data-table">
+        <caption>Full scenario forecast, selected scenario</caption>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= 5. CASH-FLOW BRIDGE & INVESTMENT CAPACITY ================= -->
+  <section id="bridge" class="panel" aria-labelledby="bridge-h">
+    <h2 id="bridge-h">Cash-Flow Bridge &amp; Investment Capacity</h2>
+    <p class="panel-sub">CFO → CapEx → FCF → Dividends → Post-Dividend Capacity → Minimum-Cash Buffer → Debt Reserve → Deployable Capacity.</p>
+    <div class="chart-card full">
+      <div id="chart-bridge" class="chart-target" role="img" aria-label="Cash flow bridge waterfall chart"></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>Deployable Capacity &amp; Cumulative Deployable Capacity by Year</h3>
+        <div id="chart-capacity-series" class="chart-target" role="img" aria-label="Deployable capacity over time chart"></div>
+        <p class="chart-note">Cumulative capacity = terminal-year balance + amounts actually deployed along the way — never a naive year-by-year sum, which would double-count unused cash carried forward.</p>
+      </div>
+      <div class="chart-card">
+        <h3>Investment Capacity Detail</h3>
+        <div class="table-wrap"><table id="table-capacity" class="data-table"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 6. CAPITAL ALLOCATION WATERFALL ================= -->
+  <section id="waterfall" class="panel" aria-labelledby="waterfall-h">
+    <h2 id="waterfall-h">Capital Allocation Waterfall &amp; No-Double-Counting Proof</h2>
+    <p class="panel-sub">Where every dollar of generated cash actually went, for the selected scenario and fiscal year.</p>
+    <div class="year-selector" id="waterfall-year-selector" role="group" aria-label="Fiscal year selector for waterfall"></div>
+    <div class="chart-card full">
+      <div id="chart-waterfall" class="chart-target" role="img" aria-label="Capital allocation waterfall chart"></div>
+    </div>
+    <div class="proof-banner" id="no-double-count-banner"></div>
+  </section>
+
+  <!-- ================= 7. DCF VALUATION & SENSITIVITIES ================= -->
+  <section id="dcf" class="panel" aria-labelledby="dcf-h">
+    <h2 id="dcf-h">DCF Valuation &amp; Sensitivities</h2>
+    <p class="disclaimer">This DCF is a scenario-based illustration built entirely from public FY2025 10-K data and stated assumptions. It is <strong>not</strong> a price target, analyst estimate, or investment recommendation.</p>
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>WACC Build</h3>
+        <div class="table-wrap"><table id="table-wacc" class="data-table"></table></div>
+      </div>
+      <div class="chart-card">
+        <h3>Valuation Bridge</h3>
+        <div id="chart-valuation-bridge" class="chart-target" role="img" aria-label="Valuation bridge waterfall chart"></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>WACC × Terminal Growth Sensitivity (Implied Value/Share)</h3>
+        <div class="table-wrap"><table id="table-wacc-sensitivity" class="data-table heatmap"></table></div>
+      </div>
+      <div class="chart-card">
+        <h3>Gross Margin × Revenue Growth Sensitivity (Implied Value/Share)</h3>
+        <div class="table-wrap"><table id="table-margin-sensitivity" class="data-table heatmap"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 8. WHAT-IF ASSUMPTION SANDBOX ================= -->
+  <section id="whatif" class="panel highlight" aria-labelledby="whatif-h">
+    <h2 id="whatif-h">What-If Assumption Sandbox</h2>
+    <p class="panel-sub">Illustrative only — recomputes FY2030 headline figures in your browser using the exact same formulas as the published model, starting from the selected scenario's defaults. It does not change the charts above and nothing here is persisted.</p>
+    <form id="whatif-form" class="whatif-form">
+      <div class="whatif-controls" id="whatif-controls"></div>
+      <div class="whatif-actions">
+        <button type="button" id="whatif-reset">Reset to scenario defaults</button>
+      </div>
+    </form>
+    <div class="kpi-grid" id="whatif-results"></div>
+  </section>
+
+  <!-- ================= 9. EVIDENCE & SOURCES ================= -->
+  <section id="evidence" class="panel" aria-labelledby="evidence-h">
+    <h2 id="evidence-h">Evidence &amp; Sources</h2>
+    <h3>Source Filings</h3>
+    <div class="table-wrap"><table id="table-sources" class="data-table"></table></div>
+    <h3>Filing-Vintage Comparison (As-Filed vs. Restated)</h3>
+    <div class="table-wrap"><table id="table-vintage" class="data-table"></table></div>
+    <h3>Quarterly Cash Proof (Independent of the Forecast Model)</h3>
+    <div class="chart-card full">
+      <div id="chart-quarterly-cash" class="chart-target" role="img" aria-label="Quarterly cash balance chart"></div>
+    </div>
+  </section>
+
+  <!-- ================= 10. ABOUT / LIMITATIONS ================= -->
+  <section id="about" class="panel" aria-labelledby="about-h">
+    <h2 id="about-h">About This Project &amp; Limitations</h2>
+    <div class="about-grid">
+      <div>
+        <h3>What this demonstrates</h3>
+        <p>An end-to-end FP&amp;A / strategic-finance workflow built entirely from public SEC filings: extracting and validating historical financial facts (including catching a real, undisclosed-in-summary segment-expense reclassification), building a scenario-based operating forecast with an explicit information cutoff, deriving an investment-capacity and capital-allocation framework with proven no-double-counting checks, running a restrained DCF valuation, and presenting all of it through an auditable, reproducible pipeline — a database, an Excel model, a Power BI handoff package, and this web cockpit.</p>
+        <h3>What this is not</h3>
+        <p>Not investment advice, not a price target, not a claim of insider or non-public information, and not a prediction — every figure past FY2025 is a labeled scenario assumption, and every one of them is documented and reproducible from the source filings in <code>docs/sources.csv</code>.</p>
+      </div>
+      <div>
+        <h3>Known limitations</h3>
+        <ul id="limitations-list"></ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Built from 8 registered SEC filings (10-K/10-Q), information cutoff <span id="footer-cutoff"></span>. Not investment advice. See <code>docs/</code> for full methodology, validation, and lineage.</p>
+</footer>
+
+<script src="js/formulas.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

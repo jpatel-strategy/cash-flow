@@ -2864,3 +2864,85 @@ Power BI Desktop, so a residual risk of a real-product-specific issue
 (a DAX syntax edge case, a Power Query import quirk) that this
 CSV/DAX-text-level verification would not surface remains, and is
 recorded here rather than glossed over.
+
+## 2026-09-16 — Milestone 7: web decision cockpit built, verified, previewed
+
+Built `deliverables/web_cockpit/` — a static, dependency-free web app
+(`index.html` + `css/style.css` + `js/{formulas,charts,app}.js`) that
+reads a single JSON data file (`data/model_data.json`) produced by
+`scripts/build_web_cockpit_data.py`. That script computes every number
+once, live, from `data/curated/target_cash.db` and a fresh run of
+`target_cash.forecast`/`target_cash.valuation` — the web app itself
+never recomputes ground-truth figures; it only renders what Python
+already validated.
+
+**10 interface areas**: Executive Snapshot (the required "answer within
+30 seconds" screen), Historical Financial Trends, Cash-Flow Definitions
+(the explicit CFO/CapEx/CFI/FCF distinction), Scenario Forecast
+Explorer, Cash-Flow Bridge & Investment Capacity, Capital Allocation
+Waterfall (with a live no-double-counting proof banner), DCF Valuation &
+Sensitivities (with a not-investment-advice disclaimer), a What-If
+Assumption Sandbox, Evidence & Sources, and About/Limitations.
+
+**FY2025 reference values, exactly as specified, render distinctly and
+correctly**: CFO $6,562M, CapEx $3,727M, CFI $(3,649)M, FCF $2,835M — a
+dedicated "Cash-Flow Definitions" section exists specifically so CapEx
+is never rendered as, or confused with, total investing cash flow (the
+error this project was explicitly warned not to repeat).
+
+**No charting library, no CDN dependency**: `js/charts.js` is a small
+set of hand-rolled SVG chart functions (line, bar, waterfall) — the page
+works fully offline and has zero third-party runtime dependencies,
+which also keeps "no fake real-time data" trivially true (there is
+nothing that could silently phone out for live data).
+
+**What-If Assumption Sandbox**: `js/formulas.js` is a line-for-line port
+of `target_cash.forecast._run_from_metrics()` (the model's core FY2026-
+FY2030 formula chain), used only for this illustrative sandbox. Six
+sliders (revenue growth, gross margin, CapEx %, buyback payout %,
+dividend growth, minimum-cash-buffer %) apply a delta on top of the
+selected scenario's real per-year assumption schedule — at delta = 0 the
+sandbox reproduces the Python model's FY2030 figures exactly (verified:
+$110,125M revenue, $6,315M deployable capacity, $9,682M ending cash, all
+matching to the dollar), and "Reset to scenario defaults" restores that
+exact state. The sandbox is explicitly labeled as illustrative and kept
+in sync with `forecast.py` as a documented manual step, not an
+auto-generated one.
+
+**Verification** (`scripts/verify_web_cockpit.py`, using Playwright
+against the pre-installed Chromium — `executable_path=
+"/opt/pw-browsers/chromium"`, since the pip-installed Playwright's
+default expected browser revision was not the one pre-installed in this
+environment): 20 checks — zero console/page errors; Snapshot KPIs match
+Python exactly for Base/Upside/Downside; the FY2025 CFO/CapEx/CFI/FCF
+values render and are numerically distinct; the What-If sandbox matches
+Python at zero delta, changes when a slider moves, and Reset restores
+the exact original output; the no-double-counting proof reads "OK"; a
+skip-to-content link and all 10 nav links are present; and there is no
+horizontal overflow at a 390px mobile viewport.
+
+**One real bug found and fixed**: the first verification run failed the
+mobile-overflow check (`body.scrollWidth` = 593 at a 390px viewport).
+Root cause: `.chart-card` is a CSS Grid item inside `.chart-row`, and
+grid items default to `min-width: auto`, which sizes them to their
+content's minimum intrinsic width (here, a chart legend's longest
+label) rather than shrinking to the grid track — the classic CSS
+grid/flexbox "min-size auto" overflow trap. Fixed by adding
+`min-width: 0` (and `overflow-wrap: break-word`) to `.chart-card`.
+Re-verified: 20/20 checks pass, `body.scrollWidth` = 390.
+
+**Local preview**: verified via `python3 -m http.server` +
+Playwright/Chromium screenshots (desktop 1400px and mobile 390px),
+saved under `deliverables/web_cockpit/screenshots/`. Not deployed
+publicly — per the project's governing rules, this requires the
+project owner's explicit authorization, which has not been sought or
+given.
+
+`playwright>=1.40` added to `pyproject.toml`'s `dev` extra. Full pytest
+suite unaffected: 401 passed.
+
+**Known limitation**: `js/formulas.js` is a hand-maintained port of the
+Python formula chain and could drift from `forecast.py` if the latter
+changes without a corresponding update here — the "ground truth"
+figures shown everywhere else on the page are unaffected by this risk
+since they come directly from the JSON export, never from the JS port.

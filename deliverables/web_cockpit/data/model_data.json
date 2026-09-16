@@ -1,0 +1,3544 @@
+{
+  "information_cutoff": "2026-03-11",
+  "generated_from": "data/curated/target_cash.db + target_cash.forecast/valuation (live computation)",
+  "historical_years": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "forecast_years": [
+    2026,
+    2027,
+    2028,
+    2029,
+    2030
+  ],
+  "historical": {
+    "2021": {
+      "revenue": 106005.0,
+      "cost_of_sales": 74963.0,
+      "gross_profit": 31042.0,
+      "gross_margin": 29.28,
+      "operating_expenses": 19752.0,
+      "operating_income": 8946.0,
+      "operating_margin": 8.44,
+      "net_income": 6946.0,
+      "net_margin": 6.55,
+      "diluted_eps": 14.1,
+      "diluted_shares": 492.7,
+      "operating_cash_flow": 8625.0,
+      "capital_expenditure": 3544.0,
+      "investing_cash_flow": -3154.0,
+      "free_cash_flow": 5081.0,
+      "fcf_margin": 4.79,
+      "dividends_paid": 1548.0,
+      "share_repurchases": 7188.0,
+      "debt_proceeds": 1972.0,
+      "debt_repayments": 1147.0,
+      "total_debt_gaap": 11645.0,
+      "cash_and_equivalents_balance_sheet": 5911.0,
+      "financing_cash_flow": -8071.0,
+      "net_change_in_cash": -2600.0,
+      "inventory": 13902.0,
+      "accounts_payable": 15478.0
+    },
+    "2022": {
+      "revenue": 109120.0,
+      "cost_of_sales": 82306.0,
+      "gross_profit": 26814.0,
+      "gross_margin": 24.57,
+      "operating_expenses": 20581.0,
+      "operating_income": 3848.0,
+      "operating_margin": 3.53,
+      "net_income": 2780.0,
+      "net_margin": 2.55,
+      "diluted_eps": 5.98,
+      "diluted_shares": 464.7,
+      "operating_cash_flow": 4018.0,
+      "capital_expenditure": 5528.0,
+      "investing_cash_flow": -5504.0,
+      "free_cash_flow": -1510.0,
+      "fcf_margin": -1.38,
+      "dividends_paid": 1836.0,
+      "share_repurchases": 2646.0,
+      "debt_proceeds": 2625.0,
+      "debt_repayments": 163.0,
+      "total_debt_gaap": 14067.0,
+      "cash_and_equivalents_balance_sheet": 2229.0,
+      "financing_cash_flow": -2196.0,
+      "net_change_in_cash": -3682.0,
+      "inventory": 13499.0,
+      "accounts_payable": 13487.0
+    },
+    "2023": {
+      "revenue": 107412.0,
+      "cost_of_sales": 77828.0,
+      "gross_profit": 29584.0,
+      "gross_margin": 27.54,
+      "operating_expenses": 21462.0,
+      "operating_income": 5707.0,
+      "operating_margin": 5.31,
+      "net_income": 4138.0,
+      "net_margin": 3.85,
+      "diluted_eps": 8.94,
+      "diluted_shares": 462.8,
+      "operating_cash_flow": 8621.0,
+      "capital_expenditure": 4806.0,
+      "investing_cash_flow": -4760.0,
+      "free_cash_flow": 3815.0,
+      "fcf_margin": 3.55,
+      "dividends_paid": 2011.0,
+      "share_repurchases": 0.0,
+      "debt_proceeds": 0.0,
+      "debt_repayments": 147.0,
+      "total_debt_gaap": 14025.0,
+      "cash_and_equivalents_balance_sheet": 3805.0,
+      "financing_cash_flow": -2285.0,
+      "net_change_in_cash": 1576.0,
+      "inventory": 11886.0,
+      "accounts_payable": 12098.0
+    },
+    "2024": {
+      "revenue": 106566.0,
+      "cost_of_sales": 76502.0,
+      "gross_profit": 30064.0,
+      "gross_margin": 28.21,
+      "operating_expenses": 21969.0,
+      "operating_income": 5566.0,
+      "operating_margin": 5.22,
+      "net_income": 4091.0,
+      "net_margin": 3.84,
+      "diluted_eps": 8.86,
+      "diluted_shares": 461.8,
+      "operating_cash_flow": 7367.0,
+      "capital_expenditure": 2891.0,
+      "investing_cash_flow": -2860.0,
+      "free_cash_flow": 4476.0,
+      "fcf_margin": 4.2,
+      "dividends_paid": 2046.0,
+      "share_repurchases": 1007.0,
+      "debt_proceeds": 741.0,
+      "debt_repayments": 1139.0,
+      "total_debt_gaap": 13779.0,
+      "cash_and_equivalents_balance_sheet": 4762.0,
+      "financing_cash_flow": -3550.0,
+      "net_change_in_cash": 957.0,
+      "inventory": 12740.0,
+      "accounts_payable": 13053.0
+    },
+    "2025": {
+      "revenue": 104780.0,
+      "cost_of_sales": 75511.0,
+      "gross_profit": 29269.0,
+      "gross_margin": 27.93,
+      "operating_expenses": 21535.0,
+      "operating_income": 5117.0,
+      "operating_margin": 4.88,
+      "net_income": 3705.0,
+      "net_margin": 3.54,
+      "diluted_eps": 8.13,
+      "diluted_shares": 455.6,
+      "operating_cash_flow": 6562.0,
+      "capital_expenditure": 3727.0,
+      "investing_cash_flow": -3649.0,
+      "free_cash_flow": 2835.0,
+      "fcf_margin": 2.71,
+      "dividends_paid": 2053.0,
+      "share_repurchases": 408.0,
+      "debt_proceeds": 1984.0,
+      "debt_repayments": 1643.0,
+      "total_debt_gaap": 14343.0,
+      "cash_and_equivalents_balance_sheet": 5488.0,
+      "financing_cash_flow": -2187.0,
+      "net_change_in_cash": 726.0,
+      "inventory": 12304.0,
+      "accounts_payable": 12622.0
+    }
+  },
+  "quarterly_cash": [
+    {
+      "as_of_date": "2025-02-01",
+      "value": 4762.0,
+      "accession_number": "0000027419-25-000018"
+    },
+    {
+      "as_of_date": "2025-05-03",
+      "value": 2887.0,
+      "accession_number": "0000027419-25-000101"
+    },
+    {
+      "as_of_date": "2025-08-02",
+      "value": 4341.0,
+      "accession_number": "0000027419-25-000118"
+    },
+    {
+      "as_of_date": "2025-11-01",
+      "value": 3822.0,
+      "accession_number": "0000027419-25-000126"
+    },
+    {
+      "as_of_date": "2026-01-31",
+      "value": 5488.0,
+      "accession_number": "0000027419-26-000016"
+    }
+  ],
+  "filing_vintage": [
+    {
+      "metric": "revenue",
+      "fiscal_year": 2021,
+      "as_originally_filed": 106005.0,
+      "latest_restated": 106005.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "revenue",
+      "fiscal_year": 2022,
+      "as_originally_filed": 109120.0,
+      "latest_restated": 109120.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "revenue",
+      "fiscal_year": 2023,
+      "as_originally_filed": 107412.0,
+      "latest_restated": 107412.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "revenue",
+      "fiscal_year": 2024,
+      "as_originally_filed": 106566.0,
+      "latest_restated": 106566.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "revenue",
+      "fiscal_year": 2025,
+      "as_originally_filed": 104780.0,
+      "latest_restated": 104780.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "cost_of_sales",
+      "fiscal_year": 2021,
+      "as_originally_filed": 74963.0,
+      "latest_restated": 74963.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "cost_of_sales",
+      "fiscal_year": 2022,
+      "as_originally_filed": 82229.0,
+      "latest_restated": 82306.0,
+      "difference": 77.0,
+      "reclassified": true
+    },
+    {
+      "metric": "cost_of_sales",
+      "fiscal_year": 2023,
+      "as_originally_filed": 77736.0,
+      "latest_restated": 77828.0,
+      "difference": 92.0,
+      "reclassified": true
+    },
+    {
+      "metric": "cost_of_sales",
+      "fiscal_year": 2024,
+      "as_originally_filed": 76502.0,
+      "latest_restated": 76502.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "cost_of_sales",
+      "fiscal_year": 2025,
+      "as_originally_filed": 75511.0,
+      "latest_restated": 75511.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "gross_profit",
+      "fiscal_year": 2021,
+      "as_originally_filed": 31042.0,
+      "latest_restated": 31042.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "gross_profit",
+      "fiscal_year": 2022,
+      "as_originally_filed": 26891.0,
+      "latest_restated": 26814.0,
+      "difference": -77.0,
+      "reclassified": true
+    },
+    {
+      "metric": "gross_profit",
+      "fiscal_year": 2023,
+      "as_originally_filed": 29676.0,
+      "latest_restated": 29584.0,
+      "difference": -92.0,
+      "reclassified": true
+    },
+    {
+      "metric": "gross_profit",
+      "fiscal_year": 2024,
+      "as_originally_filed": 30064.0,
+      "latest_restated": 30064.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "gross_profit",
+      "fiscal_year": 2025,
+      "as_originally_filed": 29269.0,
+      "latest_restated": 29269.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "operating_expenses",
+      "fiscal_year": 2021,
+      "as_originally_filed": 19752.0,
+      "latest_restated": 19752.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "operating_expenses",
+      "fiscal_year": 2022,
+      "as_originally_filed": 20658.0,
+      "latest_restated": 20581.0,
+      "difference": -77.0,
+      "reclassified": true
+    },
+    {
+      "metric": "operating_expenses",
+      "fiscal_year": 2023,
+      "as_originally_filed": 21554.0,
+      "latest_restated": 21462.0,
+      "difference": -92.0,
+      "reclassified": true
+    },
+    {
+      "metric": "operating_expenses",
+      "fiscal_year": 2024,
+      "as_originally_filed": 21969.0,
+      "latest_restated": 21969.0,
+      "difference": 0.0,
+      "reclassified": false
+    },
+    {
+      "metric": "operating_expenses",
+      "fiscal_year": 2025,
+      "as_originally_filed": 21535.0,
+      "latest_restated": 21535.0,
+      "difference": 0.0,
+      "reclassified": false
+    }
+  ],
+  "sources": [
+    {
+      "accession_number": "0000027419-22-000007",
+      "form_type": "10-K",
+      "filed_at": "2022-03-09",
+      "period_of_report": "2022-01-29",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741922000007/tgt-20220129.htm"
+    },
+    {
+      "accession_number": "0000027419-23-000015",
+      "form_type": "10-K",
+      "filed_at": "2023-03-08",
+      "period_of_report": "2023-01-28",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/tgt-20230128.htm"
+    },
+    {
+      "accession_number": "0000027419-24-000032",
+      "form_type": "10-K",
+      "filed_at": "2024-03-13",
+      "period_of_report": "2024-02-03",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/tgt-20240203.htm"
+    },
+    {
+      "accession_number": "0000027419-25-000018",
+      "form_type": "10-K",
+      "filed_at": "2025-03-12",
+      "period_of_report": "2025-02-01",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/tgt-20250201.htm"
+    },
+    {
+      "accession_number": "0000027419-25-000101",
+      "form_type": "10-Q",
+      "filed_at": "2025-05-30",
+      "period_of_report": "2025-05-03",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000101/tgt-20250503.htm"
+    },
+    {
+      "accession_number": "0000027419-25-000118",
+      "form_type": "10-Q",
+      "filed_at": "2025-08-29",
+      "period_of_report": "2025-08-02",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000118/tgt-20250802.htm"
+    },
+    {
+      "accession_number": "0000027419-25-000126",
+      "form_type": "10-Q",
+      "filed_at": "2025-11-26",
+      "period_of_report": "2025-11-01",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000126/tgt-20251101.htm"
+    },
+    {
+      "accession_number": "0000027419-26-000016",
+      "form_type": "10-K",
+      "filed_at": "2026-03-11",
+      "period_of_report": "2026-01-31",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/tgt-20260131.htm"
+    }
+  ],
+  "scenarios": {
+    "base": {
+      "name": "Base",
+      "narrative": "BASE is a continuation-of-current-trajectory story, not a blend of the other two. Target has stabilized after the FY2022 margin shock and the FY2023 53-week-distorted year: traffic and comparable sales are flattish-to-slightly-positive, promotional intensity and mix pressure have stopped worsening but have not meaningfully reversed, and cost discipline is holding SG&A leverage flat rather than improving it. Consistent with that single story: revenue growth is modest (+1.0%/yr, matching the cleanest recent 52-week-normalized read); gross margin holds near its FY2023-FY2025 average (27.93% drifting only to 28.00% by FY2030) rather than reverting to FY2021's pandemic-inflated peak; SG&A stays flat at the FY2025 ratio because there is no assumed acceleration in either sales leverage or cost cutting; CapEx continues at the recent maintenance-plus-modest-growth level (3.6% of revenue, in line with the FY2025 actual and 5-year median); and capital return continues at a moderate, sustainable pace (40% of post-dividend FCF to buybacks, dividend growth decelerating to +2.0%/yr matching the recent FY2024-FY2025 pace) because neither an acceleration nor a retrenchment in the business justifies a change in payout policy. Debt is rolled at a flat, refinancing-style schedule ($700M proceeds against $700M repayments every year) because nothing in this story implies either deleveraging urgency or a new borrowing need.",
+      "assumptions": {
+        "revenue_growth_pct": {
+          "2026": 1.0,
+          "2027": 1.0,
+          "2028": 1.0,
+          "2029": 1.0,
+          "2030": 1.0
+        },
+        "gross_margin_pct": {
+          "2026": 27.93,
+          "2027": 27.947,
+          "2028": 27.965,
+          "2029": 27.983,
+          "2030": 28.0
+        },
+        "sga_pct_of_revenue": {
+          "2026": 20.55,
+          "2027": 20.55,
+          "2028": 20.55,
+          "2029": 20.55,
+          "2030": 20.55
+        },
+        "da_pct_of_revenue": {
+          "2026": 2.578,
+          "2027": 2.655,
+          "2028": 2.732,
+          "2029": 2.81,
+          "2030": 2.888
+        },
+        "effective_tax_rate_pct": {
+          "2026": 22.2,
+          "2027": 22.2,
+          "2028": 22.2,
+          "2029": 22.2,
+          "2030": 22.2
+        },
+        "net_other_income_musd": {
+          "2026": 95.0,
+          "2027": 95.0,
+          "2028": 95.0,
+          "2029": 95.0,
+          "2030": 95.0
+        },
+        "diluted_share_change_pct": {
+          "2026": -0.5,
+          "2027": -0.5,
+          "2028": -0.5,
+          "2029": -0.5,
+          "2030": -0.5
+        },
+        "interest_rate_pct": {
+          "2026": 3.1,
+          "2027": 3.1,
+          "2028": 3.1,
+          "2029": 3.1,
+          "2030": 3.1
+        },
+        "capex_pct_of_revenue": {
+          "2026": 3.6,
+          "2027": 3.6,
+          "2028": 3.6,
+          "2029": 3.6,
+          "2030": 3.6
+        },
+        "da_cfo_addback_pct_of_revenue": {
+          "2026": 3.116,
+          "2027": 3.24,
+          "2028": 3.365,
+          "2029": 3.49,
+          "2030": 3.614
+        },
+        "inventory_pct_of_revenue": {
+          "2026": 11.8,
+          "2027": 11.8,
+          "2028": 11.8,
+          "2029": 11.8,
+          "2030": 11.8
+        },
+        "ap_pct_of_cogs": {
+          "2026": 16.7,
+          "2027": 16.7,
+          "2028": 16.7,
+          "2029": 16.7,
+          "2030": 16.7
+        },
+        "other_operating_cf_musd": {
+          "2026": 150.0,
+          "2027": 150.0,
+          "2028": 150.0,
+          "2029": 150.0,
+          "2030": 150.0
+        },
+        "dividend_per_share_growth_pct": {
+          "2026": 2.0,
+          "2027": 2.0,
+          "2028": 2.0,
+          "2029": 2.0,
+          "2030": 2.0
+        },
+        "buyback_payout_pct_of_post_dividend_fcf": {
+          "2026": 40.0,
+          "2027": 40.0,
+          "2028": 40.0,
+          "2029": 40.0,
+          "2030": 40.0
+        },
+        "debt_proceeds_musd": {
+          "2026": 700.0,
+          "2027": 700.0,
+          "2028": 700.0,
+          "2029": 700.0,
+          "2030": 700.0
+        },
+        "debt_repayments_musd": {
+          "2026": 700.0,
+          "2027": 700.0,
+          "2028": 700.0,
+          "2029": 700.0,
+          "2030": 700.0
+        },
+        "finance_lease_liabilities_musd": {
+          "2026": 2113.0,
+          "2027": 2113.0,
+          "2028": 2113.0,
+          "2029": 2113.0,
+          "2030": 2113.0
+        },
+        "min_cash_buffer_pct_of_revenue": {
+          "2026": 3.0,
+          "2027": 3.0,
+          "2028": 3.0,
+          "2029": 3.0,
+          "2030": 3.0
+        }
+      },
+      "years": [
+        {
+          "scenario": "base",
+          "fiscal_year": 2026,
+          "revenue": 105827.8,
+          "revenue_growth_pct": 1.0,
+          "cost_of_sales": 76270.09546000001,
+          "gross_profit": 29557.70454,
+          "gross_margin_pct": 27.93,
+          "sga_expense": 21747.6129,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 2728.240684,
+          "da_pct_of_revenue": 2.578,
+          "operating_income": 5081.850955999998,
+          "operating_margin_pct": 4.801999999999999,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 14343.0,
+          "debt_proceeds": 700.0,
+          "debt_repayments": 700.0,
+          "interest_rate_pct": 3.1,
+          "interest_expense": 444.633,
+          "net_other_income": 95.0,
+          "pretax_income": 4732.217955999999,
+          "effective_tax_rate_pct": 22.2,
+          "income_tax_expense": 1050.5523862319997,
+          "net_income": 3681.665569767999,
+          "diluted_shares": 453.322,
+          "diluted_eps": 8.121524147886047,
+          "da_cfo_addback": 3297.5942480000003,
+          "inventory_balance": 12487.680400000001,
+          "inventory_cash_impact": -183.6804000000011,
+          "accounts_payable_balance": 12737.10594182,
+          "ap_cash_impact": 115.10594182000023,
+          "other_operating_cf": 150.0,
+          "operating_cash_flow": 7060.685359587998,
+          "capital_expenditure": 3809.8008,
+          "free_cash_flow": 3250.8845595879984,
+          "investing_cash_flow": -3809.8008,
+          "dividend_per_share": 4.596268656716418,
+          "dividends_paid": 2083.5897000000004,
+          "share_repurchases": 466.9179438351992,
+          "financing_cash_flow": -2550.5076438352,
+          "net_change_in_cash": 700.3769157527986,
+          "beginning_cash": 5488.0,
+          "ending_cash": 6188.376915752799,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3250.8845595879984,
+          "post_dividend_capacity": 1167.294859587998,
+          "mandatory_financing_flows": -2083.5897000000004,
+          "pre_discretionary_ending_cash": 6655.294859587997,
+          "min_cash_buffer": 3174.8340000000003,
+          "near_term_debt_repayment_reserve": 700.0,
+          "deployable_capacity": 2780.4608595879968,
+          "funding_warning": false,
+          "valuation_net_debt": 8154.623084247201,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "base",
+          "fiscal_year": 2027,
+          "revenue": 106886.07800000001,
+          "revenue_growth_pct": 1.0,
+          "cost_of_sales": 77014.62578134,
+          "gross_profit": 29871.45221866,
+          "gross_margin_pct": 27.947,
+          "sga_expense": 21965.089029000002,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 2837.8253709,
+          "da_pct_of_revenue": 2.655,
+          "operating_income": 5068.537818759998,
+          "operating_margin_pct": 4.741999999999997,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 14343.0,
+          "debt_proceeds": 700.0,
+          "debt_repayments": 700.0,
+          "interest_rate_pct": 3.1,
+          "interest_expense": 444.633,
+          "net_other_income": 95.0,
+          "pretax_income": 4718.904818759998,
+          "effective_tax_rate_pct": 22.2,
+          "income_tax_expense": 1047.5968697647195,
+          "net_income": 3671.307948995279,
+          "diluted_shares": 451.05539,
+          "diluted_eps": 8.139372747536125,
+          "da_cfo_addback": 3463.108927200001,
+          "inventory_balance": 12612.557204000002,
+          "inventory_cash_impact": -124.87680400000136,
+          "accounts_payable_balance": 12861.44250548378,
+          "ap_cash_impact": 124.33656366377909,
+          "other_operating_cf": 150.0,
+          "operating_cash_flow": 7283.876635859057,
+          "capital_expenditure": 3847.8988080000004,
+          "free_cash_flow": 3435.977827859057,
+          "investing_cash_flow": -3847.8988080000004,
+          "dividend_per_share": 4.688194029850747,
+          "dividends_paid": 2114.6351865300003,
+          "share_repurchases": 528.5370565316226,
+          "financing_cash_flow": -2643.172243061623,
+          "net_change_in_cash": 792.8055847974342,
+          "beginning_cash": 6188.376915752799,
+          "ending_cash": 6981.182500550232,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3435.977827859057,
+          "post_dividend_capacity": 1321.3426413290567,
+          "mandatory_financing_flows": -2114.6351865300003,
+          "pre_discretionary_ending_cash": 7509.719557081855,
+          "min_cash_buffer": 3206.5823400000004,
+          "near_term_debt_repayment_reserve": 700.0,
+          "deployable_capacity": 3603.137217081854,
+          "funding_warning": false,
+          "valuation_net_debt": 7361.817499449768,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "base",
+          "fiscal_year": 2028,
+          "revenue": 107954.93878000001,
+          "revenue_growth_pct": 1.0,
+          "cost_of_sales": 77765.34015017301,
+          "gross_profit": 30189.598629827,
+          "gross_margin_pct": 27.965,
+          "sga_expense": 22184.73991929,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 2949.3289274696003,
+          "da_pct_of_revenue": 2.732,
+          "operating_income": 5055.529783067399,
+          "operating_margin_pct": 4.682999999999998,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 14343.0,
+          "debt_proceeds": 700.0,
+          "debt_repayments": 700.0,
+          "interest_rate_pct": 3.1,
+          "interest_expense": 444.633,
+          "net_other_income": 95.0,
+          "pretax_income": 4705.896783067399,
+          "effective_tax_rate_pct": 22.2,
+          "income_tax_expense": 1044.7090858409624,
+          "net_income": 3661.1876972264367,
+          "diluted_shares": 448.80011305,
+          "diluted_eps": 8.15772454321675,
+          "da_cfo_addback": 3632.683689947001,
+          "inventory_balance": 12738.682776040001,
+          "inventory_cash_impact": -126.12557203999859,
+          "accounts_payable_balance": 12986.811805078893,
+          "ap_cash_impact": 125.36929959511326,
+          "other_operating_cf": 150.0,
+          "operating_cash_flow": 7443.115114728553,
+          "capital_expenditure": 3886.3777960800007,
+          "free_cash_flow": 3556.737318648552,
+          "investing_cash_flow": -3886.3777960800007,
+          "dividend_per_share": 4.781957910447762,
+          "dividends_paid": 2146.143250809297,
+          "share_repurchases": 564.2376271357019,
+          "financing_cash_flow": -2710.380877944999,
+          "net_change_in_cash": 846.3564407035528,
+          "beginning_cash": 6981.182500550232,
+          "ending_cash": 7827.538941253785,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3556.737318648552,
+          "post_dividend_capacity": 1410.5940678392549,
+          "mandatory_financing_flows": -2146.143250809297,
+          "pre_discretionary_ending_cash": 8391.776568389489,
+          "min_cash_buffer": 3238.6481634,
+          "near_term_debt_repayment_reserve": 700.0,
+          "deployable_capacity": 4453.128404989488,
+          "funding_warning": false,
+          "valuation_net_debt": 6515.461058746215,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "base",
+          "fiscal_year": 2029,
+          "revenue": 109034.48816780001,
+          "revenue_growth_pct": 1.0,
+          "cost_of_sales": 78523.36734380454,
+          "gross_profit": 30511.120823995476,
+          "gross_margin_pct": 27.983,
+          "sga_expense": 22406.587318482903,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 3063.8691175151803,
+          "da_pct_of_revenue": 2.81,
+          "operating_income": 5040.664387997393,
+          "operating_margin_pct": 4.622999999999998,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 14343.0,
+          "debt_proceeds": 700.0,
+          "debt_repayments": 700.0,
+          "interest_rate_pct": 3.1,
+          "interest_expense": 444.633,
+          "net_other_income": 95.0,
+          "pretax_income": 4691.031387997393,
+          "effective_tax_rate_pct": 22.2,
+          "income_tax_expense": 1041.4089681354212,
+          "net_income": 3649.6224198619716,
+          "diluted_shares": 446.55611248475,
+          "diluted_eps": 8.172819311675209,
+          "da_cfo_addback": 3805.3036370562204,
+          "inventory_balance": 12866.0696038004,
+          "inventory_cash_impact": -127.38682776039968,
+          "accounts_payable_balance": 13113.402346415356,
+          "ap_cash_impact": 126.5905413364635,
+          "other_operating_cf": 150.0,
+          "operating_cash_flow": 7604.129770494255,
+          "capital_expenditure": 3925.2415740408005,
+          "free_cash_flow": 3678.888196453455,
+          "investing_cash_flow": -3925.2415740408005,
+          "dividend_per_share": 4.877597068656717,
+          "dividends_paid": 2178.120785246356,
+          "share_repurchases": 600.3069644828396,
+          "financing_cash_flow": -2778.4277497291955,
+          "net_change_in_cash": 900.4604467242593,
+          "beginning_cash": 7827.538941253785,
+          "ending_cash": 8727.999387978045,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3678.888196453455,
+          "post_dividend_capacity": 1500.767411207099,
+          "mandatory_financing_flows": -2178.120785246356,
+          "pre_discretionary_ending_cash": 9328.306352460884,
+          "min_cash_buffer": 3271.0346450340003,
+          "near_term_debt_repayment_reserve": 700.0,
+          "deployable_capacity": 5357.271707426884,
+          "funding_warning": false,
+          "valuation_net_debt": 5615.000612021955,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "base",
+          "fiscal_year": 2030,
+          "revenue": 110124.83304947801,
+          "revenue_growth_pct": 1.0,
+          "cost_of_sales": 79289.87979562416,
+          "gross_profit": 30834.953253853844,
+          "gross_margin_pct": 28.0,
+          "sga_expense": 22630.65319166773,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 3180.4051784689245,
+          "da_pct_of_revenue": 2.888,
+          "operating_income": 5023.894883717189,
+          "operating_margin_pct": 4.562000000000002,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 14343.0,
+          "debt_proceeds": 700.0,
+          "debt_repayments": 700.0,
+          "interest_rate_pct": 3.1,
+          "interest_expense": 444.633,
+          "net_other_income": 95.0,
+          "pretax_income": 4674.261883717189,
+          "effective_tax_rate_pct": 22.2,
+          "income_tax_expense": 1037.686138185216,
+          "net_income": 3636.5757455319736,
+          "diluted_shares": 444.32333192232625,
+          "diluted_eps": 8.184525736694143,
+          "da_cfo_addback": 3979.911466408135,
+          "inventory_balance": 12994.730299838406,
+          "inventory_cash_impact": -128.66069603800497,
+          "accounts_payable_balance": 13241.409925869235,
+          "ap_cash_impact": 128.00757945387886,
+          "other_operating_cf": 150.0,
+          "operating_cash_flow": 7765.834095355982,
+          "capital_expenditure": 3964.4939897812083,
+          "free_cash_flow": 3801.3401055747736,
+          "investing_cash_flow": -3964.4939897812083,
+          "dividend_per_share": 4.975149010029852,
+          "dividends_paid": 2210.5747849465265,
+          "share_repurchases": 636.3061282512988,
+          "financing_cash_flow": -2846.880913197825,
+          "net_change_in_cash": 954.4591923769485,
+          "beginning_cash": 8727.999387978045,
+          "ending_cash": 9682.458580354993,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3801.3401055747736,
+          "post_dividend_capacity": 1590.765320628247,
+          "mandatory_financing_flows": -2210.5747849465265,
+          "pre_discretionary_ending_cash": 10318.764708606293,
+          "min_cash_buffer": 3303.74499148434,
+          "near_term_debt_repayment_reserve": 700.0,
+          "deployable_capacity": 6315.019717121953,
+          "funding_warning": false,
+          "valuation_net_debt": 4660.541419645007,
+          "management_selected_deployment": null
+        }
+      ],
+      "cumulative_deployable_capacity_terminal": 6315.019717121953,
+      "cumulative_deployable_capacity_series": [
+        2780.4608595879968,
+        3603.137217081854,
+        4453.128404989488,
+        5357.271707426884,
+        6315.019717121953
+      ],
+      "waterfall_by_year": {
+        "2026": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 7060.685359587998,
+            "balance_after": 12548.685359587998
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -3809.8008,
+            "balance_after": 8738.884559587998
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2083.5897000000004,
+            "balance_after": 6655.294859587997
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 6655.294859587997,
+            "note": "cash above minimum buffer at this checkpoint: 3,480.5"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 0.0,
+            "balance_after": 6655.294859587997
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 6655.294859587997,
+            "note": "deployable_capacity = 2,780.5"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 6655.294859587997
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -466.9179438351992,
+            "balance_after": 6188.376915752798
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 6188.376915752798
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 6188.376915752798
+          }
+        ],
+        "2027": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 7283.876635859057,
+            "balance_after": 13472.253551611855
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -3847.8988080000004,
+            "balance_after": 9624.354743611855
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2114.6351865300003,
+            "balance_after": 7509.719557081855
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 7509.719557081855,
+            "note": "cash above minimum buffer at this checkpoint: 4,303.1"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 0.0,
+            "balance_after": 7509.719557081855
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 7509.719557081855,
+            "note": "deployable_capacity = 3,603.1"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 7509.719557081855
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -528.5370565316226,
+            "balance_after": 6981.182500550232
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 6981.182500550232
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 6981.182500550232
+          }
+        ],
+        "2028": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 7443.115114728553,
+            "balance_after": 14424.297615278785
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -3886.3777960800007,
+            "balance_after": 10537.919819198785
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2146.143250809297,
+            "balance_after": 8391.776568389489
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 8391.776568389489,
+            "note": "cash above minimum buffer at this checkpoint: 5,153.1"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 0.0,
+            "balance_after": 8391.776568389489
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 8391.776568389489,
+            "note": "deployable_capacity = 4,453.1"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 8391.776568389489
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -564.2376271357019,
+            "balance_after": 7827.538941253787
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 7827.538941253787
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 7827.538941253787
+          }
+        ],
+        "2029": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 7604.129770494255,
+            "balance_after": 15431.66871174804
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -3925.2415740408005,
+            "balance_after": 11506.42713770724
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2178.120785246356,
+            "balance_after": 9328.306352460884
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 9328.306352460884,
+            "note": "cash above minimum buffer at this checkpoint: 6,057.3"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 0.0,
+            "balance_after": 9328.306352460884
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 9328.306352460884,
+            "note": "deployable_capacity = 5,357.3"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 9328.306352460884
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -600.3069644828396,
+            "balance_after": 8727.999387978045
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 8727.999387978045
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 8727.999387978045
+          }
+        ],
+        "2030": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 7765.834095355982,
+            "balance_after": 16493.833483334027
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -3964.4939897812083,
+            "balance_after": 12529.33949355282
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2210.5747849465265,
+            "balance_after": 10318.764708606293
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 10318.764708606293,
+            "note": "cash above minimum buffer at this checkpoint: 7,015.0"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 0.0,
+            "balance_after": 10318.764708606293
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 10318.764708606293,
+            "note": "deployable_capacity = 6,315.0"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 10318.764708606293
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -636.3061282512988,
+            "balance_after": 9682.458580354994
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 9682.458580354994
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 9682.458580354994
+          }
+        ]
+      },
+      "no_double_counting": {
+        "2026": {
+          "scenario": "base",
+          "fiscal_year": 2026,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 6188.376915752799,
+          "identity_a_rhs": 6188.376915752798,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 6655.294859587997,
+          "identity_b_rhs": 6655.294859587997,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 9438.884559587998,
+          "identity_c_uses": 9438.884559587998,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2027": {
+          "scenario": "base",
+          "fiscal_year": 2027,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 6981.182500550232,
+          "identity_a_rhs": 6981.182500550232,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 7509.719557081855,
+          "identity_b_rhs": 7509.719557081855,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 10324.354743611855,
+          "identity_c_uses": 10324.354743611855,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2028": {
+          "scenario": "base",
+          "fiscal_year": 2028,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 7827.538941253785,
+          "identity_a_rhs": 7827.538941253787,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 8391.776568389489,
+          "identity_b_rhs": 8391.776568389489,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 11237.919819198785,
+          "identity_c_uses": 11237.919819198785,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2029": {
+          "scenario": "base",
+          "fiscal_year": 2029,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 8727.999387978045,
+          "identity_a_rhs": 8727.999387978045,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 9328.306352460884,
+          "identity_b_rhs": 9328.306352460884,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 12206.42713770724,
+          "identity_c_uses": 12206.42713770724,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2030": {
+          "scenario": "base",
+          "fiscal_year": 2030,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 9682.458580354993,
+          "identity_a_rhs": 9682.458580354994,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 10318.764708606293,
+          "identity_b_rhs": 10318.764708606293,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 13229.33949355282,
+          "identity_c_uses": 13229.339493552818,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        }
+      }
+    },
+    "upside": {
+      "name": "Upside",
+      "narrative": "UPSIDE is a successful-execution story: Target's own disclosed strategic initiatives (supply-chain and technology investment, assortment/mix improvement, digital fulfillment growth) work better than the base case assumes, translating into both stronger traffic/comps AND better cost absorption -- but bounded by what Target has ACTUALLY achieved historically, never an unprecedented performance level. Every assumption traces to that one story: revenue growth rises to +3.0%/yr (at, not beyond, the FY2022 historical maximum); gross margin recovers toward, but never exceeds, the FY2021 historical peak (28.80% by FY2030, vs. the FY2021 high of 29.28%) because better mix and supply-chain efficiency are exactly the kind of execution that produced that peak before; SG&A leverage improves (toward, not below, the FY2021 low of 18.63%) because stronger sales absorb fixed costs better. The one deliberately NON-monotonic driver is CapEx: UPSIDE spends MORE on capital (4.3% of revenue, above BASE's 3.6%), not less -- because funding the stronger growth (new stores, supply chain, digital investment) is what makes the stronger growth possible, and higher investment is the correct signature of a genuine growth acceleration, not a cost to be minimized. Stronger FCF supports both faster deleveraging (net debt repayment of $700M/yr rather than a flat roll) and a higher buyback payout ratio (55% of post-dividend FCF) and faster dividend growth (+4.0%/yr) -- all consequences of the SAME improved cash generation, not independently chosen 'better' numbers.",
+      "assumptions": {
+        "revenue_growth_pct": {
+          "2026": 3.0,
+          "2027": 3.0,
+          "2028": 3.0,
+          "2029": 3.0,
+          "2030": 3.0
+        },
+        "gross_margin_pct": {
+          "2026": 27.93,
+          "2027": 28.148,
+          "2028": 28.365,
+          "2029": 28.582,
+          "2030": 28.8
+        },
+        "sga_pct_of_revenue": {
+          "2026": 20.55,
+          "2027": 20.363,
+          "2028": 20.175,
+          "2029": 19.988,
+          "2030": 19.8
+        },
+        "da_pct_of_revenue": {
+          "2026": 2.678,
+          "2027": 2.755,
+          "2028": 2.833,
+          "2029": 2.91,
+          "2030": 2.988
+        },
+        "effective_tax_rate_pct": {
+          "2026": 21.5,
+          "2027": 21.5,
+          "2028": 21.5,
+          "2029": 21.5,
+          "2030": 21.5
+        },
+        "net_other_income_musd": {
+          "2026": 100.0,
+          "2027": 100.0,
+          "2028": 100.0,
+          "2029": 100.0,
+          "2030": 100.0
+        },
+        "diluted_share_change_pct": {
+          "2026": -1.5,
+          "2027": -1.5,
+          "2028": -1.5,
+          "2029": -1.5,
+          "2030": -1.5
+        },
+        "interest_rate_pct": {
+          "2026": 2.9,
+          "2027": 2.9,
+          "2028": 2.9,
+          "2029": 2.9,
+          "2030": 2.9
+        },
+        "capex_pct_of_revenue": {
+          "2026": 4.3,
+          "2027": 4.3,
+          "2028": 4.3,
+          "2029": 4.3,
+          "2030": 4.3
+        },
+        "da_cfo_addback_pct_of_revenue": {
+          "2026": 3.166,
+          "2027": 3.29,
+          "2028": 3.415,
+          "2029": 3.54,
+          "2030": 3.664
+        },
+        "inventory_pct_of_revenue": {
+          "2026": 11.0,
+          "2027": 11.0,
+          "2028": 11.0,
+          "2029": 11.0,
+          "2030": 11.0
+        },
+        "ap_pct_of_cogs": {
+          "2026": 17.5,
+          "2027": 17.5,
+          "2028": 17.5,
+          "2029": 17.5,
+          "2030": 17.5
+        },
+        "other_operating_cf_musd": {
+          "2026": 250.0,
+          "2027": 250.0,
+          "2028": 250.0,
+          "2029": 250.0,
+          "2030": 250.0
+        },
+        "dividend_per_share_growth_pct": {
+          "2026": 4.0,
+          "2027": 4.0,
+          "2028": 4.0,
+          "2029": 4.0,
+          "2030": 4.0
+        },
+        "buyback_payout_pct_of_post_dividend_fcf": {
+          "2026": 55.0,
+          "2027": 55.0,
+          "2028": 55.0,
+          "2029": 55.0,
+          "2030": 55.0
+        },
+        "debt_proceeds_musd": {
+          "2026": 300.0,
+          "2027": 300.0,
+          "2028": 300.0,
+          "2029": 300.0,
+          "2030": 300.0
+        },
+        "debt_repayments_musd": {
+          "2026": 1000.0,
+          "2027": 1000.0,
+          "2028": 1000.0,
+          "2029": 1000.0,
+          "2030": 1000.0
+        },
+        "finance_lease_liabilities_musd": {
+          "2026": 2113.0,
+          "2027": 2113.0,
+          "2028": 2113.0,
+          "2029": 2113.0,
+          "2030": 2113.0
+        },
+        "min_cash_buffer_pct_of_revenue": {
+          "2026": 3.0,
+          "2027": 3.0,
+          "2028": 3.0,
+          "2029": 3.0,
+          "2030": 3.0
+        }
+      },
+      "years": [
+        {
+          "scenario": "upside",
+          "fiscal_year": 2026,
+          "revenue": 107923.40000000001,
+          "revenue_growth_pct": 3.0,
+          "cost_of_sales": 77780.39438000001,
+          "gross_profit": 30143.005620000004,
+          "gross_margin_pct": 27.93,
+          "sga_expense": 22178.258700000002,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 2890.188652,
+          "da_pct_of_revenue": 2.678,
+          "operating_income": 5074.558268000002,
+          "operating_margin_pct": 4.702000000000002,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 13643.0,
+          "debt_proceeds": 300.0,
+          "debt_repayments": 1000.0,
+          "interest_rate_pct": 2.9,
+          "interest_expense": 405.79699999999997,
+          "net_other_income": 100.0,
+          "pretax_income": 4768.761268000002,
+          "effective_tax_rate_pct": 21.5,
+          "income_tax_expense": 1025.2836726200005,
+          "net_income": 3743.4775953800017,
+          "diluted_shares": 448.766,
+          "diluted_eps": 8.341713934166139,
+          "da_cfo_addback": 3416.854844,
+          "inventory_balance": 11871.574,
+          "inventory_cash_impact": 432.4259999999995,
+          "accounts_payable_balance": 13611.569016500001,
+          "ap_cash_impact": 989.5690165000015,
+          "other_operating_cf": 250.0,
+          "operating_cash_flow": 8832.327455880002,
+          "capital_expenditure": 4640.7062,
+          "free_cash_flow": 4191.6212558800025,
+          "investing_cash_flow": -4640.7062,
+          "dividend_per_share": 4.686391571553995,
+          "dividends_paid": 2103.0932000000003,
+          "share_repurchases": 1148.6904307340012,
+          "financing_cash_flow": -3951.7836307340012,
+          "net_change_in_cash": 239.8376251460013,
+          "beginning_cash": 5488.0,
+          "ending_cash": 5727.837625146001,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 4191.6212558800025,
+          "post_dividend_capacity": 2088.5280558800023,
+          "mandatory_financing_flows": -2803.0932000000003,
+          "pre_discretionary_ending_cash": 6876.528055880003,
+          "min_cash_buffer": 3237.702,
+          "near_term_debt_repayment_reserve": 1000.0,
+          "deployable_capacity": 2638.826055880003,
+          "funding_warning": false,
+          "valuation_net_debt": 7915.162374853999,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "upside",
+          "fiscal_year": 2027,
+          "revenue": 111161.10200000001,
+          "revenue_growth_pct": 3.0,
+          "cost_of_sales": 79871.47500904,
+          "gross_profit": 31289.62699096,
+          "gross_margin_pct": 28.148,
+          "sga_expense": 22635.735200260002,
+          "sga_pct_of_revenue": 20.363,
+          "depreciation_amortization_opex": 3062.4883601,
+          "da_pct_of_revenue": 2.755,
+          "operating_income": 5591.403430599999,
+          "operating_margin_pct": 5.029999999999999,
+          "total_debt_gaap_beginning": 13643.0,
+          "total_debt_gaap_ending": 12943.0,
+          "debt_proceeds": 300.0,
+          "debt_repayments": 1000.0,
+          "interest_rate_pct": 2.9,
+          "interest_expense": 385.49699999999996,
+          "net_other_income": 100.0,
+          "pretax_income": 5305.906430599999,
+          "effective_tax_rate_pct": 21.5,
+          "income_tax_expense": 1140.7698825789998,
+          "net_income": 4165.136548020999,
+          "diluted_shares": 442.03451,
+          "diluted_eps": 9.422650163719116,
+          "da_cfo_addback": 3657.200255800001,
+          "inventory_balance": 12227.721220000001,
+          "inventory_cash_impact": -356.14722000000074,
+          "accounts_payable_balance": 13977.508126582,
+          "ap_cash_impact": 365.9391100819994,
+          "other_operating_cf": 250.0,
+          "operating_cash_flow": 8082.128693902998,
+          "capital_expenditure": 4779.927386,
+          "free_cash_flow": 3302.2013079029975,
+          "investing_cash_flow": -4779.927386,
+          "dividend_per_share": 4.8738472344161545,
+          "dividends_paid": 2154.40867408,
+          "share_repurchases": 631.2859486026487,
+          "financing_cash_flow": -3485.6946226826485,
+          "net_change_in_cash": -183.49331477965097,
+          "beginning_cash": 5727.837625146001,
+          "ending_cash": 5544.34431036635,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3302.2013079029975,
+          "post_dividend_capacity": 1147.7926338229977,
+          "mandatory_financing_flows": -2854.40867408,
+          "pre_discretionary_ending_cash": 6175.630258969,
+          "min_cash_buffer": 3334.8330600000004,
+          "near_term_debt_repayment_reserve": 1000.0,
+          "deployable_capacity": 1840.797198969,
+          "funding_warning": false,
+          "valuation_net_debt": 7398.65568963365,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "upside",
+          "fiscal_year": 2028,
+          "revenue": 114495.93506000002,
+          "revenue_growth_pct": 3.0,
+          "cost_of_sales": 82019.16308023101,
+          "gross_profit": 32476.771979769004,
+          "gross_margin_pct": 28.365,
+          "sga_expense": 23099.554898355003,
+          "sga_pct_of_revenue": 20.175,
+          "depreciation_amortization_opex": 3243.6698402498005,
+          "da_pct_of_revenue": 2.833,
+          "operating_income": 6133.5472411642,
+          "operating_margin_pct": 5.356999999999999,
+          "total_debt_gaap_beginning": 12943.0,
+          "total_debt_gaap_ending": 12243.0,
+          "debt_proceeds": 300.0,
+          "debt_repayments": 1000.0,
+          "interest_rate_pct": 2.9,
+          "interest_expense": 365.197,
+          "net_other_income": 100.0,
+          "pretax_income": 5868.3502411642,
+          "effective_tax_rate_pct": 21.5,
+          "income_tax_expense": 1261.6953018503032,
+          "net_income": 4606.654939313898,
+          "diluted_shares": 435.40399235,
+          "diluted_eps": 10.580185345684272,
+          "da_cfo_addback": 3910.0361822990008,
+          "inventory_balance": 12594.552856600003,
+          "inventory_cash_impact": -366.83163660000173,
+          "accounts_payable_balance": 14353.353539040427,
+          "ap_cash_impact": 375.8454124584259,
+          "other_operating_cf": 250.0,
+          "operating_cash_flow": 8775.704897471322,
+          "capital_expenditure": 4923.325207580001,
+          "free_cash_flow": 3852.3796898913206,
+          "investing_cash_flow": -4923.325207580001,
+          "dividend_per_share": 5.068801123792801,
+          "dividends_paid": 2206.976245727552,
+          "share_repurchases": 904.9718942900728,
+          "financing_cash_flow": -3811.9481400176246,
+          "net_change_in_cash": 40.431549873695985,
+          "beginning_cash": 5544.34431036635,
+          "ending_cash": 5584.775860240046,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3852.3796898913206,
+          "post_dividend_capacity": 1645.4034441637687,
+          "mandatory_financing_flows": -2906.976245727552,
+          "pre_discretionary_ending_cash": 6489.747754530119,
+          "min_cash_buffer": 3434.8780518000003,
+          "near_term_debt_repayment_reserve": 1000.0,
+          "deployable_capacity": 2054.8697027301187,
+          "funding_warning": false,
+          "valuation_net_debt": 6658.224139759954,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "upside",
+          "fiscal_year": 2029,
+          "revenue": 117930.81311180002,
+          "revenue_growth_pct": 3.0,
+          "cost_of_sales": 84223.82810818533,
+          "gross_profit": 33706.98500361468,
+          "gross_margin_pct": 28.582,
+          "sga_expense": 23572.010924786584,
+          "sga_pct_of_revenue": 19.988,
+          "depreciation_amortization_opex": 3431.7866615533803,
+          "da_pct_of_revenue": 2.91,
+          "operating_income": 6703.1874172747175,
+          "operating_margin_pct": 5.684000000000004,
+          "total_debt_gaap_beginning": 12243.0,
+          "total_debt_gaap_ending": 11543.0,
+          "debt_proceeds": 300.0,
+          "debt_repayments": 1000.0,
+          "interest_rate_pct": 2.9,
+          "interest_expense": 344.897,
+          "net_other_income": 100.0,
+          "pretax_income": 6458.290417274718,
+          "effective_tax_rate_pct": 21.5,
+          "income_tax_expense": 1388.5324397140641,
+          "net_income": 5069.757977560654,
+          "diluted_shares": 428.87293246475,
+          "diluted_eps": 11.821119016358878,
+          "da_cfo_addback": 4174.750784157721,
+          "inventory_balance": 12972.389442298003,
+          "inventory_cash_impact": -377.8365856979999,
+          "accounts_payable_balance": 14739.169918932434,
+          "ap_cash_impact": 385.8163798920068,
+          "other_operating_cf": 250.0,
+          "operating_cash_flow": 9502.488555912381,
+          "capital_expenditure": 5071.024963807401,
+          "free_cash_flow": 4431.46359210498,
+          "investing_cash_flow": -5071.024963807401,
+          "dividend_per_share": 5.2715531687445125,
+          "dividends_paid": 2260.8264661233043,
+          "share_repurchases": 1193.8504192899218,
+          "financing_cash_flow": -4154.676885413226,
+          "net_change_in_cash": 276.78670669175426,
+          "beginning_cash": 5584.775860240046,
+          "ending_cash": 5861.562566931801,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 4431.46359210498,
+          "post_dividend_capacity": 2170.637125981676,
+          "mandatory_financing_flows": -2960.8264661233043,
+          "pre_discretionary_ending_cash": 7055.412986221723,
+          "min_cash_buffer": 3537.9243933540006,
+          "near_term_debt_repayment_reserve": 1000.0,
+          "deployable_capacity": 2517.4885928677227,
+          "funding_warning": false,
+          "valuation_net_debt": 5681.437433068199,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "upside",
+          "fiscal_year": 2030,
+          "revenue": 121468.73750515401,
+          "revenue_growth_pct": 3.0,
+          "cost_of_sales": 86485.74110366966,
+          "gross_profit": 34982.99640148436,
+          "gross_margin_pct": 28.8,
+          "sga_expense": 24050.810026020496,
+          "sga_pct_of_revenue": 19.8,
+          "depreciation_amortization_opex": 3629.485876654002,
+          "da_pct_of_revenue": 2.988,
+          "operating_income": 7302.70049880986,
+          "operating_margin_pct": 6.012,
+          "total_debt_gaap_beginning": 11543.0,
+          "total_debt_gaap_ending": 10843.0,
+          "debt_proceeds": 300.0,
+          "debt_repayments": 1000.0,
+          "interest_rate_pct": 2.9,
+          "interest_expense": 324.597,
+          "net_other_income": 100.0,
+          "pretax_income": 7078.10349880986,
+          "effective_tax_rate_pct": 21.5,
+          "income_tax_expense": 1521.79225224412,
+          "net_income": 5556.31124656574,
+          "diluted_shares": 422.4398384777788,
+          "diluted_eps": 13.152905432847838,
+          "da_cfo_addback": 4450.614542188843,
+          "inventory_balance": 13361.561125566941,
+          "inventory_cash_impact": -389.17168326893807,
+          "accounts_payable_balance": 15135.00469314219,
+          "ap_cash_impact": 395.8347742097558,
+          "other_operating_cf": 250.0,
+          "operating_cash_flow": 10263.5888796954,
+          "capital_expenditure": 5223.155712721623,
+          "free_cash_flow": 5040.433166973778,
+          "investing_cash_flow": -5223.155712721623,
+          "dividend_per_share": 5.4824152954942935,
+          "dividends_paid": 2315.9906318967132,
+          "share_repurchases": 1498.4433942923854,
+          "financing_cash_flow": -4514.434026189098,
+          "net_change_in_cash": 525.9991407846792,
+          "beginning_cash": 5861.562566931801,
+          "ending_cash": 6387.56170771648,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 5040.433166973778,
+          "post_dividend_capacity": 2724.4425350770643,
+          "mandatory_financing_flows": -3015.9906318967132,
+          "pre_discretionary_ending_cash": 7886.005102008867,
+          "min_cash_buffer": 3644.062125154621,
+          "near_term_debt_repayment_reserve": 1000.0,
+          "deployable_capacity": 3241.942976854246,
+          "funding_warning": false,
+          "valuation_net_debt": 4455.43829228352,
+          "management_selected_deployment": null
+        }
+      ],
+      "cumulative_deployable_capacity_terminal": 3241.942976854246,
+      "cumulative_deployable_capacity_series": [
+        2638.826055880003,
+        1840.797198969,
+        2054.8697027301187,
+        2517.4885928677227,
+        3241.942976854246
+      ],
+      "waterfall_by_year": {
+        "2026": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 8832.327455880002,
+            "balance_after": 14320.327455880002
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -4640.7062,
+            "balance_after": 9679.621255880003
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2103.0932000000003,
+            "balance_after": 7576.528055880003
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 7576.528055880003,
+            "note": "cash above minimum buffer at this checkpoint: 4,338.8"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": -700.0,
+            "balance_after": 6876.528055880003
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 6876.528055880003,
+            "note": "deployable_capacity = 2,638.8"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 6876.528055880003
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -1148.6904307340012,
+            "balance_after": 5727.837625146002
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 5727.837625146002
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 5727.837625146002
+          }
+        ],
+        "2027": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 8082.128693902998,
+            "balance_after": 13809.966319049
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -4779.927386,
+            "balance_after": 9030.038933049
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2154.40867408,
+            "balance_after": 6875.630258969
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 6875.630258969,
+            "note": "cash above minimum buffer at this checkpoint: 3,540.8"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": -700.0,
+            "balance_after": 6175.630258969
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 6175.630258969,
+            "note": "deployable_capacity = 1,840.8"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 6175.630258969
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -631.2859486026487,
+            "balance_after": 5544.344310366352
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 5544.344310366352
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 5544.344310366352
+          }
+        ],
+        "2028": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 8775.704897471322,
+            "balance_after": 14320.049207837672
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -4923.325207580001,
+            "balance_after": 9396.724000257671
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2206.976245727552,
+            "balance_after": 7189.747754530119
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 7189.747754530119,
+            "note": "cash above minimum buffer at this checkpoint: 3,754.9"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": -700.0,
+            "balance_after": 6489.747754530119
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 6489.747754530119,
+            "note": "deployable_capacity = 2,054.9"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 6489.747754530119
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -904.9718942900728,
+            "balance_after": 5584.775860240046
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 5584.775860240046
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 5584.775860240046
+          }
+        ],
+        "2029": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 9502.488555912381,
+            "balance_after": 15087.264416152428
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -5071.024963807401,
+            "balance_after": 10016.239452345028
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2260.8264661233043,
+            "balance_after": 7755.412986221723
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 7755.412986221723,
+            "note": "cash above minimum buffer at this checkpoint: 4,217.5"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": -700.0,
+            "balance_after": 7055.412986221723
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 7055.412986221723,
+            "note": "deployable_capacity = 2,517.5"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 7055.412986221723
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -1193.8504192899218,
+            "balance_after": 5861.5625669318015
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 5861.5625669318015
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 5861.5625669318015
+          }
+        ],
+        "2030": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 10263.5888796954,
+            "balance_after": 16125.151446627202
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -5223.155712721623,
+            "balance_after": 10901.99573390558
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2315.9906318967132,
+            "balance_after": 8586.005102008867
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 8586.005102008867,
+            "note": "cash above minimum buffer at this checkpoint: 4,941.9"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": -700.0,
+            "balance_after": 7886.005102008867
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 7886.005102008867,
+            "note": "deployable_capacity = 3,241.9"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 7886.005102008867
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -1498.4433942923854,
+            "balance_after": 6387.561707716482
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 6387.561707716482
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 6387.561707716482
+          }
+        ]
+      },
+      "no_double_counting": {
+        "2026": {
+          "scenario": "upside",
+          "fiscal_year": 2026,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 5727.837625146001,
+          "identity_a_rhs": 5727.837625146002,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 6876.528055880003,
+          "identity_b_rhs": 6876.528055880003,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 9979.621255880003,
+          "identity_c_uses": 9979.621255880003,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2027": {
+          "scenario": "upside",
+          "fiscal_year": 2027,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 5544.34431036635,
+          "identity_a_rhs": 5544.344310366352,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 6175.630258969,
+          "identity_b_rhs": 6175.630258969,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 9330.038933049,
+          "identity_c_uses": 9330.038933049,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2028": {
+          "scenario": "upside",
+          "fiscal_year": 2028,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 5584.775860240046,
+          "identity_a_rhs": 5584.775860240046,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 6489.747754530119,
+          "identity_b_rhs": 6489.747754530119,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 9696.724000257671,
+          "identity_c_uses": 9696.724000257671,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2029": {
+          "scenario": "upside",
+          "fiscal_year": 2029,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 5861.562566931801,
+          "identity_a_rhs": 5861.5625669318015,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 7055.412986221723,
+          "identity_b_rhs": 7055.412986221723,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 10316.239452345028,
+          "identity_c_uses": 10316.239452345028,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2030": {
+          "scenario": "upside",
+          "fiscal_year": 2030,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 6387.56170771648,
+          "identity_a_rhs": 6387.561707716482,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 7886.005102008867,
+          "identity_b_rhs": 7886.005102008867,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 11201.99573390558,
+          "identity_c_uses": 11201.995733905578,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        }
+      }
+    },
+    "downside": {
+      "name": "Downside",
+      "narrative": "DOWNSIDE is a sustained discretionary-spending-pressure story -- a continued deterioration of the conditions already visible in FY2023-FY2025, not a fabricated crisis or an extreme, unprecedented event. Consumers pull back further on discretionary categories, promotional intensity increases to defend traffic, and the business responds with capital discipline and balance-sheet caution rather than an operational collapse. Every assumption is a consequence of that one story: revenue declines further (-2.5%/yr, roughly 1.5x the worst single historical year, reflecting sustained rather than one-year pressure); gross margin compresses (toward, not to, the FY2022 trough of 24.57%) from continued promotional activity; SG&A deleverages (revenue falls faster than largely-fixed operating costs) rather than being cut in step; inventory BUILDS as a % of revenue (12.8% vs. BASE's 11.8%) because slower sell-through is a direct, coherent consequence of weaker demand, not an independent assumption; accounts payable tightens (suppliers extend less credit at 15.5% of COGS, near the historical minimum) for the same reason -- both are the SAME working-capital-consumption story, not two unrelated pessimistic picks. Management responds exactly as a distressed-but-not-crisis retailer would: CapEx is cut to a capital-discipline level (2.8% of revenue, near the historical minimum, but never below it, since Target discloses no all-out CapEx freeze); buybacks stop entirely (0% payout -- capital preservation); dividends are frozen, not cut, because Target's dividend has grown in every one of the 5 historical years with no observed reduction, so an outright cut is not modeled as plausible even under sustained pressure; and a small, FIXED, pre-committed net debt issuance ($200M) is assumed as a liquidity backstop -- explicitly NOT sized to whatever cash shortfall results, so a genuine liquidity gap surfaces as an explicit funding warning (see the seasonal stress overlay's FY2026 finding) rather than being silently plugged away by an ever-larger, unexplained debt draw.",
+      "assumptions": {
+        "revenue_growth_pct": {
+          "2026": -2.5,
+          "2027": -2.5,
+          "2028": -2.5,
+          "2029": -2.5,
+          "2030": -2.5
+        },
+        "gross_margin_pct": {
+          "2026": 27.93,
+          "2027": 27.523,
+          "2028": 27.115,
+          "2029": 26.707,
+          "2030": 26.3
+        },
+        "sga_pct_of_revenue": {
+          "2026": 20.55,
+          "2027": 20.738,
+          "2028": 20.925,
+          "2029": 21.113,
+          "2030": 21.3
+        },
+        "da_pct_of_revenue": {
+          "2026": 2.478,
+          "2027": 2.555,
+          "2028": 2.632,
+          "2029": 2.71,
+          "2030": 2.788
+        },
+        "effective_tax_rate_pct": {
+          "2026": 23.0,
+          "2027": 23.0,
+          "2028": 23.0,
+          "2029": 23.0,
+          "2030": 23.0
+        },
+        "net_other_income_musd": {
+          "2026": 80.0,
+          "2027": 80.0,
+          "2028": 80.0,
+          "2029": 80.0,
+          "2030": 80.0
+        },
+        "diluted_share_change_pct": {
+          "2026": 0.0,
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": 0.0,
+          "2030": 0.0
+        },
+        "interest_rate_pct": {
+          "2026": 3.4,
+          "2027": 3.4,
+          "2028": 3.4,
+          "2029": 3.4,
+          "2030": 3.4
+        },
+        "capex_pct_of_revenue": {
+          "2026": 2.8,
+          "2027": 2.8,
+          "2028": 2.8,
+          "2029": 2.8,
+          "2030": 2.8
+        },
+        "da_cfo_addback_pct_of_revenue": {
+          "2026": 3.066,
+          "2027": 3.19,
+          "2028": 3.315,
+          "2029": 3.44,
+          "2030": 3.564
+        },
+        "inventory_pct_of_revenue": {
+          "2026": 12.8,
+          "2027": 12.8,
+          "2028": 12.8,
+          "2029": 12.8,
+          "2030": 12.8
+        },
+        "ap_pct_of_cogs": {
+          "2026": 15.5,
+          "2027": 15.5,
+          "2028": 15.5,
+          "2029": 15.5,
+          "2030": 15.5
+        },
+        "other_operating_cf_musd": {
+          "2026": 50.0,
+          "2027": 50.0,
+          "2028": 50.0,
+          "2029": 50.0,
+          "2030": 50.0
+        },
+        "dividend_per_share_growth_pct": {
+          "2026": 0.0,
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": 0.0,
+          "2030": 0.0
+        },
+        "buyback_payout_pct_of_post_dividend_fcf": {
+          "2026": 0.0,
+          "2027": 0.0,
+          "2028": 0.0,
+          "2029": 0.0,
+          "2030": 0.0
+        },
+        "debt_proceeds_musd": {
+          "2026": 500.0,
+          "2027": 500.0,
+          "2028": 500.0,
+          "2029": 500.0,
+          "2030": 500.0
+        },
+        "debt_repayments_musd": {
+          "2026": 300.0,
+          "2027": 300.0,
+          "2028": 300.0,
+          "2029": 300.0,
+          "2030": 300.0
+        },
+        "finance_lease_liabilities_musd": {
+          "2026": 2113.0,
+          "2027": 2113.0,
+          "2028": 2113.0,
+          "2029": 2113.0,
+          "2030": 2113.0
+        },
+        "min_cash_buffer_pct_of_revenue": {
+          "2026": 3.0,
+          "2027": 3.0,
+          "2028": 3.0,
+          "2029": 3.0,
+          "2030": 3.0
+        }
+      },
+      "years": [
+        {
+          "scenario": "downside",
+          "fiscal_year": 2026,
+          "revenue": 102160.5,
+          "revenue_growth_pct": -2.5,
+          "cost_of_sales": 73627.07235,
+          "gross_profit": 28533.42765,
+          "gross_margin_pct": 27.93,
+          "sga_expense": 20993.98275,
+          "sga_pct_of_revenue": 20.55,
+          "depreciation_amortization_opex": 2531.53719,
+          "da_pct_of_revenue": 2.478,
+          "operating_income": 5007.907710000002,
+          "operating_margin_pct": 4.902000000000002,
+          "total_debt_gaap_beginning": 14343.0,
+          "total_debt_gaap_ending": 14543.0,
+          "debt_proceeds": 500.0,
+          "debt_repayments": 300.0,
+          "interest_rate_pct": 3.4,
+          "interest_expense": 491.062,
+          "net_other_income": 80.0,
+          "pretax_income": 4596.845710000002,
+          "effective_tax_rate_pct": 23.0,
+          "income_tax_expense": 1057.2745133000005,
+          "net_income": 3539.5711967000016,
+          "diluted_shares": 455.6,
+          "diluted_eps": 7.769032477392453,
+          "da_cfo_addback": 3132.24093,
+          "inventory_balance": 13076.544000000002,
+          "inventory_cash_impact": -772.5440000000017,
+          "accounts_payable_balance": 11412.19621425,
+          "ap_cash_impact": -1209.8037857500003,
+          "other_operating_cf": 50.0,
+          "operating_cash_flow": 4739.4643409499995,
+          "capital_expenditure": 2860.4939999999997,
+          "free_cash_flow": 1878.9703409499998,
+          "investing_cash_flow": -2860.4939999999997,
+          "dividend_per_share": 4.506145741878841,
+          "dividends_paid": 2053.0,
+          "share_repurchases": 0.0,
+          "financing_cash_flow": -1853.0,
+          "net_change_in_cash": 25.97034094999981,
+          "beginning_cash": 5488.0,
+          "ending_cash": 5513.97034095,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 1878.9703409499998,
+          "post_dividend_capacity": -174.0296590500002,
+          "mandatory_financing_flows": -1853.0,
+          "pre_discretionary_ending_cash": 5513.970340949999,
+          "min_cash_buffer": 3064.815,
+          "near_term_debt_repayment_reserve": 300.0,
+          "deployable_capacity": 2149.155340949999,
+          "funding_warning": false,
+          "valuation_net_debt": 9029.02965905,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "downside",
+          "fiscal_year": 2027,
+          "revenue": 99606.4875,
+          "revenue_growth_pct": -2.5,
+          "cost_of_sales": 72191.793945375,
+          "gross_profit": 27414.693554625,
+          "gross_margin_pct": 27.523,
+          "sga_expense": 20656.39337775,
+          "sga_pct_of_revenue": 20.738,
+          "depreciation_amortization_opex": 2544.945755625,
+          "da_pct_of_revenue": 2.555,
+          "operating_income": 4213.35442125,
+          "operating_margin_pct": 4.2299999999999995,
+          "total_debt_gaap_beginning": 14543.0,
+          "total_debt_gaap_ending": 14743.0,
+          "debt_proceeds": 500.0,
+          "debt_repayments": 300.0,
+          "interest_rate_pct": 3.4,
+          "interest_expense": 497.862,
+          "net_other_income": 80.0,
+          "pretax_income": 3795.49242125,
+          "effective_tax_rate_pct": 23.0,
+          "income_tax_expense": 872.9632568875,
+          "net_income": 2922.5291643625,
+          "diluted_shares": 455.6,
+          "diluted_eps": 6.414682099127524,
+          "da_cfo_addback": 3177.4469512500004,
+          "inventory_balance": 12749.6304,
+          "inventory_cash_impact": 326.9136000000017,
+          "accounts_payable_balance": 11189.728061533126,
+          "ap_cash_impact": -222.4681527168741,
+          "other_operating_cf": 50.0,
+          "operating_cash_flow": 6254.421562895628,
+          "capital_expenditure": 2788.9816499999997,
+          "free_cash_flow": 3465.4399128956284,
+          "investing_cash_flow": -2788.9816499999997,
+          "dividend_per_share": 4.506145741878841,
+          "dividends_paid": 2053.0,
+          "share_repurchases": 0.0,
+          "financing_cash_flow": -1853.0,
+          "net_change_in_cash": 1612.4399128956284,
+          "beginning_cash": 5513.97034095,
+          "ending_cash": 7126.410253845628,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 3465.4399128956284,
+          "post_dividend_capacity": 1412.4399128956284,
+          "mandatory_financing_flows": -1853.0,
+          "pre_discretionary_ending_cash": 7126.410253845628,
+          "min_cash_buffer": 2988.194625,
+          "near_term_debt_repayment_reserve": 300.0,
+          "deployable_capacity": 3838.215628845628,
+          "funding_warning": false,
+          "valuation_net_debt": 7616.589746154372,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "downside",
+          "fiscal_year": 2028,
+          "revenue": 97116.3253125,
+          "revenue_growth_pct": -2.5,
+          "cost_of_sales": 70783.23370401563,
+          "gross_profit": 26333.091608484374,
+          "gross_margin_pct": 27.115,
+          "sga_expense": 20321.591071640625,
+          "sga_pct_of_revenue": 20.925,
+          "depreciation_amortization_opex": 2556.1016822250003,
+          "da_pct_of_revenue": 2.632,
+          "operating_income": 3455.3988546187484,
+          "operating_margin_pct": 3.557999999999998,
+          "total_debt_gaap_beginning": 14743.0,
+          "total_debt_gaap_ending": 14943.0,
+          "debt_proceeds": 500.0,
+          "debt_repayments": 300.0,
+          "interest_rate_pct": 3.4,
+          "interest_expense": 504.66200000000003,
+          "net_other_income": 80.0,
+          "pretax_income": 3030.736854618748,
+          "effective_tax_rate_pct": 23.0,
+          "income_tax_expense": 697.069476562312,
+          "net_income": 2333.667378056436,
+          "diluted_shares": 455.6,
+          "diluted_eps": 5.122184763073828,
+          "da_cfo_addback": 3219.406184109375,
+          "inventory_balance": 12430.889640000001,
+          "inventory_cash_impact": 318.7407599999988,
+          "accounts_payable_balance": 10971.401224122423,
+          "ap_cash_impact": -218.32683741070286,
+          "other_operating_cf": 50.0,
+          "operating_cash_flow": 5703.487484755107,
+          "capital_expenditure": 2719.25710875,
+          "free_cash_flow": 2984.2303760051072,
+          "investing_cash_flow": -2719.25710875,
+          "dividend_per_share": 4.506145741878841,
+          "dividends_paid": 2053.0,
+          "share_repurchases": 0.0,
+          "financing_cash_flow": -1853.0,
+          "net_change_in_cash": 1131.2303760051072,
+          "beginning_cash": 7126.410253845628,
+          "ending_cash": 8257.640629850735,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 2984.2303760051072,
+          "post_dividend_capacity": 931.2303760051072,
+          "mandatory_financing_flows": -1853.0,
+          "pre_discretionary_ending_cash": 8257.640629850735,
+          "min_cash_buffer": 2913.489759375,
+          "near_term_debt_repayment_reserve": 300.0,
+          "deployable_capacity": 5044.150870475735,
+          "funding_warning": false,
+          "valuation_net_debt": 6685.359370149265,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "downside",
+          "fiscal_year": 2029,
+          "revenue": 94688.4171796875,
+          "revenue_growth_pct": -2.5,
+          "cost_of_sales": 69399.98160350835,
+          "gross_profit": 25288.435576179145,
+          "gross_margin_pct": 26.707,
+          "sga_expense": 19991.56551914742,
+          "sga_pct_of_revenue": 21.113,
+          "depreciation_amortization_opex": 2566.056105569531,
+          "da_pct_of_revenue": 2.71,
+          "operating_income": 2730.813951462192,
+          "operating_margin_pct": 2.884000000000005,
+          "total_debt_gaap_beginning": 14943.0,
+          "total_debt_gaap_ending": 15143.0,
+          "debt_proceeds": 500.0,
+          "debt_repayments": 300.0,
+          "interest_rate_pct": 3.4,
+          "interest_expense": 511.46200000000005,
+          "net_other_income": 80.0,
+          "pretax_income": 2299.351951462192,
+          "effective_tax_rate_pct": 23.0,
+          "income_tax_expense": 528.8509488363042,
+          "net_income": 1770.5010026258878,
+          "diluted_shares": 455.6,
+          "diluted_eps": 3.886086485131448,
+          "da_cfo_addback": 3257.28155098125,
+          "inventory_balance": 12120.117399000002,
+          "inventory_cash_impact": 310.77224099999876,
+          "accounts_payable_balance": 10756.997148543795,
+          "ap_cash_impact": -214.40407557862818,
+          "other_operating_cf": 50.0,
+          "operating_cash_flow": 5174.150719028508,
+          "capital_expenditure": 2651.27568103125,
+          "free_cash_flow": 2522.8750379972585,
+          "investing_cash_flow": -2651.27568103125,
+          "dividend_per_share": 4.506145741878841,
+          "dividends_paid": 2053.0,
+          "share_repurchases": 0.0,
+          "financing_cash_flow": -1853.0,
+          "net_change_in_cash": 669.8750379972585,
+          "beginning_cash": 8257.640629850735,
+          "ending_cash": 8927.515667847994,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 2522.8750379972585,
+          "post_dividend_capacity": 469.87503799725846,
+          "mandatory_financing_flows": -1853.0,
+          "pre_discretionary_ending_cash": 8927.515667847994,
+          "min_cash_buffer": 2840.6525153906246,
+          "near_term_debt_repayment_reserve": 300.0,
+          "deployable_capacity": 5786.86315245737,
+          "funding_warning": false,
+          "valuation_net_debt": 6215.484332152006,
+          "management_selected_deployment": null
+        },
+        {
+          "scenario": "downside",
+          "fiscal_year": 2030,
+          "revenue": 92321.20675019531,
+          "revenue_growth_pct": -2.5,
+          "cost_of_sales": 68040.72937489394,
+          "gross_profit": 24280.47737530137,
+          "gross_margin_pct": 26.3,
+          "sga_expense": 19664.4170377916,
+          "sga_pct_of_revenue": 21.3,
+          "depreciation_amortization_opex": 2573.915244195445,
+          "da_pct_of_revenue": 2.788,
+          "operating_income": 2042.145093314322,
+          "operating_margin_pct": 2.212000000000002,
+          "total_debt_gaap_beginning": 15143.0,
+          "total_debt_gaap_ending": 15343.0,
+          "debt_proceeds": 500.0,
+          "debt_repayments": 300.0,
+          "interest_rate_pct": 3.4,
+          "interest_expense": 518.2620000000001,
+          "net_other_income": 80.0,
+          "pretax_income": 1603.8830933143217,
+          "effective_tax_rate_pct": 23.0,
+          "income_tax_expense": 368.89311146229403,
+          "net_income": 1234.9899818520278,
+          "diluted_shares": 455.6,
+          "diluted_eps": 2.7106891612204294,
+          "da_cfo_addback": 3290.3278085769607,
+          "inventory_balance": 11817.114464025002,
+          "inventory_cash_impact": 303.00293497500024,
+          "accounts_payable_balance": 10546.31305310856,
+          "ap_cash_impact": -210.68409543523376,
+          "other_operating_cf": 50.0,
+          "operating_cash_flow": 4667.636629968755,
+          "capital_expenditure": 2584.993789005469,
+          "free_cash_flow": 2082.6428409632863,
+          "investing_cash_flow": -2584.993789005469,
+          "dividend_per_share": 4.506145741878841,
+          "dividends_paid": 2053.0,
+          "share_repurchases": 0.0,
+          "financing_cash_flow": -1853.0,
+          "net_change_in_cash": 229.6428409632863,
+          "beginning_cash": 8927.515667847994,
+          "ending_cash": 9157.15850881128,
+          "finance_lease_liabilities": 2113.0,
+          "gross_fcf_capacity": 2082.6428409632863,
+          "post_dividend_capacity": 29.64284096328629,
+          "mandatory_financing_flows": -1853.0,
+          "pre_discretionary_ending_cash": 9157.15850881128,
+          "min_cash_buffer": 2769.6362025058597,
+          "near_term_debt_repayment_reserve": 300.0,
+          "deployable_capacity": 6087.522306305421,
+          "funding_warning": false,
+          "valuation_net_debt": 6185.841491188719,
+          "management_selected_deployment": null
+        }
+      ],
+      "cumulative_deployable_capacity_terminal": 6087.522306305421,
+      "cumulative_deployable_capacity_series": [
+        2149.155340949999,
+        3838.215628845628,
+        5044.150870475735,
+        5786.86315245737,
+        6087.522306305421
+      ],
+      "waterfall_by_year": {
+        "2026": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 4739.4643409499995,
+            "balance_after": 10227.464340949999
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -2860.4939999999997,
+            "balance_after": 7366.970340949999
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2053.0,
+            "balance_after": 5313.970340949999
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 5313.970340949999,
+            "note": "cash above minimum buffer at this checkpoint: 2,249.2"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 200.0,
+            "balance_after": 5513.970340949999
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 5513.970340949999,
+            "note": "deployable_capacity = 2,149.2"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 5513.970340949999
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -0.0,
+            "balance_after": 5513.970340949999
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 5513.970340949999
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 5513.970340949999
+          }
+        ],
+        "2027": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 6254.421562895628,
+            "balance_after": 11768.391903845628
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -2788.9816499999997,
+            "balance_after": 8979.410253845628
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2053.0,
+            "balance_after": 6926.410253845628
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 6926.410253845628,
+            "note": "cash above minimum buffer at this checkpoint: 3,938.2"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 200.0,
+            "balance_after": 7126.410253845628
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 7126.410253845628,
+            "note": "deployable_capacity = 3,838.2"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 7126.410253845628
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -0.0,
+            "balance_after": 7126.410253845628
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 7126.410253845628
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 7126.410253845628
+          }
+        ],
+        "2028": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 5703.487484755107,
+            "balance_after": 12829.897738600735
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -2719.25710875,
+            "balance_after": 10110.640629850735
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2053.0,
+            "balance_after": 8057.640629850735
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 8057.640629850735,
+            "note": "cash above minimum buffer at this checkpoint: 5,144.2"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 200.0,
+            "balance_after": 8257.640629850735
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 8257.640629850735,
+            "note": "deployable_capacity = 5,044.2"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 8257.640629850735
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -0.0,
+            "balance_after": 8257.640629850735
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 8257.640629850735
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 8257.640629850735
+          }
+        ],
+        "2029": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 5174.150719028508,
+            "balance_after": 13431.791348879244
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -2651.27568103125,
+            "balance_after": 10780.515667847994
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2053.0,
+            "balance_after": 8727.515667847994
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 8727.515667847994,
+            "note": "cash above minimum buffer at this checkpoint: 5,886.9"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 200.0,
+            "balance_after": 8927.515667847994
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 8927.515667847994,
+            "note": "deployable_capacity = 5,786.9"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 8927.515667847994
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -0.0,
+            "balance_after": 8927.515667847994
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 8927.515667847994
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 8927.515667847994
+          }
+        ],
+        "2030": [
+          {
+            "step": 1,
+            "label": "Operating cash generation (CFO)",
+            "amount": 4667.636629968755,
+            "balance_after": 13595.152297816749
+          },
+          {
+            "step": 2,
+            "label": "Capital expenditures (CFI = -CapEx)",
+            "amount": -2584.993789005469,
+            "balance_after": 11010.15850881128
+          },
+          {
+            "step": 3,
+            "label": "Dividends",
+            "amount": -2053.0,
+            "balance_after": 8957.15850881128
+          },
+          {
+            "step": 4,
+            "label": "Minimum cash preservation (checkpoint, no cash movement)",
+            "amount": 0.0,
+            "balance_after": 8957.15850881128,
+            "note": "cash above minimum buffer at this checkpoint: 6,187.5"
+          },
+          {
+            "step": 5,
+            "label": "Scheduled debt reserve / repayment (fixed schedule)",
+            "amount": 200.0,
+            "balance_after": 9157.15850881128
+          },
+          {
+            "step": "5b",
+            "label": "DEPLOYABLE CAPACITY CHECKPOINT (pre_discretionary_ending_cash - buffer - reserve, before any repurchase is subtracted)",
+            "amount": 0.0,
+            "balance_after": 9157.15850881128,
+            "note": "deployable_capacity = 6,087.5"
+          },
+          {
+            "step": 6,
+            "label": "Incremental (non-scheduled) financing -- always $0 (non-plug policy)",
+            "amount": 0.0,
+            "balance_after": 9157.15850881128
+          },
+          {
+            "step": 7,
+            "label": "Discretionary investment / repurchases (fixed payout-ratio assumption)",
+            "amount": -0.0,
+            "balance_after": 9157.15850881128
+          },
+          {
+            "step": "7b",
+            "label": "Management-selected deployment (beyond the routine repurchase program; always $0 this round -- no deployment has been selected)",
+            "amount": -0.0,
+            "balance_after": 9157.15850881128
+          },
+          {
+            "step": 8,
+            "label": "Ending cash",
+            "amount": 0.0,
+            "balance_after": 9157.15850881128
+          }
+        ]
+      },
+      "no_double_counting": {
+        "2026": {
+          "scenario": "downside",
+          "fiscal_year": 2026,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 5513.97034095,
+          "identity_a_rhs": 5513.970340949999,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 5513.970340949999,
+          "identity_b_rhs": 5513.970340949999,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 7866.970340949999,
+          "identity_c_uses": 7866.97034095,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2027": {
+          "scenario": "downside",
+          "fiscal_year": 2027,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 7126.410253845628,
+          "identity_a_rhs": 7126.410253845628,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 7126.410253845628,
+          "identity_b_rhs": 7126.410253845628,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 9479.410253845628,
+          "identity_c_uses": 9479.410253845628,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2028": {
+          "scenario": "downside",
+          "fiscal_year": 2028,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 8257.640629850735,
+          "identity_a_rhs": 8257.640629850735,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 8257.640629850735,
+          "identity_b_rhs": 8257.640629850735,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 10610.640629850735,
+          "identity_c_uses": 10610.640629850735,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2029": {
+          "scenario": "downside",
+          "fiscal_year": 2029,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 8927.515667847994,
+          "identity_a_rhs": 8927.515667847994,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 8927.515667847994,
+          "identity_b_rhs": 8927.515667847994,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 11280.515667847994,
+          "identity_c_uses": 11280.515667847994,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        },
+        "2030": {
+          "scenario": "downside",
+          "fiscal_year": 2030,
+          "identity_a": "ending_cash = pre_discretionary_ending_cash - share_repurchases - management_selected_deployment",
+          "identity_a_lhs": 9157.15850881128,
+          "identity_a_rhs": 9157.15850881128,
+          "identity_a_holds": true,
+          "identity_b": "pre_discretionary_ending_cash = deployable_capacity + min_cash_buffer + near_term_debt_repayment_reserve",
+          "identity_b_lhs": 9157.15850881128,
+          "identity_b_rhs": 9157.15850881128,
+          "identity_b_holds": true,
+          "identity_c": "beginning_cash + CFO + CFI + debt_proceeds (SOURCES) = debt_repayments + dividends + repurchases + management_selected_deployment + ending_cash (USES)",
+          "identity_c_sources": 11510.15850881128,
+          "identity_c_uses": 11510.15850881128,
+          "identity_c_holds": true,
+          "no_double_counting_proven": true
+        }
+      }
+    }
+  },
+  "valuation": {
+    "assumptions": [
+      {
+        "assumption_id": "val_risk_free_rate",
+        "metric": "risk_free_rate_pct",
+        "value": 4.5,
+        "unit": "percent",
+        "rationale": "Illustrative long-term risk-free-rate proxy. No live Treasury-yield source is in the registered source set (SEC filings only) -- this is a general, round-number market input, not a fetched or verified rate as of the cutoff date.",
+        "source_evidence": "General market convention; not derived from a registered source.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_equity_risk_premium",
+        "metric": "equity_risk_premium_pct",
+        "value": 5.5,
+        "unit": "percent",
+        "rationale": "Illustrative long-run US equity risk premium. No live market-data source is in the registered source set -- a commonly-cited long-run range (roughly 5-6%), not a verified current figure.",
+        "source_evidence": "General market convention; not derived from a registered source.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_beta",
+        "metric": "beta",
+        "value": 1.0,
+        "unit": "ratio",
+        "rationale": "Illustrative unlevered-market-sensitivity proxy (beta=1.0, i.e. average market sensitivity). Target's actual regression beta would come from a market-data provider not in the registered source set -- this is a neutral placeholder, not a measured value.",
+        "source_evidence": "Not derived from a registered source -- no market price data available.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_target_equity_weight",
+        "metric": "target_equity_weight_pct",
+        "value": 85.0,
+        "unit": "percent",
+        "rationale": "Target/policy capital-structure weight, not a market-value weight -- computing a market-value weight requires the market value of equity, which is circular with the equity value this DCF estimates, and no live share price is available regardless. 85%/15% approximates a well-capitalized, investment-grade retailer's typical structure.",
+        "source_evidence": "Policy choice; not derived from a registered source.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_target_debt_weight",
+        "metric": "target_debt_weight_pct",
+        "value": 15.0,
+        "unit": "percent",
+        "rationale": "See val_target_equity_weight -- the complementary weight.",
+        "source_evidence": "Policy choice; not derived from a registered source.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_cost_of_debt",
+        "metric": "cost_of_debt_pct",
+        "value": 3.1,
+        "unit": "percent",
+        "rationale": "Pre-tax cost of debt: reuses the BASE scenario's own interest_rate_pct operating assumption (asm_interest_rate_base, itself grounded in the FY2024-FY2025 implied rate on average total_debt_gaap) as a single, flat, scenario-invariant proxy for Target's current borrowing cost -- grounded in real historical data, unlike the equity-side CAPM inputs above.",
+        "source_evidence": "Cites asm_interest_rate_base (forecast.py); ultimately grounded in FY2024-FY2025 interest_expense/total_debt_gaap.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_tax_rate_for_wacc",
+        "metric": "tax_rate_for_wacc_pct",
+        "value": 22.2,
+        "unit": "percent",
+        "rationale": "Reuses the BASE scenario's flat effective_tax_rate_pct operating assumption (asm_tax_rate_base) as WACC's single, flat, scenario-invariant tax shield rate -- consistent with cost_of_debt_pct's own BASE-scenario sourcing.",
+        "source_evidence": "Cites asm_tax_rate_base (forecast.py).",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      },
+      {
+        "assumption_id": "val_terminal_growth",
+        "metric": "terminal_growth_pct",
+        "value": 2.5,
+        "unit": "percent",
+        "rationale": "Perpetuity growth rate for the Gordon Growth terminal value, held conservatively at roughly long-run nominal GDP growth -- well below WACC (required for a finite, economically meaningful terminal value) and below every scenario's own explicit-period revenue growth assumption, so the terminal period does not implicitly assume Target outgrows the broader economy forever.",
+        "source_evidence": "General long-run macro convention; not derived from a registered source.",
+        "information_cutoff": "2026-03-11",
+        "review_status": "proposed",
+        "version": "v1"
+      }
+    ],
+    "wacc_pct": 8.86177,
+    "results": {
+      "base": {
+        "scenario": "base",
+        "wacc_pct": 8.86177,
+        "terminal_growth_pct": 2.5,
+        "ufcf_by_year": {
+          "2026": 3522.899033587998,
+          "2027": 3707.9923018590575,
+          "2028": 3828.7517926485516,
+          "2029": 3950.9026704534554,
+          "2030": 4073.354579574773
+        },
+        "pv_ufcf_by_year": {
+          "2026": 3236.1213983458088,
+          "2027": 3128.873760919631,
+          "2028": 2967.775458999656,
+          "2029": 2813.1621523420304,
+          "2030": 2664.251751398545
+        },
+        "pv_explicit_period": 14810.184522005671,
+        "terminal_year_ufcf": 4073.354579574773,
+        "terminal_value_undiscounted": 65629.3522724673,
+        "pv_terminal_value": 42926.07317120092,
+        "enterprise_value": 57736.25769320659,
+        "valuation_date_net_debt": 8855.0,
+        "equity_value": 48881.25769320659,
+        "valuation_date_diluted_shares": 455.6,
+        "implied_value_per_share": 107.28985446270103,
+        "bridge": [
+          {
+            "step": 1,
+            "label": "PV of explicit-period UFCF (FY2026-FY2030)",
+            "value": 14810.184522005671
+          },
+          {
+            "step": 2,
+            "label": "+ PV of terminal value",
+            "value": 42926.07317120092
+          },
+          {
+            "step": 3,
+            "label": "= Enterprise value",
+            "value": 57736.25769320659
+          },
+          {
+            "step": 4,
+            "label": "- Net debt (FY2025 actual, valuation_net_debt_excluding_leases)",
+            "value": -8855.0
+          },
+          {
+            "step": 5,
+            "label": "= Equity value",
+            "value": 48881.25769320659
+          },
+          {
+            "step": 6,
+            "label": "/ Diluted shares (FY2025 actual)",
+            "value": 455.6
+          },
+          {
+            "step": 7,
+            "label": "= Implied value per share",
+            "value": 107.28985446270103
+          }
+        ]
+      },
+      "upside": {
+        "scenario": "upside",
+        "wacc_pct": 8.86177,
+        "terminal_growth_pct": 2.5,
+        "ufcf_by_year": {
+          "2026": 4431.671900880003,
+          "2027": 3526.316452902999,
+          "2028": 4060.5593348913208,
+          "2029": 4623.707737104981,
+          "2030": 5216.741811973779
+        },
+        "pv_ufcf_by_year": {
+          "2026": 4070.9166320554987,
+          "2027": 2975.5722568937426,
+          "2028": 3147.456141461243,
+          "2029": 3292.2197012820548,
+          "2030": 3412.10499543501
+        },
+        "pv_explicit_period": 16898.26972712755,
+        "terminal_year_ufcf": 5216.741811973779,
+        "terminal_value_undiscounted": 84051.45670580865,
+        "pv_terminal_value": 54975.386100423086,
+        "enterprise_value": 71873.65582755064,
+        "valuation_date_net_debt": 8855.0,
+        "equity_value": 63018.65582755064,
+        "valuation_date_diluted_shares": 455.6,
+        "implied_value_per_share": 138.32014009558964,
+        "bridge": [
+          {
+            "step": 1,
+            "label": "PV of explicit-period UFCF (FY2026-FY2030)",
+            "value": 16898.26972712755
+          },
+          {
+            "step": 2,
+            "label": "+ PV of terminal value",
+            "value": 54975.386100423086
+          },
+          {
+            "step": 3,
+            "label": "= Enterprise value",
+            "value": 71873.65582755064
+          },
+          {
+            "step": 4,
+            "label": "- Net debt (FY2025 actual, valuation_net_debt_excluding_leases)",
+            "value": -8855.0
+          },
+          {
+            "step": 5,
+            "label": "= Equity value",
+            "value": 63018.65582755064
+          },
+          {
+            "step": 6,
+            "label": "/ Diluted shares (FY2025 actual)",
+            "value": 455.6
+          },
+          {
+            "step": 7,
+            "label": "= Implied value per share",
+            "value": 138.32014009558964
+          }
+        ]
+      },
+      "downside": {
+        "scenario": "downside",
+        "wacc_pct": 8.86177,
+        "terminal_growth_pct": 2.5,
+        "ufcf_by_year": {
+          "2026": 2195.48808095,
+          "2027": 3787.1936528956285,
+          "2028": 3311.2201160051072,
+          "2029": 2855.1007779972583,
+          "2030": 2420.104580963286
+        },
+        "pv_ufcf_by_year": {
+          "2026": 2016.766841977675,
+          "2027": 3195.7053530357925,
+          "2028": 2566.6217952530483,
+          "2029": 2032.9180746085894,
+          "2030": 1582.9134789125512
+        },
+        "pv_explicit_period": 11394.925543787656,
+        "terminal_year_ufcf": 2420.104580963286,
+        "terminal_value_undiscounted": 38992.40613048519,
+        "pv_terminal_value": 25503.693404278445,
+        "enterprise_value": 36898.6189480661,
+        "valuation_date_net_debt": 8855.0,
+        "equity_value": 28043.618948066098,
+        "valuation_date_diluted_shares": 455.6,
+        "implied_value_per_share": 61.55315835835403,
+        "bridge": [
+          {
+            "step": 1,
+            "label": "PV of explicit-period UFCF (FY2026-FY2030)",
+            "value": 11394.925543787656
+          },
+          {
+            "step": 2,
+            "label": "+ PV of terminal value",
+            "value": 25503.693404278445
+          },
+          {
+            "step": 3,
+            "label": "= Enterprise value",
+            "value": 36898.6189480661
+          },
+          {
+            "step": 4,
+            "label": "- Net debt (FY2025 actual, valuation_net_debt_excluding_leases)",
+            "value": -8855.0
+          },
+          {
+            "step": 5,
+            "label": "= Equity value",
+            "value": 28043.618948066098
+          },
+          {
+            "step": 6,
+            "label": "/ Diluted shares (FY2025 actual)",
+            "value": 455.6
+          },
+          {
+            "step": 7,
+            "label": "= Implied value per share",
+            "value": 61.55315835835403
+          }
+        ]
+      }
+    },
+    "wacc_terminal_growth_sensitivity": {
+      "scenario": "base",
+      "base_wacc_pct": 8.86177,
+      "base_terminal_growth_pct": 2.5,
+      "grid": [
+        {
+          "wacc_delta": -1.0,
+          "wacc_pct": 7.86177,
+          "cells": [
+            {
+              "growth_delta": -1.0,
+              "terminal_growth_pct": 1.5,
+              "implied_value_per_share": 111.66153116095825
+            },
+            {
+              "growth_delta": -0.5,
+              "terminal_growth_pct": 2.0,
+              "implied_value_per_share": 120.51802034761612
+            },
+            {
+              "growth_delta": 0.0,
+              "terminal_growth_pct": 2.5,
+              "implied_value_per_share": 131.02629414768666
+            },
+            {
+              "growth_delta": 0.5,
+              "terminal_growth_pct": 3.0,
+              "implied_value_per_share": 143.69597702306734
+            },
+            {
+              "growth_delta": 1.0,
+              "terminal_growth_pct": 3.5,
+              "implied_value_per_share": 159.27037125997808
+            }
+          ]
+        },
+        {
+          "wacc_delta": -0.5,
+          "wacc_pct": 8.36177,
+          "cells": [
+            {
+              "growth_delta": -1.0,
+              "terminal_growth_pct": 1.5,
+              "implied_value_per_share": 102.024100084765
+            },
+            {
+              "growth_delta": -0.5,
+              "terminal_growth_pct": 2.0,
+              "implied_value_per_share": 109.45121295026847
+            },
+            {
+              "growth_delta": 0.0,
+              "terminal_growth_pct": 2.5,
+              "implied_value_per_share": 118.14536851200589
+            },
+            {
+              "growth_delta": 0.5,
+              "terminal_growth_pct": 3.0,
+              "implied_value_per_share": 128.46103256100358
+            },
+            {
+              "growth_delta": 1.0,
+              "terminal_growth_pct": 3.5,
+              "implied_value_per_share": 140.89848847777736
+            }
+          ]
+        },
+        {
+          "wacc_delta": 0.0,
+          "wacc_pct": 8.86177,
+          "cells": [
+            {
+              "growth_delta": -1.0,
+              "terminal_growth_pct": 1.5,
+              "implied_value_per_share": 93.697123311148
+            },
+            {
+              "growth_delta": -0.5,
+              "terminal_growth_pct": 2.0,
+              "implied_value_per_share": 99.9982547435638
+            },
+            {
+              "growth_delta": 0.0,
+              "terminal_growth_pct": 2.5,
+              "implied_value_per_share": 107.28985446270103
+            },
+            {
+              "growth_delta": 0.5,
+              "terminal_growth_pct": 3.0,
+              "implied_value_per_share": 115.82537875055
+            },
+            {
+              "growth_delta": 1.0,
+              "terminal_growth_pct": 3.5,
+              "implied_value_per_share": 125.95282590861697
+            }
+          ]
+        },
+        {
+          "wacc_delta": 0.5,
+          "wacc_pct": 9.36177,
+          "cells": [
+            {
+              "growth_delta": -1.0,
+              "terminal_growth_pct": 1.5,
+              "implied_value_per_share": 86.43054174540397
+            },
+            {
+              "growth_delta": -0.5,
+              "terminal_growth_pct": 2.0,
+              "implied_value_per_share": 91.83029362046969
+            },
+            {
+              "growth_delta": 0.0,
+              "terminal_growth_pct": 2.5,
+              "implied_value_per_share": 98.01697829495384
+            },
+            {
+              "growth_delta": 0.5,
+              "terminal_growth_pct": 3.0,
+              "implied_value_per_share": 105.17614148948579
+            },
+            {
+              "growth_delta": 1.0,
+              "terminal_growth_pct": 3.5,
+              "implied_value_per_share": 113.55663598745198
+            }
+          ]
+        },
+        {
+          "wacc_delta": 1.0,
+          "wacc_pct": 9.86177,
+          "cells": [
+            {
+              "growth_delta": -1.0,
+              "terminal_growth_pct": 1.5,
+              "implied_value_per_share": 80.03410714333997
+            },
+            {
+              "growth_delta": -0.5,
+              "terminal_growth_pct": 2.0,
+              "implied_value_per_share": 84.70213658666226
+            },
+            {
+              "growth_delta": 0.0,
+              "terminal_growth_pct": 2.5,
+              "implied_value_per_share": 90.0042566689643
+            },
+            {
+              "growth_delta": 0.5,
+              "terminal_growth_pct": 3.0,
+              "implied_value_per_share": 96.07908118209137
+            },
+            {
+              "growth_delta": 1.0,
+              "terminal_growth_pct": 3.5,
+              "implied_value_per_share": 103.10880103301392
+            }
+          ]
+        }
+      ]
+    },
+    "operating_margin_revenue_growth_sensitivity": {
+      "scenario": "base",
+      "grid": [
+        {
+          "gross_margin_delta": -0.5,
+          "cells": [
+            {
+              "revenue_growth_delta": -1.0,
+              "implied_value_per_share": 89.17870056332335,
+              "enterprise_value": 49484.81597665012
+            },
+            {
+              "revenue_growth_delta": -0.5,
+              "implied_value_per_share": 91.56328552408121,
+              "enterprise_value": 50571.2328847714
+            },
+            {
+              "revenue_growth_delta": 0.0,
+              "implied_value_per_share": 93.99373378984671,
+              "enterprise_value": 51678.54511465417
+            },
+            {
+              "revenue_growth_delta": 0.5,
+              "implied_value_per_share": 96.4707244388792,
+              "enterprise_value": 52807.062054353366
+            },
+            {
+              "revenue_growth_delta": 1.0,
+              "implied_value_per_share": 98.99494330213659,
+              "enterprise_value": 53957.096168453434
+            }
+          ]
+        },
+        {
+          "gross_margin_delta": -0.25,
+          "cells": [
+            {
+              "revenue_growth_delta": -1.0,
+              "implied_value_per_share": 95.55059117866027,
+              "enterprise_value": 52387.84934099762
+            },
+            {
+              "revenue_growth_delta": -0.5,
+              "implied_value_per_share": 98.07202754635452,
+              "enterprise_value": 53536.61575011912
+            },
+            {
+              "revenue_growth_delta": 0.0,
+              "implied_value_per_share": 100.6417941262738,
+              "enterprise_value": 54707.401403930344
+            },
+            {
+              "revenue_growth_delta": 0.5,
+              "implied_value_per_share": 103.26060418938802,
+              "enterprise_value": 55900.53126868518
+            },
+            {
+              "revenue_growth_delta": 1.0,
+              "implied_value_per_share": 105.92917807707397,
+              "enterprise_value": 57116.333531914905
+            }
+          ]
+        },
+        {
+          "gross_margin_delta": 0.0,
+          "cells": [
+            {
+              "revenue_growth_delta": -1.0,
+              "implied_value_per_share": 101.92248179399722,
+              "enterprise_value": 55290.88270534514
+            },
+            {
+              "revenue_growth_delta": -0.5,
+              "implied_value_per_share": 104.5807695686277,
+              "enterprise_value": 56501.998615466786
+            },
+            {
+              "revenue_growth_delta": 0.0,
+              "implied_value_per_share": 107.28985446270103,
+              "enterprise_value": 57736.25769320659
+            },
+            {
+              "revenue_growth_delta": 0.5,
+              "implied_value_per_share": 110.05048393989672,
+              "enterprise_value": 58994.00048301695
+            },
+            {
+              "revenue_growth_delta": 1.0,
+              "implied_value_per_share": 112.86341285201122,
+              "enterprise_value": 60275.57089537632
+            }
+          ]
+        },
+        {
+          "gross_margin_delta": 0.25,
+          "cells": [
+            {
+              "revenue_growth_delta": -1.0,
+              "implied_value_per_share": 108.29437240933402,
+              "enterprise_value": 58193.91606969258
+            },
+            {
+              "revenue_growth_delta": -0.5,
+              "implied_value_per_share": 111.0895115909009,
+              "enterprise_value": 59467.38148081445
+            },
+            {
+              "revenue_growth_delta": 0.0,
+              "implied_value_per_share": 113.93791479912814,
+              "enterprise_value": 60765.113982482784
+            },
+            {
+              "revenue_growth_delta": 0.5,
+              "implied_value_per_share": 116.8403636904055,
+              "enterprise_value": 62087.469697348744
+            },
+            {
+              "revenue_growth_delta": 1.0,
+              "implied_value_per_share": 119.7976476269485,
+              "enterprise_value": 63434.808258837744
+            }
+          ]
+        },
+        {
+          "gross_margin_delta": 0.5,
+          "cells": [
+            {
+              "revenue_growth_delta": -1.0,
+              "implied_value_per_share": 114.66626302467095,
+              "enterprise_value": 61096.94943404009
+            },
+            {
+              "revenue_growth_delta": -0.5,
+              "implied_value_per_share": 117.5982536131742,
+              "enterprise_value": 62432.76434616216
+            },
+            {
+              "revenue_growth_delta": 0.0,
+              "implied_value_per_share": 120.58597513555527,
+              "enterprise_value": 63793.97027175898
+            },
+            {
+              "revenue_growth_delta": 0.5,
+              "implied_value_per_share": 123.63024344091436,
+              "enterprise_value": 65180.93891168058
+            },
+            {
+              "revenue_growth_delta": 1.0,
+              "implied_value_per_share": 126.73188240188578,
+              "enterprise_value": 66594.04562229916
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "validation": {
+    "forecast": {
+      "total": 229,
+      "PASS": 229,
+      "FAIL": 0,
+      "WARNING": 0
+    },
+    "valuation": {
+      "total": 28,
+      "PASS": 28,
+      "FAIL": 0,
+      "WARNING": 0
+    }
+  }
+}
