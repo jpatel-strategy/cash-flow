@@ -61,7 +61,14 @@ double counting.
    double-subtracting mandatory debt repayments — corrected by splitting
    the metric into **self-funded capacity generated**, **debt-funded
    capacity** (shown separately, never as internally generated cash), and
-   **remaining deployable headroom**; see `docs/investment_capacity_correction_evidence.md`.
+   **remaining deployable headroom**. A third review found even that
+   correction still labeled *gross* debt issuance as capacity even when
+   the same cash was simultaneously repaid — fixed by netting debt-funded
+   capacity to proceeds *in excess of* repayments (zero when they're
+   equal or repayments are larger), excluding opening liquidity entirely
+   from "capacity generated," and reserving a forward year's known debt
+   service before calling the residual "headroom"; see
+   `docs/investment_capacity_correction_evidence.md`.
 4. **A restrained DCF valuation** (Milestone 4): explicit WACC build,
    Gordon Growth terminal value, and a valuation bridge to per-share
    value — with checks preventing the two most common DCF errors
@@ -80,22 +87,29 @@ double counting.
 |---|---|---|---|
 | Revenue | $110,125M | $121,469M | $92,321M |
 | Diluted EPS | $8.18 | $13.15 | $2.71 |
-| Self-Funded Capacity Generated | $6,315M | $3,942M | $5,888M |
-| Debt-Funded Capacity (separate) | $700M | $300M | $500M |
+| Opening Excess Liquidity (stock, separate) | $5,424M | $2,218M | $6,158M |
+| Self-Funded Capacity Generated | $1,591M | $2,024M | $30M |
+| Debt-Funded Capacity (net of repayment) | $0M | $0M | $200M |
 | Discretionary Deployment | $636M | $1,498M | $0M |
-| Remaining Deployable Headroom | $6,379M | $2,743M | $6,388M |
+| Forward Debt-Repayment Reserve | $0M | $700M | $0M |
+| Remaining Deployable Headroom | $6,379M | $2,044M | $6,388M |
 | Implied DCF Value/Share | $107.29 | $138.32 | $61.55 |
 
 Note the counterintuitive result: Upside shows *lower* remaining
-headroom than Base, despite generating more self-funded capacity overall
-— because Upside deploys more of it (higher buyback payout, faster
-deleveraging) rather than letting it sit idle. A model that only showed
-"capacity went up" without this context would mislead a decision-maker;
-this one shows the full waterfall, with debt-funded capacity always
-called out separately, so the tradeoff is visible. (Legacy `Deployable
+headroom than Base, despite generating more self-funded capacity —
+because Upside deploys far more of it (higher buyback payout, faster
+deleveraging) rather than letting it sit idle, *and* it carries a real
+$700M forward reserve for a known FY2031 debt repayment that exceeds
+that year's expected proceeds. A model that only showed "capacity went
+up" without this context would mislead a decision-maker; this one shows
+the full waterfall, with debt-funded capacity always net of simultaneous
+repayment (Base and Upside both show $0 here despite $700M/$300M of
+gross issuance, because each is fully offset by an equal-or-larger
+repayment in the same year) and opening liquidity always broken out as
+a separate stock, so the tradeoff is visible. (Legacy `Deployable
 Capacity` figure, kept only as deprecated methodology evidence: $6,315M
-/ $3,242M / $6,088M — see the correction evidence doc for why the Upside
-and Downside values changed.)
+/ $3,242M / $6,088M — see the correction evidence doc for the full
+before/after derivation.)
 
 ## Why this matters for a finance role, not a software role
 

@@ -66,9 +66,9 @@ commit for the system audit, follow this one.)
 
 ## Tests
 
-437 automated tests across 22 test files in `tests/unit/`, all passing.
-Plus 3 script-based, non-pytest verification suites (Excel: 28 checks;
-Power BI: 129 checks; web cockpit: 27 checks) — all passing.
+453 automated tests across 22 test files in `tests/unit/`, all passing.
+Plus 3 script-based, non-pytest verification suites (Excel: 34 checks;
+Power BI: 159 checks; web cockpit: 30 checks) — all passing.
 
 ## Scripts (`scripts/`)
 
@@ -82,8 +82,10 @@ Reproducibility: `clean_room_rebuild.py`, `compare_databases.py`.
 
 ## Database (`data/curated/target_cash.db`)
 
-28 tables, 6,101 total rows as of the last full pipeline run, including
-the capacity-taxonomy correction round. Backed up
+28 tables, 6,646 total rows as of the last full pipeline run, including
+both the original capacity-taxonomy correction round (`v1`, preserved
+for audit trail) and its v2 finance-semantics follow-up correction
+(`v2`, current). Backed up
 before every persistence milestone (backups retained under
 `data/curated/*.backup-*`).
 
@@ -99,9 +101,9 @@ documents for Milestones 1-3.
 
 | Path | Milestone | Contents |
 |---|---|---|
-| `Target_Cash_Flow_Investment_Capacity_Model.xlsx` | 5 | 15-sheet Excel workbook, live-formula scenario selector, including the corrected capacity taxonomy, verified via the `formulas` package (28 checks — formula outputs programmatically reconciled to the Python engine, never opened in Excel). |
-| `powerbi_handoff/` | 6 | Star-schema CSV exports (5 dim + 9 fact tables, incl. 2 capacity-taxonomy fact tables), data dictionary, relationship map, DAX measures, theme, 8 page specs + wireframes, refresh instructions, validation totals. Verified via 129 checks. No `.pbix` — none claimed. |
-| `web_cockpit/` | 7 | Static HTML/CSS/JS web app, 10 interface areas, editable what-if sandbox, corrected capacity KPI cards and waterfall, verified via 27 Playwright-driven checks. Not deployed publicly. |
+| `Target_Cash_Flow_Investment_Capacity_Model.xlsx` | 5 | 15-sheet Excel workbook, live-formula scenario selector, including the v2 finance-semantics-corrected capacity taxonomy, verified via the `formulas` package (34 checks — formula outputs programmatically reconciled to the Python engine, never opened in Excel). |
+| `powerbi_handoff/` | 6 | Star-schema CSV exports (5 dim + 9 fact tables, incl. 2 capacity-taxonomy fact tables filtered to the current taxonomy version), data dictionary, relationship map, DAX measures, theme, 8 page specs + wireframes, refresh instructions, validation totals. Verified via 159 checks. No `.pbix` — none claimed. |
+| `web_cockpit/` | 7 | Static HTML/CSS/JS web app, 10 interface areas, editable what-if sandbox, corrected (v2) capacity KPI cards and waterfall, verified via 30 Playwright-driven checks. Not deployed publicly. |
 | `portfolio_package/` | 8 | This folder — 14 recruiter/portfolio deliverables. |
 
 ## What is explicitly NOT in this project

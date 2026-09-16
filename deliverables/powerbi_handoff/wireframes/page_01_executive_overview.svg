@@ -23,18 +23,21 @@
 <rect x="1020" y="100" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
 <text x="1140.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
 <text x="1140.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Funding Warning?</text>
-<rect x="20" y="190" width="300" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
-<text x="170.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
-<text x="170.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Self-Funded Capacity Generated</text>
-<rect x="330" y="190" width="300" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
-<text x="480.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
-<text x="480.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Debt-Funded Capacity (shown separately)</text>
-<rect x="640" y="190" width="300" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
-<text x="790.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
-<text x="790.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Discretionary Deployment</text>
-<rect x="950" y="190" width="310" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
-<text x="1105.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
-<text x="1105.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Remaining Deployable Headroom (corrected KPI)</text>
+<rect x="20" y="190" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="140.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="140.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Opening Excess Liquidity (stock)</text>
+<rect x="270" y="190" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="390.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="390.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Self-Funded Capacity Generated</text>
+<rect x="520" y="190" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="640.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="640.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Debt-Funded Capacity (net of repayment)</text>
+<rect x="770" y="190" width="220" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="880.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="880.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Discretionary Deployment</text>
+<rect x="1000" y="190" width="260" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="1130.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="1130.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Remaining Deployable Headroom (corrected KPI)</text>
 <rect x="20" y="290" width="610" height="200" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
 <text x="325.0" y="384.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Line Chart</text>
 <text x="325.0" y="402.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Revenue &amp; FCF: Actual (solid) vs Forecast (dashed), FY21-FY30</text>

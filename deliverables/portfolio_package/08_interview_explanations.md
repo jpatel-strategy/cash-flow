@@ -42,7 +42,14 @@ repayments and blending self-funded cash with new borrowing into one
 ambiguous number. I split it into self-funded capacity, debt-funded
 capacity shown separately, discretionary deployment, and remaining
 headroom — and kept the old field in the data, clearly relabeled as
-deprecated, so nothing about the historical record silently changed.
+deprecated, so nothing about the historical record silently changed. A
+third pass on the same area caught something even that fix missed: gross
+debt issuance was still being counted as capacity even when it was
+simultaneously repaid — $700M borrowed and $700M repaid in the same year
+isn't $700M of new capacity, it's zero. I netted it, so debt-funded
+capacity is only ever the amount by which new borrowing exceeds
+repayment, and split out opening cash as its own line so it's never
+mistaken for capacity a year actually generated.
 
 "On top of that I built a restrained DCF valuation, clearly labeled as
 scenario analysis and not a price target, and then four ways to consume
@@ -50,7 +57,7 @@ the whole thing: a 15-sheet Excel model with a live scenario selector, a
 Power BI-ready data package, a web dashboard with an interactive what-if
 sandbox, and a written case study.
 
-"The whole thing is backed by 401 automated tests and a clean-room
+"The whole thing is backed by 453 automated tests and a clean-room
 rebuild script that reproduces the entire database from scratch, from
 just the source filings — so every number in it is provably
 reproducible, not just displayed. And I kept a full decision log the

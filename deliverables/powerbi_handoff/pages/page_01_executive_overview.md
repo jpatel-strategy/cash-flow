@@ -23,13 +23,14 @@ evidence backs all of it.
 | Validation Status | Card (conditional formatting: green if 100%) | — | `Validation Status (Combined Label)` |
 | Net Debt (Valuation Date) | Card | `dim_scenario` | `Net Debt (DCF Valuation Date, FY2025 Actual)` |
 | Funding Warning? | Card (red icon if true) | `dim_scenario`, `dim_fiscal_year` | From `fact_forecast[metric="funding_warning"]` |
-| **Self-Funded Capacity Generated** | Card | `dim_scenario`, `dim_fiscal_year` | `Self-Funded Capacity Generated` |
-| **Debt-Funded Capacity** (shown separately, never combined into the self-funded card) | Card | same | `Debt-Funded Capacity` |
+| **Opening Excess Liquidity** (a STOCK, shown separately, never labeled "generated") | Card | `dim_scenario`, `dim_fiscal_year` | `Opening Excess Liquidity` |
+| **Self-Funded Capacity Generated** | Card | same | `Self-Funded Capacity Generated` |
+| **Debt-Funded Capacity** (net of simultaneous repayment; shown separately, never combined into the self-funded card) | Card | same | `Debt-Funded Capacity` |
 | **Discretionary Deployment** | Card | same | `Discretionary Deployment` |
-| **Remaining Deployable Headroom** (the corrected executive KPI) | Card, visually the largest/most prominent capacity card | same | `Remaining Deployable Headroom` |
+| **Remaining Deployable Headroom** (the corrected executive KPI; net of deployment AND a forward debt-repayment reserve) | Card, visually the largest/most prominent capacity card | same | `Remaining Deployable Headroom` |
 | Revenue & FCF, Actual vs Forecast | Line chart, dual series | X: `dim_fiscal_year[fiscal_year]`; Y: `Historical Revenue`/`Forecast Revenue` as two distinctly colored+dashed series | See "Formatting conventions" in `dax_measures.md` |
-| Remaining Deployable Headroom by Scenario | Clustered column, WITH a second series for Discretionary Deployment shown alongside | X: `dim_scenario[scenario_name]`; Y1: `Remaining Deployable Headroom`; Y2: `Discretionary Deployment` | So a viewer can see immediately why a higher-revenue scenario can show lower headroom (it deployed more) |
-| Capital Allocation Waterfall (mini) | Waterfall chart | Category: waterfall step label; Y: dollar amount | Opening Excess Liquidity → + internally generated capacity → + debt-funded capacity → − discretionary deployment → = headroom; from `fact_capacity_taxonomy` |
+| Remaining Deployable Headroom by Scenario | Clustered column, WITH a second series for Discretionary Deployment shown alongside | X: `dim_scenario[scenario_name]`; Y1: `Remaining Deployable Headroom`; Y2: `Discretionary Deployment` | So a viewer can see immediately why a higher-revenue scenario can show lower headroom (it deployed more, or carries a real forward debt-service reserve) |
+| Capital Allocation Waterfall (mini) | Waterfall chart | Category: waterfall step label; Y: dollar amount | Opening Excess Liquidity → + Self-Funded Capacity Generated → + Debt-Funded Capacity (net of repayment) → − Discretionary Deployment → − Forward Debt-Repayment Reserve → = Remaining Deployable Headroom; from `fact_capacity_taxonomy` |
 | Key Evidence Citations | Table | `dim_filing[accession_number, form_type, filed_at, primary_document_url]` | — |
 
 **Never display the legacy `Deployable Capacity` measure (from
@@ -49,8 +50,10 @@ state.
 - No visual on this page should silently mix `as_originally_filed` and
   `latest_restated` — filter `fact_annual_historical` to
   `analytical_view = "latest_restated"` everywhere on this page.
-- **Milestone 9 correction**: no label on this page may say "deployable
-  capacity" without specifying whether it means gross capacity or
-  remaining headroom — use the 4 corrected labels (Self-Funded, Debt-
-  Funded, Discretionary Deployment, Remaining Deployable Headroom)
-  exactly as named in `dax_measures.md`, never a bare "Capacity" label.
+- **Milestone 9 v2 finance-semantics correction**: no label on this page
+  may say "deployable capacity" without specifying whether it means
+  gross capacity or remaining headroom — use the 5 corrected labels
+  (Opening Excess Liquidity, Self-Funded, Debt-Funded, Discretionary
+  Deployment, Remaining Deployable Headroom) exactly as named in
+  `dax_measures.md`, never a bare "Capacity" label. Debt-Funded Capacity
+  is always the NET of proceeds over repayments — never gross issuance.

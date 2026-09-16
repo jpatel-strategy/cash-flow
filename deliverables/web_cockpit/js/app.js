@@ -2,7 +2,7 @@
   "use strict";
 
   const { lineChart, barChart, waterfallChart, fmtM } = window.TargetCashCharts;
-  const { runFromMetrics, computeCapacityTaxonomyYear } = window.TargetCashFormulas;
+  const { runFromMetrics, computeCapacityTaxonomyForYears } = window.TargetCashFormulas;
 
   const SCENARIO_COLORS = { base: "#1F3864", upside: "#548235", downside: "#C00000" };
 
@@ -103,10 +103,11 @@
     const capGrid = document.getElementById("capacity-kpi-grid");
     capGrid.innerHTML = "";
     const capTerminal = sc.capacity_taxonomy_by_year[String(terminal.fiscal_year)];
-    capGrid.appendChild(kpiCard("Self-Funded Capacity Generated", fmtM(capTerminal.self_funded_gross_capacity), "excludes new borrowing"));
-    capGrid.appendChild(kpiCard("Debt-Funded Capacity", fmtM(capTerminal.debt_funded_incremental_capacity), "shown separately — never internally generated"));
+    capGrid.appendChild(kpiCard("Opening Excess Liquidity", fmtM(capTerminal.opening_excess_liquidity), "a STOCK carried forward — never labeled 'generated'"));
+    capGrid.appendChild(kpiCard("Self-Funded Capacity Generated", fmtM(capTerminal.self_funded_capacity_generated), "this period's flow only, excludes the opening stock and nets mandatory debt service"));
+    capGrid.appendChild(kpiCard("Debt-Funded Capacity", fmtM(capTerminal.debt_funded_incremental_capacity), "net of simultaneous repayment — gross issuance that is repaid is never capacity"));
     capGrid.appendChild(kpiCard("Discretionary Deployment", fmtM(capTerminal.total_discretionary_deployment), "repurchases + other discretionary uses"));
-    capGrid.appendChild(kpiCard("Remaining Deployable Headroom", fmtM(capTerminal.remaining_deployable_headroom), "the corrected KPI — net of this year's own deployment"));
+    capGrid.appendChild(kpiCard("Remaining Deployable Headroom", fmtM(capTerminal.remaining_deployable_headroom), "net of deployment AND a forward debt-repayment reserve"));
 
     const histSeries = DATA.historical_years.map((fy) => ({
       fy: Number(fy), value: DATA.historical[fy].revenue,
@@ -264,16 +265,18 @@
       ],
     });
 
-    // Corrected capacity taxonomy waterfall (Milestone 9 correction).
+    // Corrected (v2) capacity taxonomy waterfall -- opening liquidity (a STOCK)
+    // is its own line, never blended into "capacity generated"; debt is shown
+    // NET of simultaneous repayment; the forward debt-repayment reserve is
+    // held back before the residual is called "headroom."
     waterfallChart(document.getElementById("chart-capacity-taxonomy"), {
       steps: [
-        { label: "Opening Excess Liquidity", amount: capTerminal.opening_excess_liquidity, isTotal: true },
-        { label: "+ Post-Dividend Internal Generation", amount: capTerminal.post_dividend_internal_generation },
-        { label: "− Mandatory Debt Uses", amount: -capTerminal.mandatory_debt_uses },
-        { label: "= Self-Funded Gross Capacity", amount: capTerminal.self_funded_gross_capacity, isTotal: true },
-        { label: "+ Debt-Funded Capacity (new borrowing)", amount: capTerminal.debt_funded_incremental_capacity },
+        { label: "Opening Excess Liquidity (STOCK)", amount: capTerminal.opening_excess_liquidity, isTotal: true },
+        { label: "+ Self-Funded Capacity Generated (B − net debt service)", amount: capTerminal.self_funded_capacity_generated },
+        { label: "+ Debt-Funded Capacity (net of simultaneous repayment)", amount: capTerminal.debt_funded_incremental_capacity },
         { label: "= Total Gross Funding Capacity", amount: capTerminal.total_gross_funding_capacity, isTotal: true },
         { label: "− Discretionary Deployment", amount: -capTerminal.total_discretionary_deployment },
+        { label: "− Forward Debt-Repayment Reserve", amount: -capTerminal.forward_debt_repayment_reserve },
         { label: "= Remaining Deployable Headroom", amount: capTerminal.remaining_deployable_headroom, isTotal: true },
       ],
     });
@@ -297,25 +300,34 @@
         ["Cumulative Discretionary Deployment", fmtM(hz.cumulative_discretionary_deployment)],
         ["Terminal Remaining Headroom (FY2030)", fmtM(hz.terminal_remaining_headroom)],
         ["Ending Reserve Movement", fmtM(hz.ending_reserve_movement)],
+        ["Terminal Forward Debt-Repayment Reserve (FY2031 proxy)", fmtM(hz.terminal_forward_debt_repayment_reserve)],
         [{ text: "Total Horizon Capacity Accessible", className: "reclassified" }, { text: fmtM(hz.total_horizon_capacity_accessible), className: "reclassified" }],
       ]
     );
 
     const table = document.getElementById("table-capacity");
-    table.dataset.caption = `Corrected capacity taxonomy detail — ${currentScenario} scenario (legacy fields shown at bottom, deprecated)`;
+    table.dataset.caption = `Corrected (v2) capacity taxonomy detail — ${currentScenario} scenario (legacy/deprecated fields shown at bottom)`;
     const metrics = [
       ["A. Operating FCF", "operating_fcf"], ["B. Post-Dividend Internal Generation", "post_dividend_internal_generation"],
-      ["Opening Excess Liquidity", "opening_excess_liquidity"], ["Mandatory Debt Uses", "mandatory_debt_uses"],
-      ["C. Self-Funded Gross Capacity", "self_funded_gross_capacity"], ["D. Debt-Funded Incremental Capacity", "debt_funded_incremental_capacity"],
+      ["Opening Excess Liquidity (STOCK)", "opening_excess_liquidity"],
+      ["Gross Debt Proceeds (supporting)", "gross_debt_proceeds"], ["Gross Debt Repayments (supporting)", "gross_debt_repayments"],
+      ["Net Mandatory Debt Service", "net_mandatory_debt_service"],
+      ["C. Self-Funded Capacity Generated (excludes opening liquidity)", "self_funded_capacity_generated"],
+      ["D. Debt-Funded Incremental Capacity (net of repayment)", "debt_funded_incremental_capacity"],
       ["E. Total Gross Funding Capacity", "total_gross_funding_capacity"], ["Share Repurchases", "share_repurchases"],
       ["F. Total Discretionary Deployment", "total_discretionary_deployment"],
+      ["Forward Debt-Repayment Reserve", "forward_debt_repayment_reserve"],
       ["G. Remaining Deployable Headroom", "remaining_deployable_headroom"],
-      ["Ending Excess Liquidity (cross-check of G)", "ending_excess_liquidity"],
+      ["Ending Excess Liquidity (cross-check: G = this − forward reserve)", "ending_excess_liquidity"],
     ];
     const rows = metrics.map(([label, key]) => [label, ...capYears.map((cy) => fmtM(cy[key]))]);
     rows.push([
-      { text: "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED)", className: "reclassified" },
+      { text: "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED, v1)", className: "reclassified" },
       ...years.map((y) => ({ text: fmtM(y.deployable_capacity), className: "reclassified" })),
+    ]);
+    rows.push([
+      { text: "Deprecated: Self-Funded Gross Capacity incl. opening stock (v1-style, never labeled 'generated')", className: "reclassified" },
+      ...capYears.map((cy) => ({ text: fmtM(cy.self_funded_gross_capacity), className: "reclassified" })),
     ]);
     renderTable(table, ["Metric", ...years.map((y) => "FY" + y.fiscal_year)], rows);
   }
@@ -503,13 +515,15 @@
 
     const result = runFromMetrics(seed, metrics);
     const terminal = result[result.length - 1];
-    const capTerminal = computeCapacityTaxonomyYear(terminal);
+    const capYears = computeCapacityTaxonomyForYears(result);
+    const capTerminal = capYears[capYears.length - 1];
 
     const out = document.getElementById("whatif-results");
     out.innerHTML = "";
     out.appendChild(kpiCard("FY2030 Revenue", fmtM(terminal.revenue)));
     out.appendChild(kpiCard("FY2030 Free Cash Flow", fmtM(terminal.free_cash_flow)));
-    out.appendChild(kpiCard("FY2030 Self-Funded Capacity", fmtM(capTerminal.self_funded_gross_capacity)));
+    out.appendChild(kpiCard("FY2030 Opening Excess Liquidity", fmtM(capTerminal.opening_excess_liquidity)));
+    out.appendChild(kpiCard("FY2030 Self-Funded Capacity Generated", fmtM(capTerminal.self_funded_capacity_generated)));
     out.appendChild(kpiCard("FY2030 Debt-Funded Capacity", fmtM(capTerminal.debt_funded_incremental_capacity)));
     out.appendChild(kpiCard("FY2030 Discretionary Deployment", fmtM(capTerminal.total_discretionary_deployment)));
     out.appendChild(kpiCard("FY2030 Remaining Deployable Headroom", fmtM(capTerminal.remaining_deployable_headroom)));
@@ -576,6 +590,8 @@
     "Minimum-cash-buffer and near-term reserve percentages are policy assumptions calibrated to Target's own observed FY2025 quarterly cash seasonality, not a disclosed corporate policy.",
     "Milestone 9 correction: the legacy 'deployable capacity' figure (still shown, de-emphasized, in the Cash Bridge section for backward compatibility) was found to be a gross, pre-discretionary ceiling that never subtracted a given year's own repurchases and commingled new borrowing with internally generated cash. The corrected taxonomy (Self-Funded Capacity Generated, Debt-Funded Capacity, Discretionary Deployment, Remaining Deployable Headroom) replaces it as the executive KPI — see docs/investment_capacity_correction_evidence.md.",
     "strategic_investment, voluntary_debt_reduction, and other_discretionary_uses in the corrected taxonomy are structural $0 placeholders — no policy lever has been modeled for them this round.",
+    "v2 finance-semantics correction: debt_funded_incremental_capacity previously equaled gross debt proceeds, mislabeling capacity even when the same cash was simultaneously repaid. It is now the NET of proceeds over repayments (net deleveraging or equal proceeds/repayments produce zero incremental capacity); the offsetting net_mandatory_debt_service is subtracted from self_funded_capacity_generated, which now excludes opening_excess_liquidity entirely (a stock is never labeled 'generated'). Remaining Deployable Headroom now also deducts a forward debt-repayment reserve.",
+    "The forward debt-repayment reserve for the terminal forecast year (FY2030) is a documented PROXY (it repeats FY2030's own net mandatory debt service) because FY2031 is outside the forecast horizon — it is not a real scheduled obligation.",
   ];
   function renderAbout() {
     const list = document.getElementById("limitations-list");

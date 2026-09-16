@@ -110,13 +110,18 @@ dep_row = row_of(ws_ic, "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED -- s
 wf_end_row = row_of(ws_ca, "8. = Ending Cash")
 proof_row = row_of(ws_ca, "Ending Cash (Sheet 8) matches Step 8 above?")
 
-# Milestone 9 correction: corrected capacity taxonomy row lookups.
-self_funded_row = row_of(ws_ic, "C. Self-Funded Gross Capacity (excl. new borrowing)")
-debt_funded_row = row_of(ws_ic, "D. Debt-Funded Incremental Capacity (new borrowing)")
-total_funding_row = row_of(ws_ic, "E. TOTAL GROSS FUNDING CAPACITY (C + D)")
+# v2 finance-semantics correction: corrected capacity taxonomy row lookups.
+opening_liquidity_row = row_of(ws_ic, "Opening Excess Liquidity (STOCK, = MAX(0, beg. cash - buffer)) -- never labeled 'generated'")
+gross_proceeds_row = row_of(ws_ic, "  Gross Debt Proceeds (supporting, transparent)")
+gross_repayments_row = row_of(ws_ic, "  Gross Debt Repayments (supporting, transparent)")
+net_debt_service_row = row_of(ws_ic, "Net Mandatory Debt Service (= MAX(0, gross repayments - gross proceeds))")
+self_funded_row = row_of(ws_ic, "C. Self-Funded Capacity Generated (FLOW, excludes opening liquidity)")
+debt_funded_row = row_of(ws_ic, "D. Debt-Funded Incremental Capacity (= MAX(0, proceeds - repayments); never gross issuance)")
+total_funding_row = row_of(ws_ic, "E. TOTAL GROSS FUNDING CAPACITY (Opening Liquidity + C + D)")
 total_deployment_row = row_of(ws_ic, "F. TOTAL DISCRETIONARY DEPLOYMENT")
-headroom_row = row_of(ws_ic, "G. REMAINING DEPLOYABLE HEADROOM (stock, = MAX(0, E - F))")
-ending_excess_row = row_of(ws_ic, "Ending Excess Liquidity (independent cross-check of G)")
+forward_reserve_row = row_of(ws_ic, "Forward Debt-Repayment Reserve (next year's net debt service; FY2030 is a documented FY2031 proxy)")
+headroom_row = row_of(ws_ic, "G. REMAINING DEPLOYABLE HEADROOM (stock, = MAX(0, E - F - forward reserve))")
+ending_excess_row = row_of(ws_ic, "Ending Excess Liquidity (independent cross-check: = G + forward reserve)")
 
 capacity_taxonomies = ct.build_capacity_taxonomy_all_scenarios(forecasts)
 capacity_years = capacity_taxonomies["base"]
@@ -144,26 +149,45 @@ for i, (col, y, ty) in enumerate(zip(FY_COLS, years, capacity_years)):
     check(matches, f"FY{y.fiscal_year} Base scenario: Excel matches Python exactly "
                     f"(revenue, net income, EPS, CFO, FCF, ending cash, legacy deployable capacity, waterfall proof)")
 
+    excel_opening_liquidity = cell("INVESTMENT CAPACITY", f"{col}{opening_liquidity_row}")
+    excel_gross_proceeds = cell("INVESTMENT CAPACITY", f"{col}{gross_proceeds_row}")
+    excel_gross_repayments = cell("INVESTMENT CAPACITY", f"{col}{gross_repayments_row}")
+    excel_net_debt_service = cell("INVESTMENT CAPACITY", f"{col}{net_debt_service_row}")
     excel_self_funded = cell("INVESTMENT CAPACITY", f"{col}{self_funded_row}")
     excel_debt_funded = cell("INVESTMENT CAPACITY", f"{col}{debt_funded_row}")
     excel_total_funding = cell("INVESTMENT CAPACITY", f"{col}{total_funding_row}")
     excel_total_deployment = cell("INVESTMENT CAPACITY", f"{col}{total_deployment_row}")
+    excel_forward_reserve = cell("INVESTMENT CAPACITY", f"{col}{forward_reserve_row}")
     excel_headroom = cell("INVESTMENT CAPACITY", f"{col}{headroom_row}")
     excel_ending_excess = cell("INVESTMENT CAPACITY", f"{col}{ending_excess_row}")
 
     capacity_matches = (
-        abs(excel_self_funded - ty.self_funded_gross_capacity) < 0.01
+        abs(excel_opening_liquidity - ty.opening_excess_liquidity) < 0.01
+        and abs(excel_gross_proceeds - ty.gross_debt_proceeds) < 0.01
+        and abs(excel_gross_repayments - ty.gross_debt_repayments) < 0.01
+        and abs(excel_net_debt_service - ty.net_mandatory_debt_service) < 0.01
+        and abs(excel_self_funded - ty.self_funded_capacity_generated) < 0.01
         and abs(excel_debt_funded - ty.debt_funded_incremental_capacity) < 0.01
         and abs(excel_total_funding - ty.total_gross_funding_capacity) < 0.01
         and abs(excel_total_deployment - ty.total_discretionary_deployment) < 0.01
+        and abs(excel_forward_reserve - ty.forward_debt_repayment_reserve) < 0.01
         and abs(excel_headroom - ty.remaining_deployable_headroom) < 0.01
         and abs(excel_ending_excess - ty.ending_excess_liquidity) < 0.01
-        and abs(excel_headroom - excel_ending_excess) < 0.01
+        and abs(excel_headroom - (excel_ending_excess - excel_forward_reserve)) < 0.01
     )
-    check(capacity_matches, f"FY{y.fiscal_year} Base scenario: corrected capacity taxonomy "
-                             "(self-funded, debt-funded, total funding, discretionary deployment, "
-                             "remaining headroom) matches target_cash.capacity_taxonomy exactly, and "
-                             "headroom equals its independent ending-excess-liquidity cross-check")
+    check(capacity_matches, f"FY{y.fiscal_year} Base scenario: corrected (v2) capacity taxonomy "
+                             "(opening liquidity, gross proceeds/repayments, net debt service, "
+                             "self-funded generated, debt-funded, total funding, discretionary deployment, "
+                             "forward reserve, remaining headroom) matches target_cash.capacity_taxonomy "
+                             "exactly, and headroom equals ending-excess-liquidity minus the forward reserve")
+
+    # v2 finance-semantics correction: gross debt issuance is never labeled capacity when
+    # simultaneously repaid -- prove the netting is reflected in Excel, not just Python
+    # (net debt service and debt-funded capacity are never both positive at once).
+    check(
+        min(excel_net_debt_service, excel_debt_funded) < 1e-6,
+        f"FY{y.fiscal_year} Base scenario: net debt service and debt-funded capacity are never both positive in Excel",
+    )
 
 # --- 3. DCF sheet matches Python -------------------------------------------
 val_assumptions = v.build_valuation_assumptions()
@@ -207,8 +231,8 @@ check(
     not any("Deployable Capacity" in str(v) and "Legacy" not in str(v) and "Remaining" not in str(v) for v in es_labels),
     "Executive Summary: no bare, unqualified 'Deployable Capacity' headline label remains",
 )
-for required_label in ["Self-Funded Capacity Generated", "Debt-Funded Capacity", "Discretionary Deployment",
-                        "Remaining Deployable Headroom"]:
+for required_label in ["Opening Excess Liquidity", "Self-Funded Capacity Generated", "Debt-Funded Capacity",
+                        "Discretionary Deployment", "Remaining Deployable Headroom"]:
     check(
         any(required_label in str(v) for v in es_labels),
         f"Executive Summary: corrected headline label present: {required_label!r}",

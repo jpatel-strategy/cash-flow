@@ -149,49 +149,94 @@
   }
 
   /**
-   * Milestone 9 correction: corrected capacity taxonomy, computed purely
-   * from one runFromMetrics() year object -- a line-for-line port of
-   * capacity_taxonomy.compute_capacity_taxonomy_year() (Python). Never
-   * reads deployable_capacity; strategic_investment, voluntary_debt_reduction,
-   * and other_discretionary_uses are structural $0 placeholders, matching
-   * the Python source of truth.
+   * Milestone 9 v2 finance-semantics correction: corrected capacity
+   * taxonomy, computed from a full array of runFromMetrics() year objects
+   * (needs the FOLLOWING year for the forward debt-repayment reserve) --
+   * a line-for-line port of capacity_taxonomy.compute_capacity_taxonomy_year()
+   * (Python). Never reads deployable_capacity; strategic_investment,
+   * voluntary_debt_reduction, and other_discretionary_uses are structural
+   * $0 placeholders, matching the Python source of truth.
+   *
+   * Gross debt issuance is never labeled capacity when simultaneously
+   * repaid: debt_funded_incremental_capacity is the NET of proceeds over
+   * repayments; net_mandatory_debt_service is the NET of repayments over
+   * proceeds. self_funded_capacity_generated is a pure FLOW (excludes
+   * opening_excess_liquidity, a STOCK, shown on its own line).
    */
-  function computeCapacityTaxonomyYear(y) {
+  function calcNetMandatoryDebtService(proceeds, repayments) {
+    return Math.max(0, repayments - proceeds);
+  }
+
+  function calcDebtFundedIncrementalCapacity(proceeds, repayments) {
+    return Math.max(0, proceeds - repayments);
+  }
+
+  function computeCapacityTaxonomyYear(y, nextY) {
     const operatingFcf = y.free_cash_flow;
     const postDividendInternalGeneration = y.post_dividend_capacity;
     const openingExcessLiquidity = Math.max(0, y.beginning_cash - y.min_cash_buffer);
-    const mandatoryDebtUses = y.debt_repayments;
 
-    const selfFundedGrossCapacity = openingExcessLiquidity + postDividendInternalGeneration - mandatoryDebtUses;
-    const debtFundedIncrementalCapacity = y.debt_proceeds;
-    const totalGrossFundingCapacity = selfFundedGrossCapacity + debtFundedIncrementalCapacity;
+    const grossDebtProceeds = y.debt_proceeds;
+    const grossDebtRepayments = y.debt_repayments;
+    const netMandatoryDebtService = calcNetMandatoryDebtService(grossDebtProceeds, grossDebtRepayments);
+    const debtFundedIncrementalCap = calcDebtFundedIncrementalCapacity(grossDebtProceeds, grossDebtRepayments);
+
+    const selfFundedCapacityGenerated = postDividendInternalGeneration - netMandatoryDebtService;
+    const totalGrossFundingCapacity = openingExcessLiquidity + selfFundedCapacityGenerated + debtFundedIncrementalCap;
 
     const strategicInvestment = 0;
     const voluntaryDebtReduction = 0;
     const otherDiscretionaryUses = 0;
     const totalDiscretionaryDeployment = y.share_repurchases + strategicInvestment + voluntaryDebtReduction + otherDiscretionaryUses;
 
-    const remainingDeployableHeadroom = Math.max(0, totalGrossFundingCapacity - totalDiscretionaryDeployment);
+    let forwardDebtRepaymentReserve, forwardReserveIsProxied;
+    if (nextY) {
+      forwardDebtRepaymentReserve = calcNetMandatoryDebtService(nextY.debt_proceeds, nextY.debt_repayments);
+      forwardReserveIsProxied = false;
+    } else {
+      forwardDebtRepaymentReserve = netMandatoryDebtService; // documented proxy: FY2031 is out of scope
+      forwardReserveIsProxied = true;
+    }
+
+    const remainingDeployableHeadroom = Math.max(
+      0, totalGrossFundingCapacity - totalDiscretionaryDeployment - forwardDebtRepaymentReserve
+    );
     const endingExcessLiquidity = Math.max(0, y.ending_cash - y.min_cash_buffer);
+
+    // DEPRECATED-BY-v2 fields, kept only for parity with the Python schema; never displayed as "generated".
+    const mandatoryDebtUses = netMandatoryDebtService;
+    const selfFundedGrossCapacity = openingExcessLiquidity + selfFundedCapacityGenerated;
 
     return {
       fiscal_year: y.fiscal_year,
       operating_fcf: operatingFcf,
       post_dividend_internal_generation: postDividendInternalGeneration,
       opening_excess_liquidity: openingExcessLiquidity,
-      mandatory_debt_uses: mandatoryDebtUses,
-      self_funded_gross_capacity: selfFundedGrossCapacity,
-      debt_funded_incremental_capacity: debtFundedIncrementalCapacity,
+      gross_debt_proceeds: grossDebtProceeds,
+      gross_debt_repayments: grossDebtRepayments,
+      net_mandatory_debt_service: netMandatoryDebtService,
+      self_funded_capacity_generated: selfFundedCapacityGenerated,
+      debt_funded_incremental_capacity: debtFundedIncrementalCap,
       total_gross_funding_capacity: totalGrossFundingCapacity,
       share_repurchases: y.share_repurchases,
       strategic_investment: strategicInvestment,
       voluntary_debt_reduction: voluntaryDebtReduction,
       other_discretionary_uses: otherDiscretionaryUses,
       total_discretionary_deployment: totalDiscretionaryDeployment,
+      forward_debt_repayment_reserve: forwardDebtRepaymentReserve,
+      forward_reserve_is_proxied: forwardReserveIsProxied,
       remaining_deployable_headroom: remainingDeployableHeadroom,
       ending_excess_liquidity: endingExcessLiquidity,
+      mandatory_debt_uses: mandatoryDebtUses,
+      self_funded_gross_capacity: selfFundedGrossCapacity,
     };
   }
 
-  global.TargetCashFormulas = { FORECAST_YEARS, runFromMetrics, computeCapacityTaxonomyYear };
+  function computeCapacityTaxonomyForYears(years) {
+    return years.map((y, i) => computeCapacityTaxonomyYear(y, i + 1 < years.length ? years[i + 1] : null));
+  }
+
+  global.TargetCashFormulas = {
+    FORECAST_YEARS, runFromMetrics, computeCapacityTaxonomyYear, computeCapacityTaxonomyForYears,
+  };
 })(window);

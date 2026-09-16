@@ -15,18 +15,23 @@ between cost of sales and SG&A that one company's 10-K quietly made to
 two prior years of numbers — with zero revenue or net-income impact,
 but a real reason to never trust a single filing's figures in isolation.
 
-🔍 **I found and fixed a real bug in my own model — twice.** An early
-version of my "cumulative deployable capacity" calculation was double-
-and triple-counting unused cash as it carried forward year to year —
-overstating true capacity by roughly 2.6x to 3.8x depending on scenario.
-I fixed it, and built an explicit proof that every dollar of cash
-generated is accounted for exactly once, across five possible uses, for
-every scenario and year. A later self-audit found a second, subtler
-issue in the same area: the single-year figure was blending internally
-generated cash with new borrowing and double-subtracting mandatory debt
-repayments. I split it into self-funded capacity, debt-funded capacity
-(always shown separately, never as generated cash), discretionary
-deployment, and remaining headroom.
+🔍 **I found and fixed a real bug in my own model — three times.** An
+early version of my "cumulative deployable capacity" calculation was
+double- and triple-counting unused cash as it carried forward year to
+year — overstating true capacity by roughly 2.6x to 3.8x depending on
+scenario. I fixed it, and built an explicit proof that every dollar of
+cash generated is accounted for exactly once, across five possible
+uses, for every scenario and year. A later self-audit found a second,
+subtler issue in the same area: the single-year figure was blending
+internally generated cash with new borrowing and double-subtracting
+mandatory debt repayments. I split it into self-funded capacity,
+debt-funded capacity (always shown separately, never as generated
+cash), discretionary deployment, and remaining headroom. A third pass
+caught something even that fix missed: gross debt issuance was still
+counted as capacity even when it was simultaneously repaid in the same
+year. I netted it — only borrowing *in excess of* repayment counts as
+capacity — and split out opening cash as its own line so a stock can
+never be mistaken for a flow.
 
 📈 **Three scenarios that are actual business stories, not dial-turns.**
 Each of Base, Upside, and Downside has its own coherent narrative — the
@@ -38,7 +43,7 @@ across four formats: a live-formula Excel model, a Power BI-ready data
 package, and an interactive web dashboard with an editable what-if
 sandbox.
 
-✅ 437 automated tests, a from-scratch reproducible rebuild, and a full
+✅ 453 automated tests, a from-scratch reproducible rebuild, and a full
 decision log recording every judgment call and every bug along the way
 — because I think the audit trail is as much the deliverable as the
 numbers are.

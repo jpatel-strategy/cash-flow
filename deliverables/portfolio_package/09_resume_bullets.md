@@ -45,7 +45,7 @@ figures.
   every output back to its source filing.
 - Implemented a reproducibility and audit framework — a clean-room,
   from-scratch rebuild verified byte-identical to production across 28
-  database tables and 6,100+ rows, backed by 437 automated tests and a
+  database tables and 6,600+ rows, backed by 453 automated tests and a
   dated decision log recording every material judgment call.
 - Established a validation taxonomy distinguishing arithmetic
   invariants, structural completeness checks, and genuinely independent
@@ -59,4 +59,4 @@ figures.
   double-counting error overstating deployable cash by up to 3.8x.
 - Delivered a scenario-based DCF valuation and capital-allocation
   framework across Excel, Power BI, and web dashboard formats, backed by
-  437 automated tests and a reproducible clean-room rebuild.
+  453 automated tests and a reproducible clean-room rebuild.

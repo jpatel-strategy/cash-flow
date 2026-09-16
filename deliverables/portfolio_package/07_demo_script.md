@@ -55,11 +55,20 @@ year you pick." *Click through a couple of years.*
 the Snapshot cards you saw earlier. The single-year figure was also
 double-subtracting mandatory debt repayments and blending internally
 generated cash with new borrowing into one ambiguous number. So the
-headline now shows four things instead of one: self-funded capacity
-generated, debt-funded capacity — always shown separately, never
-counted as internally generated cash — discretionary deployment, and
+headline now shows five things instead of one: opening excess liquidity
+as its own line — always a stock, never labeled 'generated' — self-funded
+capacity generated, debt-funded capacity, discretionary deployment, and
 remaining deployable headroom. The old field is still in the data,
-relabeled as a deprecated legacy figure, purely for audit trail."
+relabeled as a deprecated legacy figure, purely for audit trail.
+
+"And there was a third layer to this I only caught on a later pass:
+even after that fix, debt-funded capacity was still the *gross* amount
+borrowed — so if the company borrowed $700M and repaid $700M in the
+same year, it showed as $700M of capacity, when the real answer is
+zero. I netted it: only borrowing in excess of that year's repayment
+counts as debt-funded capacity, and headroom now also holds back a
+reserve for next year's known debt service before calling the residual
+'available.'"
 
 ## 5:00-6:30 — DCF and the disclaimer
 

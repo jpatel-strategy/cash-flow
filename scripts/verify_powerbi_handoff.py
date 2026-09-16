@@ -23,6 +23,9 @@ DB_PATH = REPO_ROOT / "data" / "curated" / "target_cash.db"
 PKG = REPO_ROOT / "deliverables" / "powerbi_handoff"
 DATA_DIR = PKG / "data"
 
+sys.path.insert(0, str(REPO_ROOT / "src"))
+from target_cash import capacity_taxonomy as ct  # noqa: E402
+
 errors_found = []
 
 
@@ -40,8 +43,8 @@ DB_COUNT_QUERIES = {
     "fact_annual_historical.csv": "SELECT COUNT(*) FROM annual_facts",
     "fact_forecast.csv": "SELECT COUNT(*) FROM forecast_facts",
     "fact_investment_capacity.csv": "SELECT COUNT(*) FROM investment_capacity_results",
-    "fact_capacity_taxonomy.csv": "SELECT COUNT(*) FROM capacity_taxonomy_results",
-    "fact_capacity_horizon.csv": "SELECT COUNT(*) FROM capacity_horizon_results",
+    "fact_capacity_taxonomy.csv": f"SELECT COUNT(*) FROM capacity_taxonomy_results WHERE version = '{ct.CAPACITY_TAXONOMY_VERSION}'",
+    "fact_capacity_horizon.csv": f"SELECT COUNT(*) FROM capacity_horizon_results WHERE version = '{ct.CAPACITY_TAXONOMY_VERSION}'",
     "fact_valuation_results.csv": "SELECT COUNT(*) FROM valuation_results",
     "fact_valuation_ufcf.csv": "SELECT COUNT(*) FROM valuation_ufcf_facts",
     "fact_validation_forecast.csv": "SELECT COUNT(*) FROM forecast_validation_results",
@@ -192,10 +195,10 @@ check(len(fact_captax) == 15, f"fact_capacity_taxonomy has 15 rows (found {len(f
 check(len(fact_caphrz) == 3, f"fact_capacity_horizon has 3 rows (found {len(fact_caphrz)})")
 
 for _, row in fact_captax.iterrows():
-    lhs = row["self_funded_gross_capacity"] + row["debt_funded_incremental_capacity"]
+    lhs = row["opening_excess_liquidity"] + row["self_funded_capacity_generated"] + row["debt_funded_incremental_capacity"]
     check(
         abs(lhs - row["total_gross_funding_capacity"]) < 0.1,
-        f"{row['scenario_id']} FY{row['fiscal_year']}: self-funded + debt-funded == total gross funding capacity",
+        f"{row['scenario_id']} FY{row['fiscal_year']}: opening liquidity + self-funded generated + debt-funded == total gross funding capacity",
     )
     deployment = (row["share_repurchases"] + row["strategic_investment"]
                   + row["voluntary_debt_reduction"] + row["other_discretionary_uses"])
@@ -205,16 +208,30 @@ for _, row in fact_captax.iterrows():
     )
     check(row["remaining_deployable_headroom"] >= 0, f"{row['scenario_id']} FY{row['fiscal_year']}: headroom is non-negative")
     check(
-        abs(row["remaining_deployable_headroom"] - row["ending_excess_liquidity"]) < 0.1,
-        f"{row['scenario_id']} FY{row['fiscal_year']}: remaining headroom equals its independent ending-excess-liquidity cross-check",
+        abs(row["remaining_deployable_headroom"] - (row["ending_excess_liquidity"] - row["forward_debt_repayment_reserve"])) < 0.1,
+        f"{row['scenario_id']} FY{row['fiscal_year']}: remaining headroom equals ending-excess-liquidity minus the forward debt-repayment reserve",
+    )
+    # v2 finance-semantics correction: gross debt issuance is never labeled capacity when
+    # simultaneously repaid -- net debt service and debt-funded capacity are never both positive.
+    check(
+        min(row["net_mandatory_debt_service"], row["debt_funded_incremental_capacity"]) < 1e-6,
+        f"{row['scenario_id']} FY{row['fiscal_year']}: net_mandatory_debt_service and "
+        "debt_funded_incremental_capacity are never both positive",
+    )
+    check(
+        abs((row["net_mandatory_debt_service"] - row["debt_funded_incremental_capacity"])
+            - (row["gross_debt_repayments"] - row["gross_debt_proceeds"])) < 0.1,
+        f"{row['scenario_id']} FY{row['fiscal_year']}: net_mandatory_debt_service - debt_funded_incremental_capacity "
+        "== gross_debt_repayments - gross_debt_proceeds exactly",
     )
 
 for _, row in fact_caphrz.iterrows():
-    rhs = row["cumulative_discretionary_deployment"] + row["terminal_remaining_headroom"] + row["ending_reserve_movement"]
+    rhs = (row["cumulative_discretionary_deployment"] + row["terminal_remaining_headroom"]
+           + row["ending_reserve_movement"] + row["terminal_forward_debt_repayment_reserve"])
     check(
         abs(row["total_horizon_capacity_accessible"] - rhs) < 0.5,
         f"{row['scenario_id']}: total horizon capacity accessible reconciles exactly to "
-        "deployment + terminal headroom + ending reserve movement",
+        "deployment + terminal headroom + ending reserve movement + terminal forward reserve",
     )
 
 # Legacy vs. corrected: Upside's corrected total horizon capacity must trail

@@ -32,44 +32,63 @@ WACC is scenario-invariant by construction (same capital-structure and
 market assumptions applied to all 3 operating scenarios) — a report
 where WACC differs by scenario has a bug.
 
-## FY2030 corrected capacity taxonomy (Milestone 9 correction — the executive KPIs)
+## FY2030 corrected capacity taxonomy (Milestone 9 v2 finance-semantics correction — the executive KPIs)
 
-| Scenario | Self-Funded Capacity | Debt-Funded Capacity | Total Funding Capacity | Discretionary Deployment | Remaining Headroom |
-|---|---|---|---|---|---|
-| Base | $6,315.0M | $700.0M | $7,015.0M | $636.3M | $6,378.7M |
-| Upside | $3,941.9M | $300.0M | $4,241.9M | $1,498.4M | $2,743.5M |
-| Downside | $5,887.5M | $500.0M | $6,387.5M | $0.0M | $6,387.5M |
+| Scenario | Opening Excess Liquidity | Self-Funded Generated | Debt-Funded Capacity | Total Funding Capacity | Discretionary Deployment | Forward Reserve | Remaining Headroom |
+|---|---|---|---|---|---|---|---|
+| Base | $5,424.3M | $1,590.8M | $0.0M | $7,015.0M | $636.3M | $0.0M | $6,378.7M |
+| Upside | $2,217.5M | $2,024.4M | $0.0M | $4,241.9M | $1,498.4M | $700.0M | $2,043.5M |
+| Downside | $6,157.9M | $29.6M | $200.0M | $6,387.5M | $0.0M | $0.0M | $6,387.5M |
+
+**v2 correction**: `Debt-Funded Capacity` is now the NET of proceeds
+over repayments (Base and Upside both have proceeds fully offset by
+larger-or-equal repayments in FY2030, so their debt-funded capacity is
+$0 — never the gross proceeds figure a pre-correction report would have
+shown). `Self-Funded Generated` now excludes `Opening Excess Liquidity`
+entirely (shown as its own column, a STOCK, never labeled "generated").
+Upside's FY2030 headroom is further reduced by a **$700.0M forward
+debt-repayment reserve** — a real, known FY2031 repayment obligation
+exceeding FY2031's expected proceeds, held back before calling the
+residual "headroom."
 
 Note Upside's Remaining Deployable Headroom is *lower* than Base's —
 this is correct, not a bug: Upside deploys far more capital into
 buybacks along the way ($1,498.4M vs. Base's $636.3M in FY2030 alone —
-see `docs/decisions.md`'s Milestone 3A scenario narratives), leaving
-less headroom unspent at year end, even though Upside generates more
-total funding capacity than Base in most years and much more cash
-overall. A "higher scenario always wins" assumption baked into a Power
-BI visual would misread this — always show Discretionary Deployment
+see `docs/decisions.md`'s Milestone 3A scenario narratives) and carries
+a real forward debt-service reserve, leaving less headroom unspent at
+year end, even though Upside generates more total funding capacity than
+Base in most years and much more cash overall. A "higher scenario
+always wins" assumption baked into a Power BI visual would misread this
+— always show Discretionary Deployment and the Forward Reserve
 alongside Remaining Deployable Headroom so the tradeoff is visible, not
 just the ending balance. **Never present Debt-Funded Capacity as if it
 were internally generated operating capacity** — it is shown as a
 separate column specifically so a report cannot conflate the two.
 
-## Cumulative capacity reconciliation, FY2026-FY2030 (Milestone 9 correction)
+## Cumulative capacity reconciliation, FY2026-FY2030 (Milestone 9 v2 finance-semantics correction)
 
-| Scenario | Cum. Self-Funded | Cum. Debt-Funded | Opening Excess Liquidity | Cum. Discretionary Deployment | Terminal Headroom | Ending Reserve Movement | Total Horizon Capacity |
-|---|---|---|---|---|---|---|---|
-| Base | $3,490.8M | $3,500.0M | $2,313.2M | $2,796.3M | $6,378.7M | $128.9M | $9,303.9M |
-| Upside | $4,776.8M | $1,500.0M | $2,250.3M | $5,377.2M | $2,743.5M | $406.4M | $8,527.1M |
-| Downside | $1,169.2M | $2,500.0M | $2,423.2M | $0.0M | $6,387.5M | $(295.2)M | $6,092.3M |
+| Scenario | Cum. Self-Funded | Cum. Debt-Funded | Opening Excess Liquidity | Cum. Discretionary Deployment | Terminal Headroom | Ending Reserve Movement | Terminal Forward Reserve | Total Horizon Capacity |
+|---|---|---|---|---|---|---|---|---|
+| Base | $6,990.8M | $0.0M | $2,313.2M | $2,796.3M | $6,378.7M | $128.9M | $0.0M | $9,303.9M |
+| Upside | $6,276.8M | $0.0M | $2,250.3M | $5,377.2M | $2,043.5M | $406.4M | $700.0M | $8,527.1M |
+| Downside | $2,669.2M | $1,000.0M | $2,423.2M | $0.0M | $6,387.5M | $(295.2)M | $0.0M | $6,092.3M |
 
 For every scenario: **Total Horizon Capacity = Cumulative Discretionary
-Deployment + Terminal Remaining Headroom + Ending Reserve Movement**,
-exactly (to within $0.1M rounding) — proven in
-`docs/investment_capacity_correction_evidence.md`. Under this corrected,
-more complete measure, Upside trails Base by roughly 8% ($8,527.1M vs.
-$9,303.9M) rather than the ~48% gap the legacy, deprecated
-`cumulative_deployable_capacity` measure would have implied — because
-the legacy measure never counted capital Upside had already deployed as
-capacity the plan generated. **Never sum per-year
+Deployment + Terminal Remaining Headroom + Ending Reserve Movement +
+Terminal Forward Debt-Repayment Reserve**, exactly (to within $0.1M
+rounding) — proven in `docs/investment_capacity_correction_evidence.md`.
+`Total Horizon Capacity` itself is **unchanged** from the prior (v1)
+correction round for all 3 scenarios — the v2 correction only changes
+how it decomposes into self-funded vs. debt-funded generation (netting
+out simultaneous issuance/repayment materially raises Cumulative
+Self-Funded and lowers Cumulative Debt-Funded, since most of the gross
+debt activity in this model is refinancing, not net new borrowing), and
+adds the new Terminal Forward Reserve reconciling term. Under this
+corrected, more complete measure, Upside trails Base by roughly 8%
+($8,527.1M vs. $9,303.9M) rather than the ~48% gap the legacy,
+deprecated `cumulative_deployable_capacity` measure would have implied
+— because the legacy measure never counted capital Upside had already
+deployed as capacity the plan generated. **Never sum per-year
 `remaining_deployable_headroom` values across FY2026-FY2030** — use
 `fact_capacity_horizon`'s own cumulative columns instead.
 
@@ -98,7 +117,7 @@ capacity the plan generated. **Never sum per-year
 
 - Forecast validation checks: **229 / 229 PASS** (0 FAIL, 0 WARNING).
 - Valuation validation checks: **28 / 28 PASS** (0 FAIL, 0 WARNING).
-- Capacity taxonomy validation checks (Milestone 9): **147 / 147 PASS** (0 FAIL, 0 WARNING) — 9 per-scenario-year checks × 15 scenario-years + 4 per-scenario checks × 3 scenarios.
+- Capacity taxonomy validation checks (Milestone 9, v2 finance-semantics correction): **210 / 210 PASS** (0 FAIL, 0 WARNING) — 13 per-scenario-year checks × 15 scenario-years + 1 per-scenario forward-reserve-documentation check × 3 scenarios + 4 per-scenario cumulative checks × 3 scenarios.
 
 If the built report's `Validation Status (Combined Label)` measure ever
 reads anything other than "All checks PASS" against this same database,

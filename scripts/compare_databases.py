@@ -51,6 +51,10 @@ import json
 import re
 import sqlite3
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from target_cash import capacity_taxonomy as ct  # noqa: E402
 
 
 def export_quarterly_facts(conn):
@@ -261,18 +265,35 @@ def export_valuation_validation_results(conn):
     return [list(r) for r in rows]
 
 
+# Both databases' capacity_* exports are filtered to the CURRENT taxonomy
+# version only. A clean-room rebuild starts empty and only ever persists
+# the version the current codebase computes (there is no code path left
+# that reproduces an old formula version), so an older version's rows
+# (e.g. 'v1', frozen historical evidence from a prior correction round)
+# can never be reproduced by rerunning the pipeline -- comparing them
+# would be comparing the rebuild against a snapshot no current code
+# claims to regenerate. Filtering both sides to the current version keeps
+# the comparison meaningful: does the CURRENT model, run from scratch,
+# reproduce the CURRENT production results exactly.
+_CURRENT_CAPACITY_VERSION = ct.CAPACITY_TAXONOMY_VERSION
+
+
 def export_capacity_taxonomy_results(conn):
     # capacity_taxonomy_result_id is deterministic (scenario/fiscal_year/version), so included.
     rows = conn.execute(
         """
         SELECT capacity_taxonomy_result_id, scenario_id, fiscal_year, operating_fcf,
-               post_dividend_internal_generation, opening_excess_liquidity, mandatory_debt_uses,
-               self_funded_gross_capacity, debt_funded_incremental_capacity, total_gross_funding_capacity,
+               post_dividend_internal_generation, opening_excess_liquidity,
+               gross_debt_proceeds, gross_debt_repayments, net_mandatory_debt_service,
+               self_funded_capacity_generated, debt_funded_incremental_capacity, total_gross_funding_capacity,
                share_repurchases, strategic_investment, voluntary_debt_reduction, other_discretionary_uses,
-               total_discretionary_deployment, remaining_deployable_headroom, ending_excess_liquidity,
+               total_discretionary_deployment, forward_debt_repayment_reserve, forward_reserve_is_proxied,
+               remaining_deployable_headroom, ending_excess_liquidity,
+               mandatory_debt_uses, self_funded_gross_capacity,
                version, information_cutoff
-        FROM capacity_taxonomy_results ORDER BY scenario_id, fiscal_year
-        """
+        FROM capacity_taxonomy_results WHERE version = ? ORDER BY scenario_id, fiscal_year
+        """,
+        (_CURRENT_CAPACITY_VERSION,),
     ).fetchall()
     return [list(r) for r in rows]
 
@@ -283,9 +304,11 @@ def export_capacity_horizon_results(conn):
         SELECT capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation,
                cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start,
                cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement,
+               terminal_forward_debt_repayment_reserve, terminal_forward_reserve_is_proxied,
                total_horizon_capacity_accessible, version, information_cutoff
-        FROM capacity_horizon_results ORDER BY scenario_id
-        """
+        FROM capacity_horizon_results WHERE version = ? ORDER BY scenario_id
+        """,
+        (_CURRENT_CAPACITY_VERSION,),
     ).fetchall()
     return [list(r) for r in rows]
 
@@ -295,8 +318,9 @@ def export_capacity_taxonomy_lineage(conn):
         """
         SELECT capacity_lineage_id, scenario_id, fiscal_year, target_field, formula,
                same_year_forecast_inputs, same_year_capacity_inputs, information_cutoff, version
-        FROM capacity_taxonomy_lineage ORDER BY scenario_id, target_field, fiscal_year
-        """
+        FROM capacity_taxonomy_lineage WHERE version = ? ORDER BY scenario_id, target_field, fiscal_year
+        """,
+        (_CURRENT_CAPACITY_VERSION,),
     ).fetchall()
     return [list(r) for r in rows]
 
@@ -307,8 +331,9 @@ def export_capacity_validation_results(conn):
         """
         SELECT capacity_validation_result_id, check_name, scenario_id, fiscal_year, status, detail,
                capacity_version
-        FROM capacity_validation_results ORDER BY check_name, scenario_id, fiscal_year
-        """
+        FROM capacity_validation_results WHERE capacity_version = ? ORDER BY check_name, scenario_id, fiscal_year
+        """,
+        (_CURRENT_CAPACITY_VERSION,),
     ).fetchall()
     return [list(r) for r in rows]
 

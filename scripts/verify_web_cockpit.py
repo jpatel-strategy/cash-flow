@@ -160,15 +160,27 @@ with sync_playwright() as p:
     )
     cap_kpi_text = page.locator("#capacity-kpi-grid").inner_text()
     cap_kpi_text_lower = cap_kpi_text.lower()
-    for label in ["Self-Funded Capacity Generated", "Debt-Funded Capacity", "Discretionary Deployment",
-                  "Remaining Deployable Headroom"]:
+    for label in ["Opening Excess Liquidity", "Self-Funded Capacity Generated", "Debt-Funded Capacity",
+                  "Discretionary Deployment", "Remaining Deployable Headroom"]:
         check(label.lower() in cap_kpi_text_lower, f"Corrected capacity concept displayed: {label!r}")
 
     base_terminal_cap = data["scenarios"]["base"]["capacity_taxonomy_by_year"][str(base_terminal["fiscal_year"])]
     cap_values_text = cap_kpi_text.replace(",", "")
     check(
-        f"${round(base_terminal_cap['self_funded_gross_capacity']):,}".replace(",", "") in cap_values_text.replace(",", ""),
+        f"${round(base_terminal_cap['self_funded_capacity_generated']):,}".replace(",", "") in cap_values_text.replace(",", ""),
         "Self-Funded Capacity Generated KPI value matches Python (Base, FY2030)",
+    )
+
+    # v2 finance-semantics correction: Base FY2030 has equal debt proceeds and
+    # repayments ($700M each) -- debt-funded incremental capacity must be $0,
+    # never the gross $700M issuance.
+    check(
+        base_terminal_cap["debt_funded_incremental_capacity"] == 0.0,
+        "Debt-Funded Capacity KPI reflects net-of-repayment $0 for Base FY2030 (proceeds == repayments), not gross $700M issuance",
+    )
+    check(
+        "$0M" in cap_kpi_text.replace(",", "") or "$0 " in cap_kpi_text.replace(",", ""),
+        "Debt-Funded Capacity renders as $0M on the page for Base FY2030",
     )
 
     # No bare "Deployable Capacity" label anywhere without a qualifier (legacy/deprecated/corrected wording).

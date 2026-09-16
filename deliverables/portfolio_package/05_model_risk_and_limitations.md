@@ -33,6 +33,10 @@ from SEC filings, for a portfolio/case-study purpose.
 - **No disclosed debt-maturity ladder exists**, so the near-term debt-
   repayment reserve is proxied by each forecast year's own scheduled
   repayment assumption, not a real maturity schedule.
+- **The forward debt-repayment reserve for the terminal forecast year
+  (FY2030) is a documented proxy**, not a real scheduled obligation — it
+  repeats FY2030's own net mandatory debt service because FY2031 is
+  outside the 5-year forecast horizon.
 - **No foreign-exchange translation effect is modeled.** Target's cash
   is overwhelmingly USD-denominated, and no disclosed FX driver exists
   in the registered source filings.
@@ -75,7 +79,7 @@ from SEC filings, for a portfolio/case-study purpose.
 
 ## Validation coverage and its honest limits
 
-404 automated checks currently pass (229 forecast + 28 valuation + 147
+467 automated checks currently pass (229 forecast + 28 valuation + 210
 capacity taxonomy). Of these, the large majority are **arithmetic
 invariants** (the model's own formulas are internally consistent) or
 **structural completeness checks** (every required field/relationship

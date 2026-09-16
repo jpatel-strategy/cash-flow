@@ -80,7 +80,25 @@ rather than asserting, that no dollar of cash flow is counted twice.
   debt repayment in every scenario-year where repayments are nonzero.
   The legacy field is preserved for backward compatibility, relabeled
   "Legacy Gross Pre-Discretionary Ceiling," and removed from headline
-  KPIs. Full derivation: `docs/investment_capacity_correction_evidence.md`.
+  KPIs.
+- **A third correction, on the second correction itself**: even the
+  fixed taxonomy still labeled *gross* debt proceeds as "debt-funded
+  capacity" — $700M borrowed and $700M repaid in the same year showed as
+  $700M of capacity, not the $0 of net new borrowing it actually was.
+  Corrected by netting: `debt_funded_incremental_capacity = MAX(0,
+  proceeds − repayments)` and a new `net_mandatory_debt_service = MAX(0,
+  repayments − proceeds)`, exactly one of which is nonzero for any
+  scenario-year. The same review found `self_funded_gross_capacity` was
+  blending a STOCK (opening excess liquidity, carried forward from prior
+  years) into a figure read as "capacity generated" — split into
+  `opening_excess_liquidity` (shown on its own line) and a pure-flow
+  `self_funded_capacity_generated`. `remaining_deployable_headroom` now
+  also deducts a `forward_debt_repayment_reserve` (next year's net
+  mandatory debt service; proxied at the terminal forecast year, since
+  FY2031 is outside the horizon) before calling the residual "headroom."
+  Both prior taxonomy versions (`v1`, `v2`) are preserved permanently in
+  the database for audit trail — nothing is silently overwritten. Full
+  derivation of all three rounds: `docs/investment_capacity_correction_evidence.md`.
 - **Honest classification of what's actually "independent."** Out of
   more than 20 automated checks, exactly **one** — the capital-
   allocation waterfall, recomputed as a genuinely separate 8-step

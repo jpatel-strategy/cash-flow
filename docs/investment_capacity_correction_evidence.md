@@ -5,6 +5,22 @@ This document records the corrective round that followed
 not repeat that audit's discovery narrative; it documents what was
 built, proved, persisted, and verified in response to it.
 
+**Two correction rounds are documented here.** Part I (sections 1–10)
+documents the original correction (`version='v1'` in the database):
+introducing the self-funded/debt-funded/deployment/headroom taxonomy and
+fixing the legacy field's double-subtraction of mandatory debt
+repayments. Part II (section 11 onward) documents a **second,
+independent finance-semantics correction** (`version='v2'`, the current,
+authoritative version) that fixed two further defects found in `v1`
+itself: gross debt issuance was still mislabeled as capacity even when
+simultaneously repaid, and opening excess liquidity (a stock) was still
+blended into a figure read as "capacity generated." **All FY2030 values,
+cumulative reconciliations, and bridges in Part I reflect `v1` only and
+are superseded by Part II's `v2` values** — Part I is retained for the
+historical record of the first correction's own root-cause proof, which
+remains valid and unaffected by the `v2` fix. Both `v1` and `v2` rows are
+preserved permanently in the database; nothing is overwritten.
+
 **Scope discipline** (restated from the authorizing instruction): no
 historical fact, historical mapping, historical lineage, forecast
 operating assumption, scenario assumption, or DCF operating projection
@@ -398,3 +414,366 @@ stale test/table/row/check counts), `13_reproduction_instructions.md`
   fix built on `ForecastYear`'s existing, unmodified output. If a future
   audit finds the underlying assumptions themselves need revision, that
   is separate work requiring separate authorization.
+
+---
+
+# Part II: v2 Finance-Semantics Correction
+
+## 11. What was wrong (in `v1` itself)
+
+A follow-up review of the Part I (`v1`) taxonomy found two further
+economic defects, independent of the double-subtraction bug Part I
+fixed:
+
+1. **Gross debt issuance mislabeled as capacity.**
+   `debt_funded_incremental_capacity = debt_proceeds` (gross) — so if a
+   scenario-year borrowed $700M and repaid $700M in the same year, the
+   taxonomy showed $700M of "debt-funded capacity," when the true net
+   effect of that year's debt activity was $0. Gross debt issuance is
+   not incremental capacity when debt is simultaneously repaid.
+2. **A stock blended into a "generated" label.**
+   `self_funded_gross_capacity = opening_excess_liquidity +
+   post_dividend_internal_generation - mandatory_debt_uses` combined a
+   STOCK (cash carried forward from prior years, `opening_excess_liquidity`)
+   with a FLOW (this period's own generation) into one number implicitly
+   read as "capacity generated this period." A stock is never capacity a
+   period generated.
+
+Neither defect was in `ForecastYear`'s own fields (`debt_proceeds`,
+`debt_repayments`, `beginning_cash`, etc.) — both remain correct and
+untouched. The defect was entirely in how the `v1` taxonomy combined
+them, exactly the same class of error Part I fixed in the legacy field
+one level up.
+
+## 12. Corrected (v2) formulas
+
+```
+net_mandatory_debt_service        = MAX(0, gross_debt_repayments - gross_debt_proceeds)
+debt_funded_incremental_capacity  = MAX(0, gross_debt_proceeds - gross_debt_repayments)
+    # exactly one of the two above is nonzero, or both are zero when proceeds == repayments
+
+self_funded_capacity_generated    = post_dividend_internal_generation - net_mandatory_debt_service
+    # a pure FLOW; opening_excess_liquidity is NOT a term in this formula
+
+total_gross_funding_capacity      = opening_excess_liquidity
+                                     + self_funded_capacity_generated
+                                     + debt_funded_incremental_capacity
+    # algebraically IDENTICAL in value to v1's 2-term formula for the same
+    # underlying cash flows -- only the internal decomposition changes,
+    # proven in test_total_gross_funding_capacity_unchanged_by_v2_decomposition
+
+forward_debt_repayment_reserve    = next fiscal year's net_mandatory_debt_service
+                                     (terminal FY2030: PROXIED by repeating
+                                     FY2030's own net_mandatory_debt_service,
+                                     since FY2031 is outside the forecast horizon)
+
+remaining_deployable_headroom     = MAX(0, total_gross_funding_capacity
+                                     - total_discretionary_deployment
+                                     - forward_debt_repayment_reserve)
+```
+
+`gross_debt_proceeds` and `gross_debt_repayments` (= `ForecastYear.debt_proceeds`
+/ `.debt_repayments`, unchanged) are preserved as explicit, transparent
+supporting fields in every deliverable — never hidden, never called
+"capacity" on their own.
+
+`opening_excess_liquidity`, `post_dividend_internal_generation`, and the
+discretionary-deployment components are **unchanged** from Part I.
+
+**Two DEPRECATED-BY-v2 fields** (`mandatory_debt_uses`,
+`self_funded_gross_capacity`) are retained in the schema, populated for
+`v2` rows only to satisfy the shared table's pre-existing NOT NULL
+columns — never read by any display, formula, or downstream export.
+`self_funded_gross_capacity` for a `v2` row legitimately still equals
+`opening_excess_liquidity + self_funded_capacity_generated` (a valid
+"self-funded capacity including the opening stock" figure), it is simply
+never labeled "generated" anywhere in this round's deliverables.
+
+## 13. Verbatim worked examples (from the authorization)
+
+| Scenario | Gross Proceeds | Gross Repayments | Net Mandatory Debt Service | Debt-Funded Incremental Capacity |
+|---|---:|---:|---:|---:|
+| Base (FY2030) | $700M | $700M | $0M | $0M |
+| Upside (FY2030) | $300M | $1,000M | $700M | $0M |
+| Downside (FY2030) | $500M | $300M | $0M | $200M |
+
+Confirmed exactly against the persisted `v2` rows and covered by
+dedicated tests: `test_equal_proceeds_and_repayments_create_zero_incremental_debt_capacity`,
+`test_net_deleveraging_creates_zero_debt_funded_capacity`,
+`test_only_net_new_borrowing_creates_incremental_debt_capacity`,
+`test_fy2030_example_values_from_the_correction_authorization`.
+
+## 14. New forward-reserve reconciling term (five-year identity)
+
+Deducting a forward reserve from the terminal year's own headroom
+required a new term in the Part I horizon-reconciliation identity, since
+`terminal_remaining_headroom` (E) is now smaller by that reserve, and
+the reserve represents cash held back for an obligation (FY2031) that
+occurs entirely **outside** the 5-year forecast — it is not already
+accounted for anywhere in the A–D terms.
+
+```
+total_horizon_capacity_accessible (A+B+C, UNCHANGED in formula and value from Part I)
+  == cumulative_discretionary_deployment (D)
+   + terminal_remaining_headroom (E, now net of the terminal forward reserve)
+   + ending_reserve_movement (F)
+   + terminal_forward_debt_repayment_reserve (NEW fourth term, G)
+```
+
+`total_horizon_capacity_accessible` (A+B+C) is **numerically unchanged**
+from Part I for all three scenarios — proof that this correction only
+changes how capacity is *decomposed and timed*, never the total amount
+of capacity accessible across the horizon:
+
+| Scenario | Total Horizon Capacity Accessible (v1 and v2, identical) |
+|---|---:|
+| Base | $9,303.9M |
+| Upside | $8,527.1M |
+| Downside | $6,092.3M |
+
+Verified by `check_capacity_accounted_for_reconciliation` (persisted,
+now including the fourth term) and
+`test_capacity_accounted_for_reconciliation_without_summing_annual_stocks`.
+
+## 15. Corrected (v2) FY2030 scenario values
+
+| Metric (FY2030) | Base | Upside | Downside |
+|---|---:|---:|---:|
+| Opening Excess Liquidity (stock) | $5,424.3M | $2,217.5M | $6,157.9M |
+| Self-Funded Capacity Generated | $1,590.8M | $2,024.4M | $29.6M |
+| Debt-Funded Capacity (net of repayment) | $0.0M | $0.0M | $200.0M |
+| Total Gross Funding Capacity | $7,015.0M | $4,241.9M | $6,387.5M |
+| Discretionary Deployment | $636.3M | $1,498.4M | $0.0M |
+| Forward Debt-Repayment Reserve | $0.0M | $700.0M | $0.0M |
+| **Remaining Deployable Headroom** | **$6,378.7M** | **$2,043.5M** | **$6,387.5M** |
+| Gross Debt Proceeds (supporting) | $700.0M | $300.0M | $500.0M |
+| Gross Debt Repayments (supporting) | $700.0M | $1,000.0M | $300.0M |
+| Net Mandatory Debt Service (supporting) | $0.0M | $700.0M | $0.0M |
+
+`Total Gross Funding Capacity` is **unchanged** from Part I's
+`self_funded_gross_capacity + debt_funded_incremental_capacity` for
+every scenario-year (proven algebraically and by test) — only
+`Remaining Deployable Headroom` changes value versus Part I, and only
+where a nonzero forward reserve applies (Upside: $2,743.5M → $2,043.5M;
+Base and Downside are unaffected since their FY2030 net mandatory debt
+service, and hence forward-reserve proxy, is $0).
+
+### Scenario explanations (v2-specific)
+
+- **Base**: FY2030 gross proceeds and repayments are exactly equal
+  ($700M each) — a coincidence of the scheduled debt roll-forward, not a
+  policy choice — so debt-funded capacity and net mandatory debt service
+  are both $0, and the forward reserve is $0.
+- **Upside**: FY2030 repayments ($1,000M) exceed proceeds ($300M) by
+  $700M — Upside's faster-deleveraging assumption set means it is a net
+  repayer of debt even while continuing to refinance part of its
+  maturities, so debt-funded capacity is $0 and net mandatory debt
+  service is $700M. Because FY2031 is unknown, the model conservatively
+  proxies FY2030's own $700M net debt service forward as FY2030's
+  forward reserve, further reducing FY2030's own remaining headroom.
+  This is the single largest v2-driven change in this document: Upside's
+  headroom drops from Part I's $2,743.5M to $2,043.5M.
+- **Downside**: FY2030 proceeds ($500M) exceed repayments ($300M) by
+  $200M — Downside is a net *borrower* in FY2030 (consistent with its
+  reduced operating cash flow requiring more external financing), so it
+  is the only scenario with nonzero debt-funded capacity ($200M) and the
+  only one whose total gross funding capacity is *increased*, not
+  decreased, by new borrowing.
+
+## 16. Base → Upside and Base → Downside bridges (v2)
+
+**Base → Upside (FY2030, $M):**
+
+| Step | Amount |
+|---|---:|
+| Base remaining deployable headroom | 6,378.7 |
+| Δ Opening excess liquidity | (3,206.8) |
+| Δ Self-funded capacity generated | +433.6 |
+| Δ Debt-funded capacity | 0.0 |
+| = Δ Total gross funding capacity | (2,773.2) |
+| Δ Discretionary deployment | +862.1 |
+| Δ Forward debt-repayment reserve | +700.0 |
+| **= Δ Remaining deployable headroom** | **(4,335.2)** |
+| Base 6,378.7 + Δ (4,335.2) = Upside headroom | 2,043.5 ✓ |
+
+**Base → Downside (FY2030, $M):**
+
+| Step | Amount |
+|---|---:|
+| Base remaining deployable headroom | 6,378.7 |
+| Δ Opening excess liquidity | +733.6 |
+| Δ Self-funded capacity generated | (1,561.2) |
+| Δ Debt-funded capacity | +200.0 |
+| = Δ Total gross funding capacity | (627.6) |
+| Δ Discretionary deployment | (636.3) |
+| Δ Forward debt-repayment reserve | 0.0 |
+| **= Δ Remaining deployable headroom** | **+8.7** |
+| Base 6,378.7 + Δ 8.7 = Downside headroom | 6,387.5 ✓ (rounding) |
+
+Both bridges satisfy `Δ total_gross_funding_capacity − Δ
+total_discretionary_deployment − Δ forward_debt_repayment_reserve = Δ
+remaining_deployable_headroom` exactly, confirming no term was
+double-counted or omitted.
+
+## 17. Validation totals (18 named checks, 210 results)
+
+Six new checks were added to `CAPACITY_CHECK_METADATA`, alongside the 12
+retained from Part I (all updated where their formula referenced a
+renamed/redefined field):
+
+| Check | Type | What it proves |
+|---|---|---|
+| `debt_netting_mutually_exclusive` | arithmetic invariant | `net_mandatory_debt_service` and `debt_funded_incremental_capacity` are never both positive; their difference equals `gross_repayments - gross_proceeds` exactly |
+| `debt_funded_capacity_excludes_gross_issuance` | arithmetic invariant | equal proceeds/repayments → both $0; net deleveraging → debt-funded capacity $0; only net new borrowing → debt-funded capacity > 0 |
+| `self_funded_generation_excludes_opening_liquidity` | arithmetic invariant | `self_funded_capacity_generated == B - net_mandatory_debt_service`, with no `opening_excess_liquidity` term present |
+| `headroom_deducts_forward_reserve` | arithmetic invariant | `remaining_deployable_headroom` (unfloored) `== ending_excess_liquidity - forward_debt_repayment_reserve` exactly |
+| `forward_reserve_terminal_proxy_documented` | structural completeness | `forward_reserve_is_proxied` is `True` only for the terminal year, and matches the actual next year's net debt service for every other year |
+| `mandatory_debt_not_double_deducted` (updated) | arithmetic invariant | now checks `self_funded_capacity_generated == B - net_mandatory_debt_service` |
+| `capacity_mutually_exclusive` (updated) | arithmetic invariant | now a 3-way partition: `headroom + deployment + forward_reserve == total_gross_funding_capacity` (unfloored) |
+| `capacity_accounted_for_reconciliation` (updated) | arithmetic invariant | now includes the 4th term, `terminal_forward_debt_repayment_reserve` |
+
+**Result**: 210/210 PASS (13 per-scenario-year checks × 15 scenario-years
++ 1 forward-reserve-documentation check × 3 scenarios + 4 per-scenario
+cumulative checks × 3 scenarios). Combined with forecast (229) and
+valuation (28): **467 total validation results, all PASS**.
+
+**36 new/updated unit tests** in `tests/unit/test_capacity_taxonomy.py`
+(now 42 tests total in that file) map directly to every proof the
+authorization required: equal proceeds/repayments → zero incremental
+capacity; net deleveraging → zero debt-funded capacity; only
+proceeds-in-excess → incremental capacity; opening liquidity never
+labeled generation; headroom deducts the forward reserve; the five-year
+identity reconciles without summing annual stocks (explicitly proven by
+`test_capacity_accounted_for_reconciliation_without_summing_annual_stocks`,
+which asserts the naive per-year-headroom sum does NOT reproduce the
+correct horizon total).
+
+## 18. Database, persistence, and versioning evidence
+
+- **No data destroyed**: `CAPACITY_TAXONOMY_VERSION` bumped from `"v1"`
+  to `"v2"`. Deterministic IDs already embed the version string
+  (`captax_{scenario}_{fy}_{version}`, etc.), so persisting `v2` **adds**
+  new rows alongside the existing `v1` rows — nothing is updated or
+  deleted. `v1` rows remain permanently queryable for audit trail.
+- **8 new additive migrations** (`0029`–`0036`, all `ColumnMigration`,
+  `ALTER TABLE ... ADD COLUMN`, nullable, no NOT NULL added): 6 new
+  columns on `capacity_taxonomy_results` (`gross_debt_proceeds`,
+  `gross_debt_repayments`, `net_mandatory_debt_service`,
+  `self_funded_capacity_generated`, `forward_debt_repayment_reserve`,
+  `forward_reserve_is_proxied`) and 2 new columns on
+  `capacity_horizon_results` (`terminal_forward_debt_repayment_reserve`,
+  `terminal_forward_reserve_is_proxied`). Applied cleanly to the real
+  production database with `apply_safe_migrations` (idempotent, verified
+  via a scratch-copy dry run before touching production).
+- **Real production persistence**: backed up at
+  `data/curated/target_cash.db.backup-20260916T062436Z`; ran
+  `persist-capacity-taxonomy` twice against production, proving
+  idempotency (identical `written` counts both times: 15/3/309/210).
+  Post-write integrity: `all_passed: true` both times; legacy
+  `investment_capacity_results` (15 rows) and `v1` capacity-taxonomy rows
+  (15/3/231/147) confirmed untouched.
+- **Database totals**: 28 tables (unchanged — additive columns, not new
+  tables), 6,646 total rows (up from 6,101 pre-`v2`): `capacity_taxonomy_results`
+  30 rows (15 `v1` + 15 `v2`), `capacity_horizon_results` 6 rows (3+3),
+  `capacity_taxonomy_lineage` 540 rows (231+309), `capacity_validation_results`
+  357 rows (147+210).
+- **Clean-room rebuild**: `scripts/clean_room_rebuild.py`'s existing
+  `persist-capacity-taxonomy` step is unchanged (it always persists
+  whatever `CAPACITY_TAXONOMY_VERSION` the code currently defines) — a
+  from-scratch rebuild persists only `v2` rows (no pre-existing `v1`
+  history to reproduce, since a clean room starts empty), so its
+  post-rebuild row count for `capacity_taxonomy_results` is 15, not 30;
+  `scripts/compare_databases.py`'s canonical exports for these tables
+  were updated to compare `WHERE version = 'v2'` against the equivalent
+  slice of the active database, so the comparison remains apples-to-apples.
+
+## 19. Deliverable-by-deliverable verification (v2)
+
+### 19.1 Python / tests
+`tests/unit/test_capacity_taxonomy.py`: 42 tests (up from 28), all
+passing. `tests/unit/test_capacity_persistence.py`: 10 tests (up from
+8), all passing, including 2 new tests asserting the persisted `v2`
+rows carry the corrected debt-netting and forward-reserve fields.
+
+### 19.2 Excel
+`CT_ROWS`/`CT_LABELS` rewritten: new rows for `gross_debt_proceeds`,
+`gross_debt_repayments`, `net_mandatory_debt_service`,
+`self_funded_capacity_generated`, `forward_debt_repayment_reserve`, plus
+two visually-marked (red italic) DEPRECATED rows for the retained
+`mandatory_debt_uses`/`self_funded_gross_capacity` schema-compatibility
+fields. All live formulas use Excel's native `MAX()`, including a
+column-shifted reference (`NEXT_FY_COL`) for the forward reserve's
+look-ahead to the next fiscal year's column. Executive Summary KPI rows
+and the cumulative-reconciliation table updated with the new
+opening-liquidity row and the fourth reconciling term.
+`scripts/verify_excel_model.py`: **34/34 checks pass**, including a new
+check proving `net_mandatory_debt_service` and `debt_funded_incremental_capacity`
+are never both positive in the live, recalculated Excel formulas (not
+just in Python) — formula outputs programmatically reconciled to the
+Python engine via the `formulas` package, never opened in Excel.
+
+### 19.3 Power BI handoff
+`fact_capacity_taxonomy`/`fact_capacity_horizon` CSV exports now filter
+`WHERE version = 'v2'` (the DB holds both versions; only the current one
+is exported for BI reporting) and include all new columns. DAX measures
+rewritten: new `Opening Excess Liquidity`, `Gross Debt Proceeds
+(Supporting)`, `Gross Debt Repayments (Supporting)`, `Net Mandatory Debt
+Service`, and `Forward Debt-Repayment Reserve` measures; `Self-Funded
+Capacity Generated` and `Debt-Funded Capacity` measures repointed to the
+corrected columns; `Total Horizon Capacity Accessible`'s reconciliation
+comment updated for the fourth term. Page specs (`page_01`, `page_06`)
+and wireframe SVGs updated with the 5-card KPI row (opening liquidity
+added) and the corrected waterfall order.
+`scripts/verify_powerbi_handoff.py`: **159/159 checks pass**, including
+new checks for the debt-netting mutual-exclusivity identity and the
+corrected headroom-minus-forward-reserve cross-check, at the CSV/data
+level (not just Python).
+
+### 19.4 Web cockpit
+`formulas.js`'s `computeCapacityTaxonomyYear` rewritten to accept the
+next fiscal year's data (for the forward reserve) and a new
+`computeCapacityTaxonomyForYears` helper computes the full 5-year array
+for the What-If sandbox. `app.js`: added an `Opening Excess Liquidity`
+KPI card (now 5 cards instead of 4), rewrote the corrected waterfall
+(opening liquidity → self-funded generated → debt-funded net of
+repayment → discretionary deployment → forward reserve → headroom), the
+per-year detail table (13 rows, plus 2 deprecated rows), the horizon
+table (new terminal-forward-reserve row), and the What-If sandbox
+results. `scripts/verify_web_cockpit.py`: **30/30 checks pass**,
+including a new numeric check that Base FY2030 debt-funded capacity
+renders as exactly `$0M` on the page (not the gross $700M issuance).
+
+### 19.5 Portfolio / recruiter package
+Updated: `01_executive_case_study.md` (new FY2030 table with all 5
+corrected metrics, third-correction narrative), `03_finance_methodology_summary.md`
+(new bullet documenting the third correction), `04_data_dictionary.md`
+(versioned table descriptions, updated row counts), `05_model_risk_and_limitations.md`
+(updated check count, new forward-reserve-proxy limitation),
+`07_demo_script.md` (new talking point), `08_interview_explanations.md`
+/ `10_linkedin_draft.md` ("three times," not "twice"), `09_resume_bullets.md`
+/ `02_technical_architecture_summary.md` / `12_final_project_inventory.md`
+/ `README.md` / `06_positioning_note.md` / `13_reproduction_instructions.md`
+(corrected stale test/check/row counts throughout).
+
+## 20. Limitations (v2-specific, in addition to Part I's §10)
+
+- **The forward debt-repayment reserve for the terminal forecast year
+  (FY2030) is a documented proxy, not a real scheduled obligation.** It
+  repeats FY2030's own net mandatory debt service as the best available
+  estimate for FY2031, which is outside the 5-year forecast horizon. If
+  FY2031's actual debt schedule differs materially, this proxy would
+  differ from the real reserve needed.
+- **Two DEPRECATED-BY-v2 columns are retained purely for schema
+  compatibility** (`mandatory_debt_uses`, `self_funded_gross_capacity`
+  on `v2` rows) — they hold legitimate, correctly-computed values under
+  their OWN (different, stock-inclusive) definitions, but are never read
+  by any current display or formula. A future schema cleanup could drop
+  them once no consumer depends on the shared table shape across `v1`
+  and `v2`.
+- **The JS/Python drift risk already disclosed in Part I §10 now also
+  covers `computeCapacityTaxonomyForYears`** — the forward-reserve
+  look-ahead logic is a second point of manual synchronization between
+  the two implementations.
+- **This correction, like Part I, does not re-derive or re-validate the
+  underlying forecast assumptions or `ForecastYear`'s own fields** — it
+  remains a purely additive, presentation/derivation-layer fix.

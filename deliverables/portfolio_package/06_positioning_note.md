@@ -71,7 +71,7 @@ proving no dollar is double-counted, keeping historical and forecast
 data honestly separated, keeping an information cutoff enforceable
 rather than just claimed — needed a real, testable pipeline to do
 credibly. A single hand-built spreadsheet can *assert* those properties;
-this project *proves* them, with 401 automated tests and a from-scratch
+this project *proves* them, with 453 automated tests and a from-scratch
 clean-room rebuild that reproduces the same numbers. That provability is
 the actual deliverable, and it's a finance-rigor argument, not a
 software-engineering flex.

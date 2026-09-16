@@ -16,11 +16,14 @@ This script NEVER claims a .pbix was created. It was not.
 Usage: .venv/bin/python scripts/build_powerbi_handoff.py
 """
 import sqlite3
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+from target_cash import capacity_taxonomy as ct  # noqa: E402
 DB_PATH = REPO_ROOT / "data" / "curated" / "target_cash.db"
 OUT_ROOT = REPO_ROOT / "deliverables" / "powerbi_handoff"
 DATA_DIR = OUT_ROOT / "data"
@@ -34,8 +37,8 @@ conn = sqlite3.connect(str(DB_PATH))
 conn.row_factory = sqlite3.Row
 
 
-def q(sql):
-    return pd.read_sql_query(sql, conn)
+def q(sql, params=()):
+    return pd.read_sql_query(sql, conn, params=params)
 
 
 # ---------------------------------------------------------------------------
@@ -164,14 +167,26 @@ fact_investment_capacity.to_csv(DATA_DIR / "fact_investment_capacity.csv", index
 # above (and its deployable_capacity/cumulative_deployable_capacity columns) is
 # PRESERVED VERBATIM for backward compatibility -- it is documented as deprecated
 # in data_dictionary.md and is never used by any new measure or wireframe.
+#
+# v2 finance-semantics correction: capacity_taxonomy_results/capacity_horizon_results
+# hold BOTH version='v1' (the original correction, itself later found to mislabel
+# gross debt issuance as capacity) and version='v2' (current, corrected) rows --
+# both preserved for audit trail. Only the CURRENT version (ct.CAPACITY_TAXONOMY_VERSION)
+# is exported here for BI reporting; v1's own deprecated columns
+# (mandatory_debt_uses, self_funded_gross_capacity) are still exported for
+# transparency but never used by any DAX measure or wireframe.
 fact_capacity_taxonomy = q(
     "SELECT capacity_taxonomy_result_id, scenario_id, fiscal_year, operating_fcf, "
-    "post_dividend_internal_generation, opening_excess_liquidity, mandatory_debt_uses, "
-    "self_funded_gross_capacity, debt_funded_incremental_capacity, total_gross_funding_capacity, "
+    "post_dividend_internal_generation, opening_excess_liquidity, "
+    "gross_debt_proceeds, gross_debt_repayments, net_mandatory_debt_service, "
+    "self_funded_capacity_generated, debt_funded_incremental_capacity, total_gross_funding_capacity, "
     "share_repurchases, strategic_investment, voluntary_debt_reduction, other_discretionary_uses, "
-    "total_discretionary_deployment, remaining_deployable_headroom, ending_excess_liquidity, "
+    "total_discretionary_deployment, forward_debt_repayment_reserve, forward_reserve_is_proxied, "
+    "remaining_deployable_headroom, ending_excess_liquidity, "
+    "mandatory_debt_uses, self_funded_gross_capacity, "
     "version, information_cutoff "
-    "FROM capacity_taxonomy_results ORDER BY scenario_id, fiscal_year"
+    "FROM capacity_taxonomy_results WHERE version = ? ORDER BY scenario_id, fiscal_year",
+    (ct.CAPACITY_TAXONOMY_VERSION,),
 )
 fact_capacity_taxonomy.to_csv(DATA_DIR / "fact_capacity_taxonomy.csv", index=False)
 
@@ -179,8 +194,10 @@ fact_capacity_horizon = q(
     "SELECT capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation, "
     "cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start, "
     "cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement, "
+    "terminal_forward_debt_repayment_reserve, terminal_forward_reserve_is_proxied, "
     "total_horizon_capacity_accessible, version, information_cutoff "
-    "FROM capacity_horizon_results ORDER BY scenario_id"
+    "FROM capacity_horizon_results WHERE version = ? ORDER BY scenario_id",
+    (ct.CAPACITY_TAXONOMY_VERSION,),
 )
 fact_capacity_horizon.to_csv(DATA_DIR / "fact_capacity_horizon.csv", index=False)
 
@@ -337,10 +354,11 @@ WIREFRAMES = [
             (620, 100, 190, 80, "KPI Card", CARD, "Validation Status"),
             (820, 100, 190, 80, "KPI Card", CARD, "Net Debt (Valuation Date)"),
             (1020, 100, 240, 80, "KPI Card", CARD, "Funding Warning?"),
-            (20, 190, 300, 80, "KPI Card", CARD, "Self-Funded Capacity Generated"),
-            (330, 190, 300, 80, "KPI Card", CARD, "Debt-Funded Capacity (shown separately)"),
-            (640, 190, 300, 80, "KPI Card", CARD, "Discretionary Deployment"),
-            (950, 190, 310, 80, "KPI Card", CARD, "Remaining Deployable Headroom (corrected KPI)"),
+            (20, 190, 240, 80, "KPI Card", CARD, "Opening Excess Liquidity (stock)"),
+            (270, 190, 240, 80, "KPI Card", CARD, "Self-Funded Capacity Generated"),
+            (520, 190, 240, 80, "KPI Card", CARD, "Debt-Funded Capacity (net of repayment)"),
+            (770, 190, 220, 80, "KPI Card", CARD, "Discretionary Deployment"),
+            (1000, 190, 260, 80, "KPI Card", CARD, "Remaining Deployable Headroom (corrected KPI)"),
             (20, 290, 610, 200, "Line Chart", CHART, "Revenue &amp; FCF: Actual (solid) vs Forecast (dashed), FY21-FY30"),
             (650, 290, 610, 200, "Clustered Column", CHART, "Remaining Deployable Headroom by Scenario, FY2030 (with Discretionary Deployment shown alongside)"),
             (20, 510, 610, 180, "Waterfall Chart", CHART, "Capital Allocation Waterfall (selected scenario)"),
@@ -391,14 +409,14 @@ WIREFRAMES = [
     ),
     (
         6, "Cash-Flow Bridge &amp; Investment Capacity",
-        "Opening excess liquidity + self-funded + debt-funded capacity - discretionary deployment = remaining headroom (corrected taxonomy, Milestone 9)",
+        "Opening excess liquidity (stock) + self-funded + debt-funded capacity (net of repayment) - discretionary deployment - forward debt-repayment reserve = remaining headroom (v2 finance-semantics correction, Milestone 9)",
         "Scenario selector, Fiscal Year",
         [
-            (20, 100, 1240, 240, "Waterfall Chart", CHART, "Opening Excess Liquidity -&gt; + Post-Dividend Internal Generation -&gt; + Debt-Funded Capacity (shown separately) -&gt; - Discretionary Deployment -&gt; = Remaining Deployable Headroom"),
-            (20, 360, 610, 160, "KPI Card Row", CARD, "Self-Funded Capacity Generated | Debt-Funded Capacity | Discretionary Deployment | Remaining Deployable Headroom"),
+            (20, 100, 1240, 240, "Waterfall Chart", CHART, "Opening Excess Liquidity (stock) -&gt; + Self-Funded Capacity Generated -&gt; + Debt-Funded Capacity (net of repayment) -&gt; - Discretionary Deployment -&gt; - Forward Debt-Repayment Reserve -&gt; = Remaining Deployable Headroom"),
+            (20, 360, 610, 160, "KPI Card Row", CARD, "Opening Excess Liquidity | Self-Funded Capacity Generated | Debt-Funded Capacity | Discretionary Deployment | Remaining Deployable Headroom"),
             (650, 360, 610, 160, "Table", TABLE, "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED) -- reference only, not a KPI"),
             (20, 540, 610, 150, "Line Chart", CHART, "Remaining Deployable Headroom by FY (stock -- never summed across years)"),
-            (650, 540, 610, 150, "Table", TABLE, "Cumulative reconciliation: Opening Liquidity + Cum. Self-Funded + Cum. Debt-Funded = Cum. Deployment + Terminal Headroom + Reserve Movement"),
+            (650, 540, 610, 150, "Table", TABLE, "Cumulative reconciliation: Opening Liquidity + Cum. Self-Funded + Cum. Debt-Funded = Cum. Deployment + Terminal Headroom + Reserve Movement + Terminal Forward Reserve"),
         ],
     ),
     (

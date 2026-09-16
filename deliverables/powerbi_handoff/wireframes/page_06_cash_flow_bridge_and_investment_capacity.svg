@@ -2,15 +2,15 @@
 <rect width="1280" height="720" fill="#FFFFFF"/>
 <rect x="0" y="0" width="1280" height="56" fill="#1F3864"/>
 <text x="20" y="26" font-family="Segoe UI, Arial" font-size="18" fill="#FFFFFF" font-weight="bold">Page 6: Cash-Flow Bridge &amp; Investment Capacity</text>
-<text x="20" y="46" font-family="Segoe UI, Arial" font-size="11" fill="#D9E2F3">Opening excess liquidity + self-funded + debt-funded capacity - discretionary deployment = remaining headroom (corrected taxonomy, Milestone 9)</text>
+<text x="20" y="46" font-family="Segoe UI, Arial" font-size="11" fill="#D9E2F3">Opening excess liquidity (stock) + self-funded + debt-funded capacity (net of repayment) - discretionary deployment - forward debt-repayment reserve = remaining headroom (v2 finance-semantics correction, Milestone 9)</text>
 <rect x="0" y="56" width="1280" height="34" fill="#D9E2F3"/>
 <text x="20" y="77" font-family="Segoe UI, Arial" font-size="11" fill="#1F3864">Filters/Slicers: Scenario selector, Fiscal Year</text>
 <rect x="20" y="100" width="1240" height="240" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
 <text x="640.0" y="214.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Waterfall Chart</text>
-<text x="640.0" y="232.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Opening Excess Liquidity -&gt; + Post-Dividend Internal Generation -&gt; + Debt-Funded Capacity (shown separately) -&gt; - Discretionary Deployment -&gt; = Remaining Deployable Headroom</text>
+<text x="640.0" y="232.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Opening Excess Liquidity (stock) -&gt; + Self-Funded Capacity Generated -&gt; + Debt-Funded Capacity (net of repayment) -&gt; - Discretionary Deployment -&gt; - Forward Debt-Repayment Reserve -&gt; = Remaining Deployable Headroom</text>
 <rect x="20" y="360" width="610" height="160" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
 <text x="325.0" y="434.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card Row</text>
-<text x="325.0" y="452.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Self-Funded Capacity Generated | Debt-Funded Capacity | Discretionary Deployment | Remaining Deployable Headroom</text>
+<text x="325.0" y="452.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Opening Excess Liquidity | Self-Funded Capacity Generated | Debt-Funded Capacity | Discretionary Deployment | Remaining Deployable Headroom</text>
 <rect x="650" y="360" width="610" height="160" fill="#F2F2F2" stroke="#1F3864" stroke-width="1.5" rx="4"/>
 <text x="955.0" y="434.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Table</text>
 <text x="955.0" y="452.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Legacy Gross Pre-Discretionary Ceiling (DEPRECATED) -- reference only, not a KPI</text>
@@ -19,6 +19,6 @@
 <text x="325.0" y="627.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Remaining Deployable Headroom by FY (stock -- never summed across years)</text>
 <rect x="650" y="540" width="610" height="150" fill="#F2F2F2" stroke="#1F3864" stroke-width="1.5" rx="4"/>
 <text x="955.0" y="609.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Table</text>
-<text x="955.0" y="627.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Cumulative reconciliation: Opening Liquidity + Cum. Self-Funded + Cum. Debt-Funded = Cum. Deployment + Terminal Headroom + Reserve Movement</text>
+<text x="955.0" y="627.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Cumulative reconciliation: Opening Liquidity + Cum. Self-Funded + Cum. Debt-Funded = Cum. Deployment + Terminal Headroom + Reserve Movement + Terminal Forward Reserve</text>
 <text x="1260" y="708" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="end">WIREFRAME MOCKUP -- schematic layout only, not an actual Power BI screenshot (Power BI Desktop unavailable in this build environment)</text>
 </svg>

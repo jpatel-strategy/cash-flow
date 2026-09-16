@@ -77,25 +77,42 @@ displayed. Do not relate this table into any new visual, measure, or
 headline card — use `fact_capacity_taxonomy` and `fact_capacity_horizon`
 below instead.
 
-### `fact_capacity_taxonomy.csv` (15 rows) — Milestone 9 correction
-**Grain**: one row per (`scenario_id`, `fiscal_year`). The corrected
-14-field capacity taxonomy: `operating_fcf` (A) →
-`post_dividend_internal_generation` (B) → `opening_excess_liquidity` →
-`mandatory_debt_uses` → `self_funded_gross_capacity` (C, excludes new
-borrowing) → `debt_funded_incremental_capacity` (D, new borrowing,
-always shown separately from C) → `total_gross_funding_capacity` (E = C
-+ D) → `share_repurchases` / `strategic_investment` /
-`voluntary_debt_reduction` / `other_discretionary_uses` (the latter
-three are structural $0 placeholders this round) →
-`total_discretionary_deployment` (F) → `remaining_deployable_headroom`
-(G = MAX(0, E − F), **the corrected executive KPI**) →
-`ending_excess_liquidity` (an independent cross-check of G, computed
-from ending cash rather than the discretionary-deployment waterfall —
-proven equal to G in every row). **Never sum `remaining_deployable_headroom`
-across fiscal years** — it is a stock; see `fact_capacity_horizon` for
-the correct cumulative figures.
+### `fact_capacity_taxonomy.csv` (15 rows, `version = "v2"` only) — Milestone 9 v2 finance-semantics correction
+**Grain**: one row per (`scenario_id`, `fiscal_year`). The DB's
+`capacity_taxonomy_results` table holds BOTH `version='v1'` (the
+original Milestone 9 correction, itself later found to mislabel gross
+debt issuance as capacity) and `version='v2'` (current, corrected)
+rows — both preserved permanently for audit trail. **This CSV export
+is filtered to the current version only** (`v2`). The corrected
+taxonomy: `operating_fcf` (A) → `post_dividend_internal_generation`
+(B, unchanged by v2) → `opening_excess_liquidity` (a STOCK, shown on
+its own line, never labeled "generated") → `gross_debt_proceeds` /
+`gross_debt_repayments` (transparent supporting fields) →
+`net_mandatory_debt_service` (= MAX(0, gross repayments − gross
+proceeds)) → `self_funded_capacity_generated` (C, a FLOW = B − net
+mandatory debt service; EXCLUDES opening_excess_liquidity entirely) →
+`debt_funded_incremental_capacity` (D = MAX(0, gross proceeds − gross
+repayments); gross issuance that is simultaneously repaid is $0
+incremental capacity, never the gross amount) →
+`total_gross_funding_capacity` (E = opening liquidity + C + D) →
+`share_repurchases` / `strategic_investment` / `voluntary_debt_reduction`
+/ `other_discretionary_uses` (the latter three are structural $0
+placeholders this round) → `total_discretionary_deployment` (F) →
+`forward_debt_repayment_reserve` (next year's net mandatory debt
+service, held back before calling the residual "headroom"; the
+terminal FY2030 row's reserve is a documented PROXY — see
+`forward_reserve_is_proxied`) → `remaining_deployable_headroom` (G =
+MAX(0, E − F − forward reserve), **the corrected executive KPI**) →
+`ending_excess_liquidity` (an independent cross-check, computed from
+ending cash; proven equal to G + forward reserve in every unfloored
+row). Also exported for transparency but **DEPRECATED, never used by
+any measure**: `mandatory_debt_uses` and `self_funded_gross_capacity`
+(the v1-style figure, which still includes the opening stock — kept
+only for schema compatibility across versions). **Never sum
+`remaining_deployable_headroom` across fiscal years** — it is a stock;
+see `fact_capacity_horizon` for the correct cumulative figures.
 
-### `fact_capacity_horizon.csv` (3 rows) — Milestone 9 correction
+### `fact_capacity_horizon.csv` (3 rows, `version = "v2"` only) — Milestone 9 v2 finance-semantics correction
 **Grain**: one row per `scenario_id`. The FY2026–FY2030 cumulative
 capacity picture, computed WITHOUT summing per-year ending-headroom
 balances: `cumulative_self_funded_generation` (excludes FY2026's own
@@ -105,10 +122,14 @@ FY2026 only), `cumulative_discretionary_deployment` (includes executed
 repurchases — unlike the legacy cumulative measure, which never did),
 `terminal_remaining_headroom` (FY2030's own headroom, a stock),
 `ending_reserve_movement` (the change in the minimum-cash-buffer
-requirement from FY2026 to FY2030 — the reconciling term, not a plug),
+requirement from FY2026 to FY2030 — a reconciling term, not a plug),
+`terminal_forward_debt_repayment_reserve` (FY2030's own forward
+reserve, a documented FY2031 proxy — a second reconciling term
+required by the v2 correction; see `terminal_forward_reserve_is_proxied`),
 and `total_horizon_capacity_accessible`, which reconciles EXACTLY to
 `cumulative_discretionary_deployment + terminal_remaining_headroom +
-ending_reserve_movement` for every scenario (proven in
+ending_reserve_movement + terminal_forward_debt_repayment_reserve` for
+every scenario (proven in
 `docs/investment_capacity_correction_evidence.md`).
 
 ### `fact_valuation_results.csv` (3 rows)

@@ -123,26 +123,58 @@ CALCULATE (
 -- measures below for the replacement.
 
 -- ============================================================================
--- CORRECTED CAPACITY TAXONOMY (Milestone 9 correction) -- these 4 measures
--- are the executive-facing KPIs. Source: fact_capacity_taxonomy (per
--- scenario-year) and fact_capacity_horizon (per-scenario cumulative).
+-- CORRECTED CAPACITY TAXONOMY (Milestone 9 v2 finance-semantics correction)
+-- -- these measures are the executive-facing KPIs. Source:
+-- fact_capacity_taxonomy (per scenario-year, version = current) and
+-- fact_capacity_horizon (per-scenario cumulative, version = current).
+--
+-- v2 correction: gross debt issuance is never labeled capacity when
+-- simultaneously repaid. debt_funded_incremental_capacity is now the NET
+-- of proceeds over repayments; net_mandatory_debt_service is the NET of
+-- repayments over proceeds (exactly one is nonzero, or both are zero).
+-- self_funded_capacity_generated now excludes opening_excess_liquidity
+-- entirely -- a stock is never labeled "generated." Remaining Deployable
+-- Headroom now also deducts a forward debt-repayment reserve.
 -- ============================================================================
 
+Opening Excess Liquidity =
+SUM ( fact_capacity_taxonomy[opening_excess_liquidity] )
+-- A STOCK carried forward from prior years -- shown on its own line,
+-- NEVER folded into or labeled as "capacity generated."
+
+Gross Debt Proceeds (Supporting) =
+SUM ( fact_capacity_taxonomy[gross_debt_proceeds] )
+-- Transparent supporting field -- the raw, unnetted debt issuance.
+-- Never present this alone as "debt-funded capacity."
+
+Gross Debt Repayments (Supporting) =
+SUM ( fact_capacity_taxonomy[gross_debt_repayments] )
+-- Transparent supporting field -- the raw, unnetted debt repayment.
+
+Net Mandatory Debt Service =
+SUM ( fact_capacity_taxonomy[net_mandatory_debt_service] )
+-- = MAX(0, Gross Debt Repayments - Gross Debt Proceeds). Zero when
+-- proceeds equal or exceed repayments in the same year.
+
 Self-Funded Capacity Generated =
-SUM ( fact_capacity_taxonomy[self_funded_gross_capacity] )
--- Opening excess liquidity + post-dividend internally generated cash,
--- net of mandatory debt uses -- EXCLUDES new borrowing entirely.
+SUM ( fact_capacity_taxonomy[self_funded_capacity_generated] )
+-- Post-dividend internally generated cash, net of Net Mandatory Debt
+-- Service -- a pure FLOW. Deliberately EXCLUDES Opening Excess
+-- Liquidity (a stock) and EXCLUDES new borrowing entirely.
 
 Debt-Funded Capacity =
 SUM ( fact_capacity_taxonomy[debt_funded_incremental_capacity] )
--- Eligible new debt proceeds. Shown SEPARATELY from Self-Funded Capacity
--- Generated -- never combine these into one bar/card without labeling
--- both, and never present new borrowing as if it were internally
--- generated operating capacity.
+-- = MAX(0, Gross Debt Proceeds - Gross Debt Repayments). Gross issuance
+-- that is simultaneously repaid is $0 incremental capacity, never the
+-- gross amount. Shown SEPARATELY from Self-Funded Capacity Generated --
+-- never combine these into one bar/card without labeling both, and
+-- never present new borrowing as if it were internally generated
+-- operating capacity.
 
 Total Gross Funding Capacity =
 SUM ( fact_capacity_taxonomy[total_gross_funding_capacity] )
--- = Self-Funded Capacity Generated + Debt-Funded Capacity.
+-- = Opening Excess Liquidity + Self-Funded Capacity Generated +
+-- Debt-Funded Capacity.
 
 Discretionary Deployment =
 SUM ( fact_capacity_taxonomy[total_discretionary_deployment] )
@@ -150,15 +182,25 @@ SUM ( fact_capacity_taxonomy[total_discretionary_deployment] )
 -- other discretionary uses (the latter three are structural $0 this
 -- round -- no policy lever has been modeled for them).
 
+Forward Debt-Repayment Reserve =
+SUM ( fact_capacity_taxonomy[forward_debt_repayment_reserve] )
+-- Next fiscal year's Net Mandatory Debt Service, held back before
+-- calling the residual "headroom." For the terminal FY2030 year this is
+-- a documented PROXY (repeats FY2030's own net mandatory debt service)
+-- because FY2031 is outside the forecast horizon -- see
+-- fact_capacity_taxonomy[forward_reserve_is_proxied].
+
 Remaining Deployable Headroom =
 SUM ( fact_capacity_taxonomy[remaining_deployable_headroom] )
--- = MAX(0, Total Gross Funding Capacity - Discretionary Deployment).
--- THIS is the corrected executive KPI -- the actual amount still
--- available to deploy, net of what has already been spent this year.
--- Never sum this measure across multiple fiscal years in the same
--- visual (e.g. a table with FY2026-FY2030 columns totaled) -- it is a
--- STOCK, and doing so reproduces the exact double-counting error
--- Milestone 3A already found and fixed once for the legacy measure.
+-- = MAX(0, Total Gross Funding Capacity - Discretionary Deployment -
+-- Forward Debt-Repayment Reserve). THIS is the corrected executive KPI
+-- -- the actual amount still available to deploy, net of what has
+-- already been spent this year AND net of a reserve for next year's
+-- known mandatory debt service. Never sum this measure across multiple
+-- fiscal years in the same visual (e.g. a table with FY2026-FY2030
+-- columns totaled) -- it is a STOCK, and doing so reproduces the exact
+-- double-counting error Milestone 3A already found and fixed once for
+-- the legacy measure.
 
 Cumulative Self-Funded Generation (FY2026-FY2030) =
 SUM ( fact_capacity_horizon[cumulative_self_funded_generation] )
@@ -182,13 +224,20 @@ SUM ( fact_capacity_horizon[cumulative_discretionary_deployment] )
 Terminal Remaining Headroom (FY2030) =
 SUM ( fact_capacity_horizon[terminal_remaining_headroom] )
 
+Terminal Forward Debt-Repayment Reserve =
+SUM ( fact_capacity_horizon[terminal_forward_debt_repayment_reserve] )
+-- The fourth reconciling term the v2 correction requires: FY2030's own
+-- forward reserve (a documented FY2031 proxy), held back from Terminal
+-- Remaining Headroom. See fact_capacity_horizon[terminal_forward_reserve_is_proxied].
+
 Total Horizon Capacity Accessible =
 SUM ( fact_capacity_horizon[total_horizon_capacity_accessible] )
 -- = Opening Excess Liquidity + Cumulative Self-Funded Generation +
 -- Cumulative Debt-Funded Capacity. Reconciles EXACTLY to Cumulative
 -- Discretionary Deployment + Terminal Remaining Headroom + Ending
--- Reserve Movement -- see fact_capacity_horizon's own
--- ending_reserve_movement column and
+-- Reserve Movement + Terminal Forward Debt-Repayment Reserve -- see
+-- fact_capacity_horizon's own ending_reserve_movement and
+-- terminal_forward_debt_repayment_reserve columns and
 -- docs/investment_capacity_correction_evidence.md for the proof.
 
 Net Debt (Forecast) =

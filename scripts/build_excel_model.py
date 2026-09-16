@@ -652,33 +652,47 @@ for i, fy in enumerate(f.FORECAST_YEARS):
 style_header_row(ws_ic, ct_hdr2, 1, 8)
 
 CT_ROWS = [
-    "operating_fcf", "post_dividend_internal_generation", "opening_excess_liquidity", "mandatory_debt_uses",
-    "self_funded_gross_capacity", "debt_funded_incremental_capacity", "total_gross_funding_capacity",
+    "operating_fcf", "post_dividend_internal_generation", "opening_excess_liquidity",
+    "gross_debt_proceeds", "gross_debt_repayments", "net_mandatory_debt_service",
+    "self_funded_capacity_generated", "debt_funded_incremental_capacity", "total_gross_funding_capacity",
     "share_repurchases", "strategic_investment", "voluntary_debt_reduction", "other_discretionary_uses",
-    "total_discretionary_deployment", "remaining_deployable_headroom", "ending_excess_liquidity",
+    "total_discretionary_deployment", "forward_debt_repayment_reserve", "remaining_deployable_headroom",
+    "ending_excess_liquidity", "mandatory_debt_uses_deprecated", "self_funded_gross_capacity_deprecated",
 ]
 CT_LABELS = {
     "operating_fcf": "A. Operating FCF (= CFO - CapEx)",
     "post_dividend_internal_generation": "B. Post-Dividend Internal Generation",
-    "opening_excess_liquidity": "Opening Excess Liquidity (stock, = MAX(0, beg. cash - buffer))",
-    "mandatory_debt_uses": "Mandatory Debt Uses",
-    "self_funded_gross_capacity": "C. Self-Funded Gross Capacity (excl. new borrowing)",
-    "debt_funded_incremental_capacity": "D. Debt-Funded Incremental Capacity (new borrowing)",
-    "total_gross_funding_capacity": "E. TOTAL GROSS FUNDING CAPACITY (C + D)",
+    "opening_excess_liquidity": "Opening Excess Liquidity (STOCK, = MAX(0, beg. cash - buffer)) -- never labeled 'generated'",
+    "gross_debt_proceeds": "  Gross Debt Proceeds (supporting, transparent)",
+    "gross_debt_repayments": "  Gross Debt Repayments (supporting, transparent)",
+    "net_mandatory_debt_service": "Net Mandatory Debt Service (= MAX(0, gross repayments - gross proceeds))",
+    "self_funded_capacity_generated": "C. Self-Funded Capacity Generated (FLOW, excludes opening liquidity)",
+    "debt_funded_incremental_capacity": "D. Debt-Funded Incremental Capacity (= MAX(0, proceeds - repayments); never gross issuance)",
+    "total_gross_funding_capacity": "E. TOTAL GROSS FUNDING CAPACITY (Opening Liquidity + C + D)",
     "share_repurchases": "  Share Repurchases",
     "strategic_investment": "  Strategic Investment (none modeled this round)",
     "voluntary_debt_reduction": "  Voluntary Debt Reduction (none modeled this round)",
     "other_discretionary_uses": "  Other Discretionary Uses (none modeled this round)",
     "total_discretionary_deployment": "F. TOTAL DISCRETIONARY DEPLOYMENT",
-    "remaining_deployable_headroom": "G. REMAINING DEPLOYABLE HEADROOM (stock, = MAX(0, E - F))",
-    "ending_excess_liquidity": "Ending Excess Liquidity (independent cross-check of G)",
+    "forward_debt_repayment_reserve": "Forward Debt-Repayment Reserve (next year's net debt service; FY2030 is a documented FY2031 proxy)",
+    "remaining_deployable_headroom": "G. REMAINING DEPLOYABLE HEADROOM (stock, = MAX(0, E - F - forward reserve))",
+    "ending_excess_liquidity": "Ending Excess Liquidity (independent cross-check: = G + forward reserve)",
+    "mandatory_debt_uses_deprecated": "DEPRECATED: Mandatory Debt Uses (v1, = gross repayments, double-subtracted -- see evidence doc)",
+    "self_funded_gross_capacity_deprecated": "DEPRECATED: Self-Funded Gross Capacity (v1-style, includes opening liquidity -- never labeled 'generated')",
 }
 CT_ROW = {}
 rr = ct_hdr2 + 1
 for key in CT_ROWS:
-    bold_keys = ("self_funded_gross_capacity", "debt_funded_incremental_capacity",
+    bold_keys = ("self_funded_capacity_generated", "debt_funded_incremental_capacity",
                  "total_gross_funding_capacity", "total_discretionary_deployment", "remaining_deployable_headroom")
-    ws_ic.cell(row=rr, column=1, value=CT_LABELS[key]).font = BOLD_FONT if key in bold_keys else LABEL_FONT
+    deprecated_keys = ("mandatory_debt_uses_deprecated", "self_funded_gross_capacity_deprecated")
+    if key in deprecated_keys:
+        cell_font = Font(italic=True, size=10, color="C00000")
+    elif key in bold_keys:
+        cell_font = BOLD_FONT
+    else:
+        cell_font = LABEL_FONT
+    ws_ic.cell(row=rr, column=1, value=CT_LABELS[key]).font = cell_font
     CT_ROW[key] = rr
     rr += 1
 
@@ -687,18 +701,27 @@ def ctr(key, col):
     return f"{col}{CT_ROW[key]}"
 
 
+NEXT_FY_COL = {"D": "E", "E": "F", "F": "G", "G": "H"}  # FY2030 (H) has no next column -- proxy uses its own column
+
 for i, fy in enumerate(f.FORECAST_YEARS):
     col = FY_COLS[i]
     ws_ic[ctr("operating_fcf", col)] = f"={cff('fcf', col)}"
     ws_ic[ctr("post_dividend_internal_generation", col)] = f"={ctr('operating_fcf', col)}-{cff('dividends_paid', col)}"
     ws_ic[ctr("opening_excess_liquidity", col)] = f"=MAX(0,{cff('beginning_cash', col)}-{icr('min_cash_buffer', col)})"
-    ws_ic[ctr("mandatory_debt_uses", col)] = f"={cff('debt_repayments', col)}"
-    ws_ic[ctr("self_funded_gross_capacity", col)] = (
-        f"={ctr('opening_excess_liquidity', col)}+{ctr('post_dividend_internal_generation', col)}-{ctr('mandatory_debt_uses', col)}"
+    ws_ic[ctr("gross_debt_proceeds", col)] = f"={cff('debt_proceeds', col)}"
+    ws_ic[ctr("gross_debt_repayments", col)] = f"={cff('debt_repayments', col)}"
+    ws_ic[ctr("net_mandatory_debt_service", col)] = (
+        f"=MAX(0,{ctr('gross_debt_repayments', col)}-{ctr('gross_debt_proceeds', col)})"
     )
-    ws_ic[ctr("debt_funded_incremental_capacity", col)] = f"={cff('debt_proceeds', col)}"
+    ws_ic[ctr("self_funded_capacity_generated", col)] = (
+        f"={ctr('post_dividend_internal_generation', col)}-{ctr('net_mandatory_debt_service', col)}"
+    )
+    ws_ic[ctr("debt_funded_incremental_capacity", col)] = (
+        f"=MAX(0,{ctr('gross_debt_proceeds', col)}-{ctr('gross_debt_repayments', col)})"
+    )
     ws_ic[ctr("total_gross_funding_capacity", col)] = (
-        f"={ctr('self_funded_gross_capacity', col)}+{ctr('debt_funded_incremental_capacity', col)}"
+        f"={ctr('opening_excess_liquidity', col)}+{ctr('self_funded_capacity_generated', col)}"
+        f"+{ctr('debt_funded_incremental_capacity', col)}"
     )
     ws_ic[ctr("share_repurchases", col)] = f"={cff('share_repurchases', col)}"
     ws_ic[ctr("strategic_investment", col)] = 0
@@ -708,10 +731,22 @@ for i, fy in enumerate(f.FORECAST_YEARS):
         f"={ctr('share_repurchases', col)}+{ctr('strategic_investment', col)}"
         f"+{ctr('voluntary_debt_reduction', col)}+{ctr('other_discretionary_uses', col)}"
     )
+    next_col = NEXT_FY_COL.get(col)
+    if next_col is not None:
+        ws_ic[ctr("forward_debt_repayment_reserve", col)] = f"={ctr('net_mandatory_debt_service', next_col)}"
+    else:
+        # Terminal year (FY2030): documented proxy -- FY2031 is outside the forecast horizon.
+        ws_ic[ctr("forward_debt_repayment_reserve", col)] = f"={ctr('net_mandatory_debt_service', col)}"
     ws_ic[ctr("remaining_deployable_headroom", col)] = (
-        f"=MAX(0,{ctr('total_gross_funding_capacity', col)}-{ctr('total_discretionary_deployment', col)})"
+        f"=MAX(0,{ctr('total_gross_funding_capacity', col)}-{ctr('total_discretionary_deployment', col)}"
+        f"-{ctr('forward_debt_repayment_reserve', col)})"
     )
     ws_ic[ctr("ending_excess_liquidity", col)] = f"=MAX(0,{cff('ending_cash', col)}-{icr('min_cash_buffer', col)})"
+    # DEPRECATED-BY-v2 rows, kept only for backward-compatible reference (never the headline KPI).
+    ws_ic[ctr("mandatory_debt_uses_deprecated", col)] = f"={ctr('net_mandatory_debt_service', col)}"
+    ws_ic[ctr("self_funded_gross_capacity_deprecated", col)] = (
+        f"={ctr('opening_excess_liquidity', col)}+{ctr('self_funded_capacity_generated', col)}"
+    )
 
 for key in CT_ROWS:
     row_num = CT_ROW[key]
@@ -724,8 +759,8 @@ proof_row = rr + 1
 ws_ic.merge_cells(f"A{proof_row}:H{proof_row}")
 ws_ic.cell(row=proof_row, column=1,
            value="Independent proof: Ending Excess Liquidity (from ending cash) equals Remaining "
-                 "Deployable Headroom (from the discretionary-deployment waterfall) for every year -- "
-                 "confirming no dollar is counted in both headroom and deployment.").font = Font(italic=True, size=9)
+                 "Deployable Headroom PLUS the Forward Debt-Repayment Reserve, for every year -- "
+                 "confirming no dollar is counted in both headroom and deployment/reserve.").font = Font(italic=True, size=9)
 ws_ic.row_dimensions[proof_row].height = 20
 
 # Static, all-scenario cumulative-capacity reconciliation (A-G), computed
@@ -742,7 +777,8 @@ cum_labels = [
     "Scenario", "A. Cumulative Self-Funded Generation", "B. Cumulative Debt-Funded Capacity",
     "C. Opening Excess Liquidity (horizon start)", "D. Cumulative Discretionary Deployment",
     "E. Terminal Remaining Headroom", "Ending Reserve Movement",
-    "Total Horizon Capacity Accessible (C+A+B)", "Reconciles To (D+E+Reserve Mvmt)",
+    "Terminal Forward Debt-Repayment Reserve (FY2031 proxy)",
+    "Total Horizon Capacity Accessible (C+A+B)", "Reconciles To (D+E+Reserve Mvmt+Forward Reserve)",
 ]
 for j, label in enumerate(cum_labels):
     ws_ic.cell(row=cum_hdr2, column=1 + j, value=label)
@@ -751,11 +787,12 @@ rr2 = cum_hdr2 + 1
 for scenario in f.SCENARIOS:
     summary = capacity_summaries[scenario]
     reconciles_to = (summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom
-                      + summary.ending_reserve_movement)
+                      + summary.ending_reserve_movement + summary.terminal_forward_debt_repayment_reserve)
     values = [
         scenario.capitalize(), summary.cumulative_self_funded_generation, summary.cumulative_debt_funded_capacity,
         summary.opening_excess_liquidity_at_horizon_start, summary.cumulative_discretionary_deployment,
         summary.terminal_remaining_headroom, summary.ending_reserve_movement,
+        summary.terminal_forward_debt_repayment_reserve,
         summary.total_horizon_capacity_accessible, reconciles_to,
     ]
     for j, val in enumerate(values):
@@ -1239,8 +1276,9 @@ r += 1
 ws_es.cell(row=r, column=1, value="Corrected Capacity Taxonomy (FY2030) -- see Sheet 9 for full detail").font = Font(bold=True, color="1F3864")
 r += 1
 CAPACITY_EXEC_ROWS = [
-    ("Self-Funded Capacity Generated ($M)", lambda ty: ty.self_funded_gross_capacity, USD_FMT),
-    ("Debt-Funded Capacity ($M)", lambda ty: ty.debt_funded_incremental_capacity, USD_FMT),
+    ("Opening Excess Liquidity ($M, a STOCK -- never 'generated')", lambda ty: ty.opening_excess_liquidity, USD_FMT),
+    ("Self-Funded Capacity Generated ($M)", lambda ty: ty.self_funded_capacity_generated, USD_FMT),
+    ("Debt-Funded Capacity ($M, net of repayment)", lambda ty: ty.debt_funded_incremental_capacity, USD_FMT),
     ("Discretionary Deployment ($M)", lambda ty: ty.total_discretionary_deployment, USD_FMT),
     ("Remaining Deployable Headroom ($M)", lambda ty: ty.remaining_deployable_headroom, USD_FMT),
 ]
@@ -1466,7 +1504,7 @@ val_fails = sum(1 for x in val_checks if x.status == "FAIL")
 ws_val.cell(row=r + 1, column=1, value=f"TOTAL: {len(val_checks)} results, {val_fails} failures").font = BOLD_FONT
 
 r += 3
-ws_val.cell(row=r, column=1, value="Corrected Capacity Taxonomy (Milestone 9 correction): 13 named checks").font = BOLD_FONT
+ws_val.cell(row=r, column=1, value=f"Corrected Capacity Taxonomy (Milestone 9 v2 correction): {len(ct.CAPACITY_CHECK_METADATA)} named checks").font = BOLD_FONT
 r += 1
 for j, h in enumerate(["Check", "Rows", "PASS", "FAIL", "WARNING"]):
     ws_val.cell(row=r, column=1 + j, value=h)
@@ -1530,6 +1568,13 @@ LIMITATIONS = [
     "strategic_investment, voluntary_debt_reduction, and other_discretionary_uses in the corrected "
     "taxonomy are structural $0 placeholders -- no policy lever for them has been modeled this round, "
     "following the same convention already established for management_selected_deployment.",
+    "v2 finance-semantics correction: debt_funded_incremental_capacity previously equaled gross debt "
+    "proceeds, mislabeling capacity even when the same cash was simultaneously repaid. It is now the NET "
+    "of proceeds over repayments; the offsetting net_mandatory_debt_service is subtracted from "
+    "self_funded_capacity_generated, which now excludes opening_excess_liquidity entirely (a stock is "
+    "never labeled 'generated'). Remaining Deployable Headroom now also deducts a forward "
+    "debt-repayment reserve, proxied for the terminal FY2030 year since FY2031 is outside the forecast "
+    "horizon. See docs/investment_capacity_correction_evidence.md.",
 ]
 r = 3
 for lim in LIMITATIONS:

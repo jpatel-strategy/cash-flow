@@ -892,6 +892,95 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
             CREATE INDEX IF NOT EXISTS idx_capacity_validation_check ON capacity_validation_results(check_name);
         """,
     ),
+    ColumnMigration(
+        migration_id="0029_capacity_taxonomy_gross_debt_proceeds",
+        description=(
+            "v2 finance-semantics correction: add capacity_taxonomy_results.gross_debt_proceeds, "
+            "a transparent supporting field (= ForecastYear.debt_proceeds) preserved alongside the "
+            "corrected, netted debt_funded_incremental_capacity. NULL for pre-existing version='v1' rows."
+        ),
+        table="capacity_taxonomy_results",
+        column="gross_debt_proceeds",
+        column_def="REAL",
+    ),
+    ColumnMigration(
+        migration_id="0030_capacity_taxonomy_gross_debt_repayments",
+        description=(
+            "v2 finance-semantics correction: add capacity_taxonomy_results.gross_debt_repayments, "
+            "a transparent supporting field (= ForecastYear.debt_repayments). NULL for version='v1' rows."
+        ),
+        table="capacity_taxonomy_results",
+        column="gross_debt_repayments",
+        column_def="REAL",
+    ),
+    ColumnMigration(
+        migration_id="0031_capacity_taxonomy_net_mandatory_debt_service",
+        description=(
+            "v2 finance-semantics correction: add capacity_taxonomy_results.net_mandatory_debt_service "
+            "= max(0, gross_debt_repayments - gross_debt_proceeds) -- the canonical v2 replacement for "
+            "the deprecated mandatory_debt_uses column (kept, unchanged, for v1 schema compatibility). "
+            "NULL for version='v1' rows."
+        ),
+        table="capacity_taxonomy_results",
+        column="net_mandatory_debt_service",
+        column_def="REAL",
+    ),
+    ColumnMigration(
+        migration_id="0032_capacity_taxonomy_self_funded_capacity_generated",
+        description=(
+            "v2 finance-semantics correction: add capacity_taxonomy_results.self_funded_capacity_generated, "
+            "a period FLOW that excludes opening_excess_liquidity entirely -- the canonical v2 replacement "
+            "for the deprecated self_funded_gross_capacity column (kept, unchanged, for v1 schema "
+            "compatibility, but never labeled 'capacity generated'). NULL for version='v1' rows."
+        ),
+        table="capacity_taxonomy_results",
+        column="self_funded_capacity_generated",
+        column_def="REAL",
+    ),
+    ColumnMigration(
+        migration_id="0033_capacity_taxonomy_forward_debt_repayment_reserve",
+        description=(
+            "v2 finance-semantics correction: add capacity_taxonomy_results.forward_debt_repayment_reserve "
+            "(next year's net_mandatory_debt_service, held back before calling the residual "
+            "'remaining deployable headroom') and forward_reserve_is_proxied (1 for the terminal FY2030 "
+            "row, whose reserve proxies an out-of-horizon FY2031 obligation; 0 otherwise). Both NULL/0 "
+            "for version='v1' rows, which predate this concept."
+        ),
+        table="capacity_taxonomy_results",
+        column="forward_debt_repayment_reserve",
+        column_def="REAL",
+    ),
+    ColumnMigration(
+        migration_id="0034_capacity_taxonomy_forward_reserve_is_proxied",
+        description=(
+            "Companion boolean (INTEGER 0/1) to migration 0033 -- see that migration's description."
+        ),
+        table="capacity_taxonomy_results",
+        column="forward_reserve_is_proxied",
+        column_def="INTEGER",
+    ),
+    ColumnMigration(
+        migration_id="0035_capacity_horizon_terminal_forward_reserve",
+        description=(
+            "v2 finance-semantics correction: add capacity_horizon_results.terminal_forward_debt_repayment_reserve "
+            "and terminal_forward_reserve_is_proxied -- the fourth reconciling term the "
+            "capacity_accounted_for_reconciliation identity requires once the terminal year's "
+            "remaining_deployable_headroom deducts a forward reserve for an out-of-horizon (FY2031) "
+            "obligation. NULL/0 for version='v1' rows, which predate this concept."
+        ),
+        table="capacity_horizon_results",
+        column="terminal_forward_debt_repayment_reserve",
+        column_def="REAL",
+    ),
+    ColumnMigration(
+        migration_id="0036_capacity_horizon_terminal_forward_reserve_proxied",
+        description=(
+            "Companion boolean (INTEGER 0/1) to migration 0035 -- see that migration's description."
+        ),
+        table="capacity_horizon_results",
+        column="terminal_forward_reserve_is_proxied",
+        column_def="INTEGER",
+    ),
 )
 
 

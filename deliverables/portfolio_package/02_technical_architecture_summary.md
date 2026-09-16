@@ -90,7 +90,7 @@ to the production database.
 
 ## Test coverage
 
-437 automated unit/integration tests (`pytest`), covering the mapping
+453 automated unit/integration tests (`pytest`), covering the mapping
 gate, the annual persistence pipeline, the forecast engine (including
 every validation check and the cumulative-capacity fix), the forecast
 persistence layer, the valuation engine, the valuation persistence

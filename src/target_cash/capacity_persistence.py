@@ -1,6 +1,7 @@
 """Milestone 9 correction: transactional, idempotent persistence of the
 corrected investment-capacity taxonomy (src/target_cash/capacity_taxonomy.py)
-into the additive schema added by migrations 0025-0028.
+into the additive schema added by migrations 0025-0028 (v1 tables) and
+0029-0036 (v2 finance-semantics correction columns).
 
 Mirrors forecast_persistence.py's design discipline exactly: a preflight
 plan computed from pure in-memory target_cash.capacity_taxonomy functions,
@@ -78,6 +79,10 @@ def compute_capacity_preflight(version: str = CAPACITY_MODEL_VERSION) -> Capacit
                 "opening_excess_liquidity": ty.opening_excess_liquidity,
                 "mandatory_debt_uses": ty.mandatory_debt_uses,
                 "self_funded_gross_capacity": ty.self_funded_gross_capacity,
+                "gross_debt_proceeds": ty.gross_debt_proceeds,
+                "gross_debt_repayments": ty.gross_debt_repayments,
+                "net_mandatory_debt_service": ty.net_mandatory_debt_service,
+                "self_funded_capacity_generated": ty.self_funded_capacity_generated,
                 "debt_funded_incremental_capacity": ty.debt_funded_incremental_capacity,
                 "total_gross_funding_capacity": ty.total_gross_funding_capacity,
                 "share_repurchases": ty.share_repurchases,
@@ -85,6 +90,8 @@ def compute_capacity_preflight(version: str = CAPACITY_MODEL_VERSION) -> Capacit
                 "voluntary_debt_reduction": ty.voluntary_debt_reduction,
                 "other_discretionary_uses": ty.other_discretionary_uses,
                 "total_discretionary_deployment": ty.total_discretionary_deployment,
+                "forward_debt_repayment_reserve": ty.forward_debt_repayment_reserve,
+                "forward_reserve_is_proxied": int(ty.forward_reserve_is_proxied),
                 "remaining_deployable_headroom": ty.remaining_deployable_headroom,
                 "ending_excess_liquidity": ty.ending_excess_liquidity,
                 "version": version, "information_cutoff": ty.information_cutoff,
@@ -100,6 +107,8 @@ def compute_capacity_preflight(version: str = CAPACITY_MODEL_VERSION) -> Capacit
             "cumulative_discretionary_deployment": summary.cumulative_discretionary_deployment,
             "terminal_remaining_headroom": summary.terminal_remaining_headroom,
             "ending_reserve_movement": summary.ending_reserve_movement,
+            "terminal_forward_debt_repayment_reserve": summary.terminal_forward_debt_repayment_reserve,
+            "terminal_forward_reserve_is_proxied": int(summary.terminal_forward_reserve_is_proxied),
             "total_horizon_capacity_accessible": summary.total_horizon_capacity_accessible,
             "version": version, "information_cutoff": summary.information_cutoff,
         })
@@ -164,17 +173,24 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                 INSERT INTO capacity_taxonomy_results
                     (capacity_taxonomy_result_id, scenario_id, fiscal_year, operating_fcf,
                      post_dividend_internal_generation, opening_excess_liquidity, mandatory_debt_uses,
-                     self_funded_gross_capacity, debt_funded_incremental_capacity, total_gross_funding_capacity,
+                     self_funded_gross_capacity, gross_debt_proceeds, gross_debt_repayments,
+                     net_mandatory_debt_service, self_funded_capacity_generated,
+                     debt_funded_incremental_capacity, total_gross_funding_capacity,
                      share_repurchases, strategic_investment, voluntary_debt_reduction, other_discretionary_uses,
-                     total_discretionary_deployment, remaining_deployable_headroom, ending_excess_liquidity,
+                     total_discretionary_deployment, forward_debt_repayment_reserve, forward_reserve_is_proxied,
+                     remaining_deployable_headroom, ending_excess_liquidity,
                      version, information_cutoff)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(capacity_taxonomy_result_id) DO UPDATE SET
                     operating_fcf=excluded.operating_fcf,
                     post_dividend_internal_generation=excluded.post_dividend_internal_generation,
                     opening_excess_liquidity=excluded.opening_excess_liquidity,
                     mandatory_debt_uses=excluded.mandatory_debt_uses,
                     self_funded_gross_capacity=excluded.self_funded_gross_capacity,
+                    gross_debt_proceeds=excluded.gross_debt_proceeds,
+                    gross_debt_repayments=excluded.gross_debt_repayments,
+                    net_mandatory_debt_service=excluded.net_mandatory_debt_service,
+                    self_funded_capacity_generated=excluded.self_funded_capacity_generated,
                     debt_funded_incremental_capacity=excluded.debt_funded_incremental_capacity,
                     total_gross_funding_capacity=excluded.total_gross_funding_capacity,
                     share_repurchases=excluded.share_repurchases,
@@ -182,15 +198,20 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                     voluntary_debt_reduction=excluded.voluntary_debt_reduction,
                     other_discretionary_uses=excluded.other_discretionary_uses,
                     total_discretionary_deployment=excluded.total_discretionary_deployment,
+                    forward_debt_repayment_reserve=excluded.forward_debt_repayment_reserve,
+                    forward_reserve_is_proxied=excluded.forward_reserve_is_proxied,
                     remaining_deployable_headroom=excluded.remaining_deployable_headroom,
                     ending_excess_liquidity=excluded.ending_excess_liquidity
                 """,
                 (row["capacity_taxonomy_result_id"], row["scenario_id"], row["fiscal_year"], row["operating_fcf"],
                  row["post_dividend_internal_generation"], row["opening_excess_liquidity"], row["mandatory_debt_uses"],
-                 row["self_funded_gross_capacity"], row["debt_funded_incremental_capacity"],
+                 row["self_funded_gross_capacity"], row["gross_debt_proceeds"], row["gross_debt_repayments"],
+                 row["net_mandatory_debt_service"], row["self_funded_capacity_generated"],
+                 row["debt_funded_incremental_capacity"],
                  row["total_gross_funding_capacity"], row["share_repurchases"], row["strategic_investment"],
                  row["voluntary_debt_reduction"], row["other_discretionary_uses"],
-                 row["total_discretionary_deployment"], row["remaining_deployable_headroom"],
+                 row["total_discretionary_deployment"], row["forward_debt_repayment_reserve"],
+                 row["forward_reserve_is_proxied"], row["remaining_deployable_headroom"],
                  row["ending_excess_liquidity"], row["version"], row["information_cutoff"]),
             )
             written["capacity_taxonomy_results"] += 1
@@ -202,8 +223,9 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                     (capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation,
                      cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start,
                      cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement,
+                     terminal_forward_debt_repayment_reserve, terminal_forward_reserve_is_proxied,
                      total_horizon_capacity_accessible, version, information_cutoff)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(capacity_horizon_result_id) DO UPDATE SET
                     cumulative_self_funded_generation=excluded.cumulative_self_funded_generation,
                     cumulative_debt_funded_capacity=excluded.cumulative_debt_funded_capacity,
@@ -211,12 +233,15 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                     cumulative_discretionary_deployment=excluded.cumulative_discretionary_deployment,
                     terminal_remaining_headroom=excluded.terminal_remaining_headroom,
                     ending_reserve_movement=excluded.ending_reserve_movement,
+                    terminal_forward_debt_repayment_reserve=excluded.terminal_forward_debt_repayment_reserve,
+                    terminal_forward_reserve_is_proxied=excluded.terminal_forward_reserve_is_proxied,
                     total_horizon_capacity_accessible=excluded.total_horizon_capacity_accessible
                 """,
                 (row["capacity_horizon_result_id"], row["scenario_id"], row["cumulative_self_funded_generation"],
                  row["cumulative_debt_funded_capacity"], row["opening_excess_liquidity_at_horizon_start"],
                  row["cumulative_discretionary_deployment"], row["terminal_remaining_headroom"],
-                 row["ending_reserve_movement"], row["total_horizon_capacity_accessible"],
+                 row["ending_reserve_movement"], row["terminal_forward_debt_repayment_reserve"],
+                 row["terminal_forward_reserve_is_proxied"], row["total_horizon_capacity_accessible"],
                  row["version"], row["information_cutoff"]),
             )
             written["capacity_horizon_results"] += 1
