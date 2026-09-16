@@ -2946,3 +2946,37 @@ Python formula chain and could drift from `forecast.py` if the latter
 changes without a corresponding update here — the "ground truth"
 figures shown everywhere else on the page are unaffected by this risk
 since they come directly from the JSON export, never from the JS port.
+
+## 2026-09-16 — Milestone 8: portfolio and recruiter package
+
+Built `deliverables/portfolio_package/` — 14 documents (plus a
+recruiter-facing `README.md` index) positioning this project for
+FP&A / strategic finance / finance transformation / business operations
+/ retail operations / supply-chain finance / operations analytics roles,
+explicitly not as a senior-ML-engineer or software-architecture
+portfolio piece (`06_positioning_note.md` states this directly and says
+why).
+
+Contents: an executive case study (`01`); a technical architecture
+summary written for a technical interviewer (`02`); a finance
+methodology summary covering the CapEx-vs-CFI distinction, the
+cumulative-capacity double-counting bug and its conservation-identity
+proof, the honest "arithmetic invariant vs. independent test"
+validation taxonomy, and DCF valuation-date consistency (`03`); a
+project-wide data dictionary (`04`); a model-risk and limitations
+statement stated up front rather than buried (`05`); a positioning note
+(`06`); a demo script (`07`); combined 30-second and 2-minute interview
+explanations (`08`); resume bullets (`09`); a LinkedIn draft (`10`); a
+screenshot plan referencing the Milestone 7 verified screenshots
+(`11`); a final project inventory with the full 41-commit history,
+source-file manifest, and database/test counts (`12`); and reproduction
+instructions covering the full pipeline plus all three presentation-
+layer build/verify scripts (`13`).
+
+All facts cited (commit count, test count — corrected from an initial
+miscount of 20 to the actual 19 test files, caught by re-running `find`
+against the real `tests/unit/` directory before finalizing — database
+table/row counts, FY2025 reference values, scenario results) were
+verified against the live repository and database rather than recalled
+from memory. No code changes this milestone; full pytest suite
+unaffected: 401 passed.
