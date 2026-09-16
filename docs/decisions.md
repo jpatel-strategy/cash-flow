@@ -2713,3 +2713,87 @@ excluded, same rationale as the forecast tables).
 **Tests**: `tests/unit/test_valuation.py` (31 tests) and
 `tests/unit/test_valuation_persistence.py` (9 tests). Full suite: 401
 passed.
+
+## 2026-09-16 — Milestone 5: Excel executive workbook built and verified
+
+Built `deliverables/Target_Cash_Flow_Investment_Capacity_Model.xlsx` via
+`scripts/build_excel_model.py` (openpyxl): all 15 required sheets, in the
+required order — Cover & Instructions; Executive Summary; Historical
+Financials; Filing-Vintage Comparison; Quarterly Cash Proof; Forecast
+Assumptions; Scenario Forecast; Cash-Flow Bridge; Investment Capacity;
+Capital Allocation; DCF Valuation; Sensitivities; Source & Lineage;
+Validation Summary; Limitations.
+
+**Live vs. static sheets.** The five "decision cockpit" sheets (Scenario
+Forecast, Cash-Flow Bridge, Investment Capacity, Capital Allocation, DCF
+Valuation) use real, cross-referencing Excel formulas — not pasted
+values — chained the same way `target_cash.forecast`/`valuation` compute
+them in Python, anchored to FY2025 `HISTORICAL` literals for the FY2026
+handoff. A single scenario-selector dropdown
+(`'Forecast Assumptions'!$C$2`, data-validation list "Base,Upside,
+Downside") drives a nested-`IF` lookup (`asm_pick`) across three parallel
+input-column groups on the Forecast Assumptions sheet, and that selection
+propagates live through every downstream sheet. Investment Capacity's
+cumulative-deployable-capacity cell uses the same corrected
+terminal-plus-deployed formula fixed in Milestone 3A, not the naive
+`SUM()` that double-counts. Capital Allocation carries a live
+no-double-counting proof row comparing its own 8-step waterfall's ending
+cash against the Cash-Flow Bridge's ending cash for every forecast year.
+The remaining ten sheets are static but fully data-driven — queried live
+from `data/curated/target_cash.db` (Filing-Vintage Comparison, Quarterly
+Cash Proof) or computed live from the Python model (Historical
+Financials, Executive Summary, Sensitivities, Source & Lineage,
+Validation Summary, Limitations) at build time, not hand-typed.
+
+**Environment finding: LibreOffice cannot load any xlsx in this
+sandbox.** `soffice --headless --convert-to xlsx` failed with "Error:
+source file could not be loaded" for both the built workbook and a
+trivial hand-built one-cell test file, confirming a sandboxing
+limitation rather than a defect in the generated file (openpyxl and
+`file` both confirm it's a well-formed "Microsoft Excel 2007+"
+document). Per General Rule 17 and the Milestone 5 instruction to
+"verify programmatically where possible," substituted the pure-Python
+`formulas` package (added to `pyproject.toml`'s `dev` extra as
+`formulas>=1.3`) as a genuine, independent Excel-formula recalculation
+engine.
+
+**One real bug found and fixed**: a display label intended as plain text
+(`"= Unlevered FCF"` on the DCF Valuation sheet) was serialized by
+openpyxl into an actual Excel formula, because OOXML treats any cell
+value beginning with `=` as a formula regardless of the producing
+language's string type — this surfaced as a `#REF!` error when the
+workbook was recalculated. Fixed by renaming the label to
+"Unlevered FCF (Total)" (dropping the leading `=`). Re-verification
+confirmed zero formula errors across all 1,769 evaluated cells.
+
+**Verification** (`scripts/verify_excel_model.py`, using `formulas` to
+load and fully recalculate the workbook):
+1. Zero formula-error tokens (`#REF!`, `#VALUE!`, `#DIV/0!`, `#NAME?`,
+   `#NULL!`, `#NUM!`, `#N/A`) anywhere in the workbook.
+2. For every forecast year FY2026-FY2030 under the saved (Base)
+   selection: Excel-recalculated revenue, net income, diluted EPS, CFO,
+   FCF, ending cash, and deployable capacity match
+   `target_cash.forecast`'s own Python computation exactly, and the
+   Capital Allocation no-double-counting proof reads "OK".
+3. DCF Valuation's WACC, Enterprise Value, Equity Value, and Implied
+   Value/Share match `target_cash.valuation.run_dcf()` exactly.
+4. Structural checks: all 15 sheets present in the required order, the
+   scenario-selector dropdown is present, frozen panes are set on the
+   four live working sheets.
+5. The scenario selector is genuinely interactive, not just correct for
+   the default: switching the selector cell to "Upside" and separately
+   to "Downside" (via a fresh openpyxl load, save to a scratch file, and
+   independent `formulas` recalculation) reproduces
+   `target_cash.forecast`'s FY2030 revenue and diluted EPS for each of
+   those scenarios exactly.
+
+All checks pass. Full pytest suite unaffected: 401 passed (this
+milestone adds a spreadsheet-building/verification pair of scripts, not
+new pytest-covered library code).
+
+**Known limitation**: true LibreOffice/Excel-application-level
+recalculation could not be exercised in this sandboxed environment; the
+`formulas` package is a credible but distinct implementation of the
+Excel formula language, so a residual (believed low) risk of an
+Excel-specific formula-parsing discrepancy that `formulas` would not
+surface remains and is recorded here rather than glossed over.
