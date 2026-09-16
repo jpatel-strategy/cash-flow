@@ -54,6 +54,9 @@
 
     <div class="kpi-grid" id="kpi-grid"></div>
 
+    <h3 class="capacity-kpi-heading">Corrected Capacity Taxonomy, FY2030 (selected scenario)</h3>
+    <div class="kpi-grid" id="capacity-kpi-grid"></div>
+
     <div class="chart-row">
       <div class="chart-card">
         <h3>Revenue &amp; Free Cash Flow — Actual vs. Forecast</h3>
@@ -61,8 +64,8 @@
         <p class="chart-note">Solid = actual (FY2021–FY2025, SEC-filed). Dashed = forecast (FY2026–FY2030, scenario-based).</p>
       </div>
       <div class="chart-card">
-        <h3>Deployable Capacity by Scenario, FY2030</h3>
-        <div id="chart-capacity-by-scenario" class="chart-target" role="img" aria-label="Deployable capacity by scenario bar chart"></div>
+        <h3>Remaining Deployable Headroom by Scenario, FY2030</h3>
+        <div id="chart-capacity-by-scenario" class="chart-target" role="img" aria-label="Remaining deployable headroom by scenario bar chart"></div>
         <p class="chart-note" id="capacity-note"></p>
       </div>
     </div>
@@ -115,20 +118,31 @@
   <!-- ================= 5. CASH-FLOW BRIDGE & INVESTMENT CAPACITY ================= -->
   <section id="bridge" class="panel" aria-labelledby="bridge-h">
     <h2 id="bridge-h">Cash-Flow Bridge &amp; Investment Capacity</h2>
-    <p class="panel-sub">CFO → CapEx → FCF → Dividends → Post-Dividend Capacity → Minimum-Cash Buffer → Debt Reserve → Deployable Capacity.</p>
+    <p class="panel-sub">CFO → CapEx → FCF → Dividends → Post-Dividend Capacity → Minimum-Cash Buffer → Debt Reserve → Legacy Gross Ceiling (deprecated; see the corrected taxonomy below).</p>
     <div class="chart-card full">
       <div id="chart-bridge" class="chart-target" role="img" aria-label="Cash flow bridge waterfall chart"></div>
+      <p class="chart-note">This waterfall ends at the <strong>legacy, deprecated</strong> gross ceiling — preserved for backward compatibility only. See "Corrected Capacity Taxonomy" below for the executive-facing figures.</p>
+    </div>
+
+    <h3 class="section-divider">Corrected Capacity Taxonomy (Milestone 9 correction)</h3>
+    <p class="panel-sub">Stocks vs. flows, labeled explicitly. <strong>Debt-funded capacity is never combined with self-funded capacity</strong> — new borrowing is not internally generated operating cash.</p>
+    <div class="chart-card full">
+      <div id="chart-capacity-taxonomy" class="chart-target" role="img" aria-label="Corrected capacity taxonomy waterfall chart"></div>
     </div>
     <div class="chart-row">
       <div class="chart-card">
-        <h3>Deployable Capacity &amp; Cumulative Deployable Capacity by Year</h3>
-        <div id="chart-capacity-series" class="chart-target" role="img" aria-label="Deployable capacity over time chart"></div>
-        <p class="chart-note">Cumulative capacity = terminal-year balance + amounts actually deployed along the way — never a naive year-by-year sum, which would double-count unused cash carried forward.</p>
+        <h3>Remaining Deployable Headroom by Year <span class="stock-badge">STOCK</span></h3>
+        <div id="chart-capacity-series" class="chart-target" role="img" aria-label="Remaining deployable headroom over time chart"></div>
+        <p class="chart-note">A stock, not a flow — never sum these values across years. The FY2026-FY2030 cumulative reconciliation (a genuinely additive figure) is in the table to the right.</p>
       </div>
       <div class="chart-card">
-        <h3>Investment Capacity Detail</h3>
-        <div class="table-wrap"><table id="table-capacity" class="data-table"></table></div>
+        <h3>Cumulative Capacity Reconciliation, FY2026–FY2030</h3>
+        <div class="table-wrap"><table id="table-capacity-horizon" class="data-table"></table></div>
+        <p class="chart-note">Total Horizon Capacity = Cumulative Discretionary Deployment + Terminal Remaining Headroom + Ending Reserve Movement, exactly.</p>
       </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table-capacity" class="data-table"></table>
     </div>
   </section>
 

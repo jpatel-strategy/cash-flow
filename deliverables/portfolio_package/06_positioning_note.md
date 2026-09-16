@@ -25,8 +25,10 @@ happened to build the supporting tooling myself because I could."
 ## What to emphasize in an interview or cover letter
 
 - **Financial and operational judgment**: the scenario narratives, the
-  CapEx-vs-CFI distinction, the recognition that Upside's lower single-
-  year deployable capacity is a feature (more gets deployed) not a bug.
+  CapEx-vs-CFI distinction, the recognition that Upside's lower
+  remaining deployable headroom is a feature (more gets deployed) not a
+  bug, and never presenting debt-funded capacity as internally
+  generated cash.
 - **Accounting interpretation**: catching and correctly handling the
   FY2024 10-K's COGS/SG&A reclassification of FY2022-FY2023 figures —
   a real judgment call about what "the same number" means across filing

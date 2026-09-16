@@ -85,9 +85,10 @@ with sync_playwright() as p:
     dcf_base = data["valuation"]["results"]["base"]["implied_value_per_share"]
     check(f"${dcf_base:.2f}" in kpi_text, "Snapshot DCF Value/Share KPI matches Python exactly (Base)")
 
-    total_checks = data["validation"]["forecast"]["total"] + data["validation"]["valuation"]["total"]
-    total_pass = data["validation"]["forecast"]["PASS"] + data["validation"]["valuation"]["PASS"]
-    check(f"{total_pass}/{total_checks} PASS" in kpi_text, "Validation status KPI matches Python totals")
+    cap_v = data["validation"].get("capacity_taxonomy", {"total": 0, "PASS": 0})
+    total_checks = data["validation"]["forecast"]["total"] + data["validation"]["valuation"]["total"] + cap_v["total"]
+    total_pass = data["validation"]["forecast"]["PASS"] + data["validation"]["valuation"]["PASS"] + cap_v["PASS"]
+    check(f"{total_pass}/{total_checks} PASS" in kpi_text, "Validation status KPI matches Python totals (incl. capacity taxonomy)")
 
     # --- Scenario selector changes rendered values ---
     page.click('button[data-scenario="upside"]')
@@ -150,6 +151,37 @@ with sync_playwright() as p:
     # --- No-double-counting proof reads OK ---
     proof_text = page.locator("#no-double-count-banner").inner_text()
     check("OK" in proof_text, "Capital allocation no-double-counting proof reads OK for the default scenario/year")
+
+    # --- Milestone 9 correction: legacy KPI removed from headline; 4 corrected concepts present ---
+    kpi_text_check = page.locator("#kpi-grid").inner_text().lower()
+    check(
+        "deployable capacity" not in kpi_text_check,
+        "Legacy ambiguous capacity KPI is removed from the Snapshot headline cards",
+    )
+    cap_kpi_text = page.locator("#capacity-kpi-grid").inner_text()
+    cap_kpi_text_lower = cap_kpi_text.lower()
+    for label in ["Self-Funded Capacity Generated", "Debt-Funded Capacity", "Discretionary Deployment",
+                  "Remaining Deployable Headroom"]:
+        check(label.lower() in cap_kpi_text_lower, f"Corrected capacity concept displayed: {label!r}")
+
+    base_terminal_cap = data["scenarios"]["base"]["capacity_taxonomy_by_year"][str(base_terminal["fiscal_year"])]
+    cap_values_text = cap_kpi_text.replace(",", "")
+    check(
+        f"${round(base_terminal_cap['self_funded_gross_capacity']):,}".replace(",", "") in cap_values_text.replace(",", ""),
+        "Self-Funded Capacity Generated KPI value matches Python (Base, FY2030)",
+    )
+
+    # No bare "Deployable Capacity" label anywhere without a qualifier (legacy/deprecated/corrected wording).
+    full_page_text = page.locator("body").inner_text()
+    bare_mentions = [
+        line for line in full_page_text.split("\n")
+        if "deployable capacity" in line.lower()
+        and not any(q in line.lower() for q in ("legacy", "deprecated", "remaining", "cumulative"))
+    ]
+    check(
+        len(bare_mentions) == 0,
+        f"No bare 'deployable capacity' label lacking a legacy/deprecated/remaining qualifier (found {len(bare_mentions)})",
+    )
 
     # --- Structural / accessibility checks ---
     check(page.locator("a.skip-link").count() == 1, "Skip-to-content link present")

@@ -68,18 +68,23 @@ from SEC filings, for a portfolio/case-study purpose.
   (zero-delta) settings, but is a separate implementation that could in
   principle drift from the Python source of truth if the latter changes
   without a corresponding update — a risk documented rather than hidden.
+  The same is true of the corrected capacity-taxonomy formula
+  (`computeCapacityTaxonomyYear` in `formulas.js`), a manually-
+  synchronized line-for-line port of `capacity_taxonomy.py`, verified
+  against Python at page load but not auto-generated from it.
 
 ## Validation coverage and its honest limits
 
-257 automated checks currently pass (229 forecast + 28 valuation). Of
-these, the large majority are **arithmetic invariants** (the model's own
-formulas are internally consistent) or **structural completeness
-checks** (every required field/relationship exists) — not independent
-confirmation that the underlying assumptions are *correct*. Exactly one
-check (the capital-allocation waterfall reconciliation) is classified as
-a genuinely independent reasonableness test, and the project is explicit
-about this distinction rather than presenting arithmetic self-
-consistency as if it were independent validation.
+404 automated checks currently pass (229 forecast + 28 valuation + 147
+capacity taxonomy). Of these, the large majority are **arithmetic
+invariants** (the model's own formulas are internally consistent) or
+**structural completeness checks** (every required field/relationship
+exists) — not independent confirmation that the underlying assumptions
+are *correct*. Exactly one check (the capital-allocation waterfall
+reconciliation) is classified as a genuinely independent reasonableness
+test, and the project is explicit about this distinction rather than
+presenting arithmetic self-consistency as if it were independent
+validation.
 
 ## What would need to change before this could inform a real decision
 

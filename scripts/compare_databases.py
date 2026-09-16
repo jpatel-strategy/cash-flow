@@ -261,6 +261,58 @@ def export_valuation_validation_results(conn):
     return [list(r) for r in rows]
 
 
+def export_capacity_taxonomy_results(conn):
+    # capacity_taxonomy_result_id is deterministic (scenario/fiscal_year/version), so included.
+    rows = conn.execute(
+        """
+        SELECT capacity_taxonomy_result_id, scenario_id, fiscal_year, operating_fcf,
+               post_dividend_internal_generation, opening_excess_liquidity, mandatory_debt_uses,
+               self_funded_gross_capacity, debt_funded_incremental_capacity, total_gross_funding_capacity,
+               share_repurchases, strategic_investment, voluntary_debt_reduction, other_discretionary_uses,
+               total_discretionary_deployment, remaining_deployable_headroom, ending_excess_liquidity,
+               version, information_cutoff
+        FROM capacity_taxonomy_results ORDER BY scenario_id, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_capacity_horizon_results(conn):
+    rows = conn.execute(
+        """
+        SELECT capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation,
+               cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start,
+               cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement,
+               total_horizon_capacity_accessible, version, information_cutoff
+        FROM capacity_horizon_results ORDER BY scenario_id
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_capacity_taxonomy_lineage(conn):
+    rows = conn.execute(
+        """
+        SELECT capacity_lineage_id, scenario_id, fiscal_year, target_field, formula,
+               same_year_forecast_inputs, same_year_capacity_inputs, information_cutoff, version
+        FROM capacity_taxonomy_lineage ORDER BY scenario_id, target_field, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
+def export_capacity_validation_results(conn):
+    # run_at excluded (wall-clock timestamp); capacity_validation_result_id is deterministic.
+    rows = conn.execute(
+        """
+        SELECT capacity_validation_result_id, check_name, scenario_id, fiscal_year, status, detail,
+               capacity_version
+        FROM capacity_validation_results ORDER BY check_name, scenario_id, fiscal_year
+        """
+    ).fetchall()
+    return [list(r) for r in rows]
+
+
 def export_period_facts_unified(conn):
     rows = conn.execute(
         """
@@ -302,6 +354,10 @@ def export_db(db_path):
         "valuation_ufcf_facts": export_valuation_ufcf_facts(conn),
         "valuation_results": export_valuation_results(conn),
         "valuation_validation_results": export_valuation_validation_results(conn),
+        "capacity_taxonomy_results": export_capacity_taxonomy_results(conn),
+        "capacity_horizon_results": export_capacity_horizon_results(conn),
+        "capacity_taxonomy_lineage": export_capacity_taxonomy_lineage(conn),
+        "capacity_validation_results": export_capacity_validation_results(conn),
     }
     conn.close()
     return {name: {"row_count": len(rows), "sha256": sha256_of(rows)} for name, rows in exports.items()}

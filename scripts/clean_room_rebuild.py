@@ -181,6 +181,14 @@ def main() -> int:
             print(json.dumps(persist_valuation, indent=2), file=sys.stderr)
             return 1
 
+        # Milestone 9 correction: corrected capacity taxonomy persistence,
+        # same clean room, run after persist-forecast (its own FK prerequisite).
+        persist_capacity_taxonomy = run_cli(tmp_dir, "persist-capacity-taxonomy", "--config", "config/model.yml")
+        if persist_capacity_taxonomy.get("status") != "ok":
+            print("persist-capacity-taxonomy did not succeed in the clean room:", file=sys.stderr)
+            print(json.dumps(persist_capacity_taxonomy, indent=2), file=sys.stderr)
+            return 1
+
         db_path = tmp_dir / "data" / "curated" / "target_cash.db"
         print()
         print("=== Clean-room result ===")
@@ -196,6 +204,8 @@ def main() -> int:
         print(f"persist_forecast.integrity.all_passed: {persist_forecast.get('integrity', {}).get('all_passed')}")
         print(f"persist_valuation.written: {persist_valuation.get('written')}")
         print(f"persist_valuation.integrity.all_passed: {persist_valuation.get('integrity', {}).get('all_passed')}")
+        print(f"persist_capacity_taxonomy.written: {persist_capacity_taxonomy.get('written')}")
+        print(f"persist_capacity_taxonomy.integrity.all_passed: {persist_capacity_taxonomy.get('integrity', {}).get('all_passed')}")
         m1 = validate_final.get("milestone_1_validation", {})
         for k in ("gate_passed", "checks_run", "checks_passed", "checks_failed", "checks_blocked", "checks_unavailable"):
             print(f"validate.milestone_1_validation.{k}: {m1.get(k)}")

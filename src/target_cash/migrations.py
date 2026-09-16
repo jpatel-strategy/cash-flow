@@ -782,6 +782,116 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
             CREATE INDEX IF NOT EXISTS idx_valuation_validation_check ON valuation_validation_results(check_name);
         """,
     ),
+    TableMigration(
+        migration_id="0025_capacity_taxonomy_results",
+        description=(
+            "Create capacity_taxonomy_results (empty). Milestone 9 correction, per "
+            "docs/investment_capacity_semantic_audit.md and "
+            "docs/investment_capacity_correction_evidence.md: the corrected, per-scenario-year "
+            "capacity taxonomy (operating_fcf through ending_excess_liquidity). Purely additive -- "
+            "does not alter or remove investment_capacity_results (Milestone 3B), which is preserved "
+            "verbatim, deprecated in documentation only, and never read by any formula here."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS capacity_taxonomy_results (
+                capacity_taxonomy_result_id       TEXT PRIMARY KEY,
+                scenario_id                        TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year                        INTEGER NOT NULL CHECK (fiscal_year >= 2026),
+                operating_fcf                      REAL NOT NULL,
+                post_dividend_internal_generation  REAL NOT NULL,
+                opening_excess_liquidity           REAL NOT NULL,
+                mandatory_debt_uses                REAL NOT NULL,
+                self_funded_gross_capacity         REAL NOT NULL,
+                debt_funded_incremental_capacity   REAL NOT NULL,
+                total_gross_funding_capacity       REAL NOT NULL,
+                share_repurchases                  REAL NOT NULL,
+                strategic_investment                REAL NOT NULL DEFAULT 0,
+                voluntary_debt_reduction            REAL NOT NULL DEFAULT 0,
+                other_discretionary_uses            REAL NOT NULL DEFAULT 0,
+                total_discretionary_deployment      REAL NOT NULL,
+                remaining_deployable_headroom       REAL NOT NULL,
+                ending_excess_liquidity             REAL NOT NULL,
+                version                             TEXT NOT NULL DEFAULT 'v1',
+                information_cutoff                  TEXT NOT NULL,
+                UNIQUE (scenario_id, fiscal_year, version)
+            );
+        """,
+    ),
+    TableMigration(
+        migration_id="0026_capacity_horizon_results",
+        description=(
+            "Create capacity_horizon_results (empty). Milestone 9 correction: one row per scenario, "
+            "the FY2026-FY2030 cumulative capacity picture (cumulative_self_funded_generation through "
+            "total_horizon_capacity_accessible), computed WITHOUT summing per-year ending-headroom "
+            "balances -- see capacity_taxonomy.compute_capacity_horizon_summary's docstring for the "
+            "proof. ending_reserve_movement is NOT NULL with no default: the reconciliation identity "
+            "(total_horizon_capacity_accessible = cumulative_discretionary_deployment + "
+            "terminal_remaining_headroom + ending_reserve_movement) must never be persisted without "
+            "its reconciling term."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS capacity_horizon_results (
+                capacity_horizon_result_id                  TEXT PRIMARY KEY,
+                scenario_id                                  TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                cumulative_self_funded_generation            REAL NOT NULL,
+                cumulative_debt_funded_capacity              REAL NOT NULL,
+                opening_excess_liquidity_at_horizon_start    REAL NOT NULL,
+                cumulative_discretionary_deployment          REAL NOT NULL,
+                terminal_remaining_headroom                  REAL NOT NULL,
+                ending_reserve_movement                      REAL NOT NULL,
+                total_horizon_capacity_accessible            REAL NOT NULL,
+                version                                       TEXT NOT NULL DEFAULT 'v1',
+                information_cutoff                           TEXT NOT NULL,
+                UNIQUE (scenario_id, version)
+            );
+        """,
+    ),
+    TableMigration(
+        migration_id="0027_capacity_taxonomy_lineage",
+        description=(
+            "Create capacity_taxonomy_lineage (empty). Milestone 9 correction: one row per "
+            "(field, fiscal_year|horizon) for every one of the 14 per-year and 7 horizon-summary "
+            "capacity-taxonomy fields, citing its formula and every same-year/same-scenario input it "
+            "depends on -- the capacity-taxonomy analogue of forecast_lineage."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS capacity_taxonomy_lineage (
+                capacity_lineage_id           TEXT PRIMARY KEY,
+                scenario_id                    TEXT NOT NULL REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year                    INTEGER,
+                target_field                   TEXT NOT NULL,
+                formula                        TEXT NOT NULL,
+                same_year_forecast_inputs      TEXT,
+                same_year_capacity_inputs      TEXT,
+                information_cutoff             TEXT NOT NULL,
+                version                        TEXT NOT NULL DEFAULT 'v1'
+            );
+            CREATE INDEX IF NOT EXISTS idx_capacity_taxonomy_lineage_field ON capacity_taxonomy_lineage(target_field);
+        """,
+    ),
+    TableMigration(
+        migration_id="0028_capacity_validation_results",
+        description=(
+            "Create capacity_validation_results (empty). Milestone 9 correction: one row per "
+            "target_cash.capacity_taxonomy validation check per persistence run -- the persisted "
+            "subset of the 20 required correction proofs (the remaining, purely structural/"
+            "definitional proofs live in tests/unit/test_capacity_taxonomy.py instead, per that "
+            "module's own docstring)."
+        ),
+        create_sql="""
+            CREATE TABLE IF NOT EXISTS capacity_validation_results (
+                capacity_validation_result_id  TEXT PRIMARY KEY,
+                check_name                      TEXT NOT NULL,
+                scenario_id                     TEXT REFERENCES forecast_scenarios(scenario_id),
+                fiscal_year                     INTEGER,
+                status                          TEXT NOT NULL CHECK (status IN ('PASS', 'FAIL', 'WARNING')),
+                detail                          TEXT NOT NULL,
+                capacity_version                TEXT NOT NULL,
+                run_at                          TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_capacity_validation_check ON capacity_validation_results(check_name);
+        """,
+    ),
 )
 
 

@@ -67,6 +67,20 @@ rather than asserting, that no dollar of cash flow is counted twice.
   management-selected deployment + ending cash`. Every dollar generated
   is exactly one of five mutually exclusive uses — never zero, never
   two.
+- **A second, independent correction**: a later review found the
+  single-year `deployable_capacity` figure was silently double-
+  subtracting mandatory debt repayments (once inside pre-discretionary
+  ending cash, again via a "near-term reserve" defined as the same
+  repayment amount) and was conflating internally generated cash with
+  new borrowing. Corrected by introducing an explicit 14-field taxonomy
+  — `self_funded_gross_capacity`, `debt_funded_incremental_capacity`
+  (shown separately, never as internally generated cash),
+  `total_discretionary_deployment`, and `remaining_deployable_headroom`
+  — proven algebraically equal to the legacy figure plus the omitted
+  debt repayment in every scenario-year where repayments are nonzero.
+  The legacy field is preserved for backward compatibility, relabeled
+  "Legacy Gross Pre-Discretionary Ceiling," and removed from headline
+  KPIs. Full derivation: `docs/investment_capacity_correction_evidence.md`.
 - **Honest classification of what's actually "independent."** Out of
   more than 20 automated checks, exactly **one** — the capital-
   allocation waterfall, recomputed as a genuinely separate 8-step

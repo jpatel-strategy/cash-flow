@@ -160,6 +160,30 @@ fact_investment_capacity = q(
 )
 fact_investment_capacity.to_csv(DATA_DIR / "fact_investment_capacity.csv", index=False)
 
+# Milestone 9 correction: the corrected capacity taxonomy. fact_investment_capacity
+# above (and its deployable_capacity/cumulative_deployable_capacity columns) is
+# PRESERVED VERBATIM for backward compatibility -- it is documented as deprecated
+# in data_dictionary.md and is never used by any new measure or wireframe.
+fact_capacity_taxonomy = q(
+    "SELECT capacity_taxonomy_result_id, scenario_id, fiscal_year, operating_fcf, "
+    "post_dividend_internal_generation, opening_excess_liquidity, mandatory_debt_uses, "
+    "self_funded_gross_capacity, debt_funded_incremental_capacity, total_gross_funding_capacity, "
+    "share_repurchases, strategic_investment, voluntary_debt_reduction, other_discretionary_uses, "
+    "total_discretionary_deployment, remaining_deployable_headroom, ending_excess_liquidity, "
+    "version, information_cutoff "
+    "FROM capacity_taxonomy_results ORDER BY scenario_id, fiscal_year"
+)
+fact_capacity_taxonomy.to_csv(DATA_DIR / "fact_capacity_taxonomy.csv", index=False)
+
+fact_capacity_horizon = q(
+    "SELECT capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation, "
+    "cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start, "
+    "cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement, "
+    "total_horizon_capacity_accessible, version, information_cutoff "
+    "FROM capacity_horizon_results ORDER BY scenario_id"
+)
+fact_capacity_horizon.to_csv(DATA_DIR / "fact_capacity_horizon.csv", index=False)
+
 fact_valuation_results = q(
     "SELECT valuation_result_id, scenario_id, wacc_pct, terminal_growth_pct, "
     "pv_explicit_period, terminal_year_ufcf, terminal_value_undiscounted, "
@@ -307,16 +331,20 @@ WIREFRAMES = [
         "What happened, what's expected, how much can be deployed -- answered in one screen",
         "Scenario selector (Base/Upside/Downside), Fiscal Year",
         [
-            (20, 100, 190, 90, "KPI Card", CARD, "Revenue FY2030"),
-            (220, 100, 190, 90, "KPI Card", CARD, "FCF FY2030"),
-            (420, 100, 190, 90, "KPI Card", CARD, "Deployable Capacity"),
-            (620, 100, 190, 90, "KPI Card", CARD, "Implied DCF Value/Share"),
-            (820, 100, 190, 90, "KPI Card", CARD, "Validation Status"),
-            (1020, 100, 240, 90, "KPI Card", CARD, "Net Debt (Valuation Date)"),
-            (20, 210, 610, 240, "Line Chart", CHART, "Revenue &amp; FCF: Actual (solid) vs Forecast (dashed), FY21-FY30"),
-            (650, 210, 610, 240, "Clustered Column", CHART, "Deployable Capacity by Scenario, FY2030"),
-            (20, 470, 610, 220, "Waterfall Chart", CHART, "Capital Allocation Waterfall (selected scenario)"),
-            (650, 470, 610, 220, "Table", TABLE, "Key Evidence Citations (filing, accession #, cutoff date)"),
+            (20, 100, 190, 80, "KPI Card", CARD, "Revenue FY2030"),
+            (220, 100, 190, 80, "KPI Card", CARD, "FCF FY2030"),
+            (420, 100, 190, 80, "KPI Card", CARD, "Implied DCF Value/Share"),
+            (620, 100, 190, 80, "KPI Card", CARD, "Validation Status"),
+            (820, 100, 190, 80, "KPI Card", CARD, "Net Debt (Valuation Date)"),
+            (1020, 100, 240, 80, "KPI Card", CARD, "Funding Warning?"),
+            (20, 190, 300, 80, "KPI Card", CARD, "Self-Funded Capacity Generated"),
+            (330, 190, 300, 80, "KPI Card", CARD, "Debt-Funded Capacity (shown separately)"),
+            (640, 190, 300, 80, "KPI Card", CARD, "Discretionary Deployment"),
+            (950, 190, 310, 80, "KPI Card", CARD, "Remaining Deployable Headroom (corrected KPI)"),
+            (20, 290, 610, 200, "Line Chart", CHART, "Revenue &amp; FCF: Actual (solid) vs Forecast (dashed), FY21-FY30"),
+            (650, 290, 610, 200, "Clustered Column", CHART, "Remaining Deployable Headroom by Scenario, FY2030 (with Discretionary Deployment shown alongside)"),
+            (20, 510, 610, 180, "Waterfall Chart", CHART, "Capital Allocation Waterfall (selected scenario)"),
+            (650, 510, 610, 180, "Table", TABLE, "Key Evidence Citations (filing, accession #, cutoff date)"),
         ],
     ),
     (
@@ -363,12 +391,14 @@ WIREFRAMES = [
     ),
     (
         6, "Cash-Flow Bridge &amp; Investment Capacity",
-        "CFO -&gt; CapEx -&gt; FCF -&gt; dividends -&gt; deployable capacity, per scenario/year",
+        "Opening excess liquidity + self-funded + debt-funded capacity - discretionary deployment = remaining headroom (corrected taxonomy, Milestone 9)",
         "Scenario selector, Fiscal Year",
         [
-            (20, 100, 1240, 260, "Waterfall Chart", CHART, "CFO -&gt; CapEx -&gt; FCF -&gt; Dividends -&gt; Post-Dividend Capacity -&gt; Min-Cash Buffer -&gt; Debt Reserve -&gt; Deployable Capacity"),
-            (20, 380, 610, 310, "Line Chart", CHART, "Deployable Capacity &amp; Cumulative Deployable Capacity by FY"),
-            (650, 380, 610, 310, "Table", TABLE, "Investment Capacity fact table with methodology_note column"),
+            (20, 100, 1240, 240, "Waterfall Chart", CHART, "Opening Excess Liquidity -&gt; + Post-Dividend Internal Generation -&gt; + Debt-Funded Capacity (shown separately) -&gt; - Discretionary Deployment -&gt; = Remaining Deployable Headroom"),
+            (20, 360, 610, 160, "KPI Card Row", CARD, "Self-Funded Capacity Generated | Debt-Funded Capacity | Discretionary Deployment | Remaining Deployable Headroom"),
+            (650, 360, 610, 160, "Table", TABLE, "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED) -- reference only, not a KPI"),
+            (20, 540, 610, 150, "Line Chart", CHART, "Remaining Deployable Headroom by FY (stock -- never summed across years)"),
+            (650, 540, 610, 150, "Table", TABLE, "Cumulative reconciliation: Opening Liquidity + Cum. Self-Funded + Cum. Debt-Funded = Cum. Deployment + Terminal Headroom + Reserve Movement"),
         ],
     ),
     (

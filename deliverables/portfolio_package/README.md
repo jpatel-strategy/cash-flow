@@ -43,7 +43,7 @@ filings only — historical validation (catching a real, undisclosed
 segment-expense reclassification), a 3-scenario 5-year forecast with a
 provably non-double-counted capital-allocation framework, a restrained
 DCF, and four decision-support deliverables (Excel, Power BI, a web
-cockpit, and this package) — all backed by 401 automated tests, a
+cockpit, and this package) — all backed by 437 automated tests, a
 reproducible clean-room rebuild, and full source-to-output lineage.
 
 ## What to actually look at, if short on time

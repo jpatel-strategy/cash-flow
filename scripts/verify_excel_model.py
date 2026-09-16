@@ -13,8 +13,21 @@ every formula, and checks:
    whichever scenario the selector cell holds at save time (Base).
 3. The Capital Allocation sheet's no-double-counting proof row reads "OK"
    for every year.
+4. (Milestone 9 correction) The corrected capacity taxonomy on the
+   Investment Capacity sheet reproduces target_cash.capacity_taxonomy's
+   own Python-computed numbers exactly, and the legacy, now-deprecated
+   "deployable_capacity" headline no longer appears anywhere in the
+   Executive Summary's headline rows.
 
 Usage: .venv/bin/python scripts/verify_excel_model.py
+
+This checks that the formula OUTPUTS reconcile to Python -- it does not,
+and cannot, substitute for opening the workbook in actual Microsoft
+Excel and visually inspecting it (LibreOffice cannot load any xlsx file
+in this build environment; see the module docstring history in
+docs/decisions.md). The correct claim is: "formula outputs
+programmatically reconciled to the Python engine," never "verified in
+Excel."
 """
 import os
 import sys
@@ -26,6 +39,7 @@ import openpyxl
 
 from target_cash import forecast as f
 from target_cash import valuation as v
+from target_cash import capacity_taxonomy as ct
 
 PATH = "deliverables/Target_Cash_Flow_Investment_Capacity_Model.xlsx"
 SHEET_PREFIX = "'[Target_Cash_Flow_Investment_Capacity_Model.xlsx]"
@@ -92,12 +106,23 @@ eps_row = row_of(ws_fc, "Diluted EPS ($)")
 cfo_row = row_of(ws_cf, "Cash Flow from Operations (CFO)")
 fcf_row = row_of(ws_cf, "Free Cash Flow (CFO - CapEx)")
 end_cash_row = row_of(ws_cf, "Ending Cash")
-dep_row = row_of(ws_ic, "DEPLOYABLE CAPACITY")
+dep_row = row_of(ws_ic, "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED -- see note below; not an executive KPI)")
 wf_end_row = row_of(ws_ca, "8. = Ending Cash")
 proof_row = row_of(ws_ca, "Ending Cash (Sheet 8) matches Step 8 above?")
 
+# Milestone 9 correction: corrected capacity taxonomy row lookups.
+self_funded_row = row_of(ws_ic, "C. Self-Funded Gross Capacity (excl. new borrowing)")
+debt_funded_row = row_of(ws_ic, "D. Debt-Funded Incremental Capacity (new borrowing)")
+total_funding_row = row_of(ws_ic, "E. TOTAL GROSS FUNDING CAPACITY (C + D)")
+total_deployment_row = row_of(ws_ic, "F. TOTAL DISCRETIONARY DEPLOYMENT")
+headroom_row = row_of(ws_ic, "G. REMAINING DEPLOYABLE HEADROOM (stock, = MAX(0, E - F))")
+ending_excess_row = row_of(ws_ic, "Ending Excess Liquidity (independent cross-check of G)")
+
+capacity_taxonomies = ct.build_capacity_taxonomy_all_scenarios(forecasts)
+capacity_years = capacity_taxonomies["base"]
+
 all_match = True
-for i, (col, y) in enumerate(zip(FY_COLS, years)):
+for i, (col, y, ty) in enumerate(zip(FY_COLS, years, capacity_years)):
     excel_rev = cell("SCENARIO FORECAST", f"{col}{rev_row}")
     excel_ni = cell("SCENARIO FORECAST", f"{col}{ni_row}")
     excel_eps = cell("SCENARIO FORECAST", f"{col}{eps_row}")
@@ -117,7 +142,28 @@ for i, (col, y) in enumerate(zip(FY_COLS, years)):
     )
     all_match &= matches
     check(matches, f"FY{y.fiscal_year} Base scenario: Excel matches Python exactly "
-                    f"(revenue, net income, EPS, CFO, FCF, ending cash, deployable capacity, waterfall proof)")
+                    f"(revenue, net income, EPS, CFO, FCF, ending cash, legacy deployable capacity, waterfall proof)")
+
+    excel_self_funded = cell("INVESTMENT CAPACITY", f"{col}{self_funded_row}")
+    excel_debt_funded = cell("INVESTMENT CAPACITY", f"{col}{debt_funded_row}")
+    excel_total_funding = cell("INVESTMENT CAPACITY", f"{col}{total_funding_row}")
+    excel_total_deployment = cell("INVESTMENT CAPACITY", f"{col}{total_deployment_row}")
+    excel_headroom = cell("INVESTMENT CAPACITY", f"{col}{headroom_row}")
+    excel_ending_excess = cell("INVESTMENT CAPACITY", f"{col}{ending_excess_row}")
+
+    capacity_matches = (
+        abs(excel_self_funded - ty.self_funded_gross_capacity) < 0.01
+        and abs(excel_debt_funded - ty.debt_funded_incremental_capacity) < 0.01
+        and abs(excel_total_funding - ty.total_gross_funding_capacity) < 0.01
+        and abs(excel_total_deployment - ty.total_discretionary_deployment) < 0.01
+        and abs(excel_headroom - ty.remaining_deployable_headroom) < 0.01
+        and abs(excel_ending_excess - ty.ending_excess_liquidity) < 0.01
+        and abs(excel_headroom - excel_ending_excess) < 0.01
+    )
+    check(capacity_matches, f"FY{y.fiscal_year} Base scenario: corrected capacity taxonomy "
+                             "(self-funded, debt-funded, total funding, discretionary deployment, "
+                             "remaining headroom) matches target_cash.capacity_taxonomy exactly, and "
+                             "headroom equals its independent ending-excess-liquidity cross-check")
 
 # --- 3. DCF sheet matches Python -------------------------------------------
 val_assumptions = v.build_valuation_assumptions()
@@ -153,6 +199,20 @@ check(dv_found, "Scenario selector dropdown (data validation) present on Forecas
 for name in ["Scenario Forecast", "Cash-Flow Bridge", "Investment Capacity", "Forecast Assumptions"]:
     ws = wb_ro[name]
     check(ws.freeze_panes is not None, f"{name}: frozen panes set")
+
+# --- Milestone 9 correction: legacy KPI removed from Executive Summary headline ---
+ws_es = wb_ro["Executive Summary"]
+es_labels = [c.value for row in ws_es.iter_rows(min_col=1, max_col=1) for c in row if c.value]
+check(
+    not any("Deployable Capacity" in str(v) and "Legacy" not in str(v) and "Remaining" not in str(v) for v in es_labels),
+    "Executive Summary: no bare, unqualified 'Deployable Capacity' headline label remains",
+)
+for required_label in ["Self-Funded Capacity Generated", "Debt-Funded Capacity", "Discretionary Deployment",
+                        "Remaining Deployable Headroom"]:
+    check(
+        any(required_label in str(v) for v in es_labels),
+        f"Executive Summary: corrected headline label present: {required_label!r}",
+    )
 
 # --- 5. Scenario selector genuinely recalculates (Upside/Downside) --------
 import tempfile

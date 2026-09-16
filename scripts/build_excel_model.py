@@ -31,6 +31,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from target_cash import forecast as f
 from target_cash import valuation as v
+from target_cash import capacity_taxonomy as ct
 
 OUT_PATH = "deliverables/Target_Cash_Flow_Investment_Capacity_Model.xlsx"
 
@@ -117,6 +118,8 @@ two_var = f.two_variable_sensitivity("revenue_growth_pct", [-1.0, -0.5, 0.0, 0.5
 val_assumptions = v.build_valuation_assumptions()
 val_m = v.valuation_assumptions_by_metric(val_assumptions)
 dcf_results = v.run_dcf_all_scenarios(forecasts, val_assumptions)
+capacity_taxonomies = ct.build_capacity_taxonomy_all_scenarios(forecasts)
+capacity_summaries = ct.build_capacity_horizon_summaries(forecasts, capacity_taxonomies)
 val_checks = v.run_all_valuation_checks(forecasts, dcf_results)
 wacc_grid = v.wacc_terminal_growth_sensitivity(forecasts["base"], [-1.0, -0.5, 0.0, 0.5, 1.0],
                                                 [-1.0, -0.5, 0.0, 0.5, 1.0], val_assumptions)
@@ -565,7 +568,8 @@ IC_LABELS = {
     "mandatory_financing_flows": "Mandatory Financing Flows (div + debt sched.)",
     "pre_discretionary_ending_cash": "Pre-Discretionary Ending Cash", "min_cash_buffer": "Minimum Cash Buffer",
     "near_term_debt_reserve": "Near-Term Debt Repayment Reserve",
-    "deployable_capacity": "DEPLOYABLE CAPACITY", "cumulative_deployable_capacity": "Cumulative Deployable Capacity",
+    "deployable_capacity": "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED -- see note below; not an executive KPI)",
+    "cumulative_deployable_capacity": "Legacy Cumulative (DEPRECATED -- see Corrected Capacity Taxonomy below)",
     "funding_warning": "Funding Warning? (1=YES)",
 }
 IC_ROW = {}
@@ -617,13 +621,162 @@ for key in IC_ROWS:
         cell.border = BORDER
 ws_ic.freeze_panes = "D5"
 ws_ic.sheet_view.showGridLines = False
-print("Investment Capacity sheet: formulas written")
+
+# ----------------------------------------------------------------------
+# Corrected Capacity Taxonomy (Milestone 9 correction), live formulas,
+# same selector, added BELOW the legacy (now deprecated, relabeled) block.
+# Per docs/investment_capacity_semantic_audit.md: the legacy
+# "deployable_capacity" above is a GROSS, pre-discretionary ceiling that
+# never subtracts that year's own repurchases -- it is preserved verbatim
+# above for backward compatibility, but is no longer the executive KPI.
+# ----------------------------------------------------------------------
+note_row = r + 1
+ws_ic.merge_cells(f"A{note_row}:H{note_row}")
+ws_ic.cell(row=note_row, column=1,
+           value="NOTE: the legacy row above is DEPRECATED -- it is a gross, pre-discretionary ceiling "
+                 "(includes carried-forward cash and new borrowing; never subtracts this year's own "
+                 "repurchases). It is preserved, unmodified, for backward compatibility only. The "
+                 "corrected taxonomy below is the executive-facing figure. See "
+                 "docs/investment_capacity_correction_evidence.md.")
+ws_ic.cell(row=note_row, column=1).font = Font(italic=True, size=9, color="C00000")
+ws_ic.cell(row=note_row, column=1).alignment = Alignment(wrap_text=True)
+ws_ic.row_dimensions[note_row].height = 30
+
+ct_hdr = note_row + 2
+ws_ic.merge_cells(f"A{ct_hdr}:H{ct_hdr}")
+ws_ic.cell(row=ct_hdr, column=1, value="CORRECTED CAPACITY TAXONOMY (live, selected scenario)").font = Font(bold=True, size=12, color="1F3864")
+ct_hdr2 = ct_hdr + 1
+ws_ic.cell(row=ct_hdr2, column=1, value="Line Item")
+for i, fy in enumerate(f.FORECAST_YEARS):
+    ws_ic.cell(row=ct_hdr2, column=4 + i, value=f"FY{fy}")
+style_header_row(ws_ic, ct_hdr2, 1, 8)
+
+CT_ROWS = [
+    "operating_fcf", "post_dividend_internal_generation", "opening_excess_liquidity", "mandatory_debt_uses",
+    "self_funded_gross_capacity", "debt_funded_incremental_capacity", "total_gross_funding_capacity",
+    "share_repurchases", "strategic_investment", "voluntary_debt_reduction", "other_discretionary_uses",
+    "total_discretionary_deployment", "remaining_deployable_headroom", "ending_excess_liquidity",
+]
+CT_LABELS = {
+    "operating_fcf": "A. Operating FCF (= CFO - CapEx)",
+    "post_dividend_internal_generation": "B. Post-Dividend Internal Generation",
+    "opening_excess_liquidity": "Opening Excess Liquidity (stock, = MAX(0, beg. cash - buffer))",
+    "mandatory_debt_uses": "Mandatory Debt Uses",
+    "self_funded_gross_capacity": "C. Self-Funded Gross Capacity (excl. new borrowing)",
+    "debt_funded_incremental_capacity": "D. Debt-Funded Incremental Capacity (new borrowing)",
+    "total_gross_funding_capacity": "E. TOTAL GROSS FUNDING CAPACITY (C + D)",
+    "share_repurchases": "  Share Repurchases",
+    "strategic_investment": "  Strategic Investment (none modeled this round)",
+    "voluntary_debt_reduction": "  Voluntary Debt Reduction (none modeled this round)",
+    "other_discretionary_uses": "  Other Discretionary Uses (none modeled this round)",
+    "total_discretionary_deployment": "F. TOTAL DISCRETIONARY DEPLOYMENT",
+    "remaining_deployable_headroom": "G. REMAINING DEPLOYABLE HEADROOM (stock, = MAX(0, E - F))",
+    "ending_excess_liquidity": "Ending Excess Liquidity (independent cross-check of G)",
+}
+CT_ROW = {}
+rr = ct_hdr2 + 1
+for key in CT_ROWS:
+    bold_keys = ("self_funded_gross_capacity", "debt_funded_incremental_capacity",
+                 "total_gross_funding_capacity", "total_discretionary_deployment", "remaining_deployable_headroom")
+    ws_ic.cell(row=rr, column=1, value=CT_LABELS[key]).font = BOLD_FONT if key in bold_keys else LABEL_FONT
+    CT_ROW[key] = rr
+    rr += 1
+
+
+def ctr(key, col):
+    return f"{col}{CT_ROW[key]}"
+
+
+for i, fy in enumerate(f.FORECAST_YEARS):
+    col = FY_COLS[i]
+    ws_ic[ctr("operating_fcf", col)] = f"={cff('fcf', col)}"
+    ws_ic[ctr("post_dividend_internal_generation", col)] = f"={ctr('operating_fcf', col)}-{cff('dividends_paid', col)}"
+    ws_ic[ctr("opening_excess_liquidity", col)] = f"=MAX(0,{cff('beginning_cash', col)}-{icr('min_cash_buffer', col)})"
+    ws_ic[ctr("mandatory_debt_uses", col)] = f"={cff('debt_repayments', col)}"
+    ws_ic[ctr("self_funded_gross_capacity", col)] = (
+        f"={ctr('opening_excess_liquidity', col)}+{ctr('post_dividend_internal_generation', col)}-{ctr('mandatory_debt_uses', col)}"
+    )
+    ws_ic[ctr("debt_funded_incremental_capacity", col)] = f"={cff('debt_proceeds', col)}"
+    ws_ic[ctr("total_gross_funding_capacity", col)] = (
+        f"={ctr('self_funded_gross_capacity', col)}+{ctr('debt_funded_incremental_capacity', col)}"
+    )
+    ws_ic[ctr("share_repurchases", col)] = f"={cff('share_repurchases', col)}"
+    ws_ic[ctr("strategic_investment", col)] = 0
+    ws_ic[ctr("voluntary_debt_reduction", col)] = 0
+    ws_ic[ctr("other_discretionary_uses", col)] = 0
+    ws_ic[ctr("total_discretionary_deployment", col)] = (
+        f"={ctr('share_repurchases', col)}+{ctr('strategic_investment', col)}"
+        f"+{ctr('voluntary_debt_reduction', col)}+{ctr('other_discretionary_uses', col)}"
+    )
+    ws_ic[ctr("remaining_deployable_headroom", col)] = (
+        f"=MAX(0,{ctr('total_gross_funding_capacity', col)}-{ctr('total_discretionary_deployment', col)})"
+    )
+    ws_ic[ctr("ending_excess_liquidity", col)] = f"=MAX(0,{cff('ending_cash', col)}-{icr('min_cash_buffer', col)})"
+
+for key in CT_ROWS:
+    row_num = CT_ROW[key]
+    for col in FY_COLS:
+        cell = ws_ic[f"{col}{row_num}"]
+        cell.number_format = USD_FMT
+        cell.border = BORDER
+
+proof_row = rr + 1
+ws_ic.merge_cells(f"A{proof_row}:H{proof_row}")
+ws_ic.cell(row=proof_row, column=1,
+           value="Independent proof: Ending Excess Liquidity (from ending cash) equals Remaining "
+                 "Deployable Headroom (from the discretionary-deployment waterfall) for every year -- "
+                 "confirming no dollar is counted in both headroom and deployment.").font = Font(italic=True, size=9)
+ws_ic.row_dimensions[proof_row].height = 20
+
+# Static, all-scenario cumulative-capacity reconciliation (A-G), computed
+# from target_cash.capacity_taxonomy -- deliberately NEVER a sum of
+# per-year ending-headroom balances (see that module's own docstrings).
+cum_hdr = proof_row + 2
+ws_ic.merge_cells(f"A{cum_hdr}:H{cum_hdr}")
+ws_ic.cell(row=cum_hdr, column=1,
+           value="CUMULATIVE CAPACITY RECONCILIATION, FY2026-FY2030 (STATIC reference, all scenarios -- "
+                 "from target_cash.capacity_taxonomy; NEVER a sum of per-year ending balances)"
+           ).font = Font(bold=True, size=11, color="1F3864")
+cum_hdr2 = cum_hdr + 1
+cum_labels = [
+    "Scenario", "A. Cumulative Self-Funded Generation", "B. Cumulative Debt-Funded Capacity",
+    "C. Opening Excess Liquidity (horizon start)", "D. Cumulative Discretionary Deployment",
+    "E. Terminal Remaining Headroom", "Ending Reserve Movement",
+    "Total Horizon Capacity Accessible (C+A+B)", "Reconciles To (D+E+Reserve Mvmt)",
+]
+for j, label in enumerate(cum_labels):
+    ws_ic.cell(row=cum_hdr2, column=1 + j, value=label)
+style_header_row(ws_ic, cum_hdr2, 1, len(cum_labels))
+rr2 = cum_hdr2 + 1
+for scenario in f.SCENARIOS:
+    summary = capacity_summaries[scenario]
+    reconciles_to = (summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom
+                      + summary.ending_reserve_movement)
+    values = [
+        scenario.capitalize(), summary.cumulative_self_funded_generation, summary.cumulative_debt_funded_capacity,
+        summary.opening_excess_liquidity_at_horizon_start, summary.cumulative_discretionary_deployment,
+        summary.terminal_remaining_headroom, summary.ending_reserve_movement,
+        summary.total_horizon_capacity_accessible, reconciles_to,
+    ]
+    for j, val in enumerate(values):
+        cell = ws_ic.cell(row=rr2, column=1 + j, value=val if j == 0 else round(val, 1))
+        if j > 0:
+            cell.number_format = USD_FMT
+        cell.border = BORDER
+    rr2 += 1
+
+ws_ic.sheet_view.showGridLines = False
+print("Investment Capacity sheet: legacy + corrected-taxonomy formulas written")
 
 IC = "'Investment Capacity'"
 
 
 def icf(key, col):
     return f"{IC}!{col}{IC_ROW[key]}"
+
+
+def ctf(key, col):
+    return f"{IC}!{col}{CT_ROW[key]}"
 
 
 # ============================================================================
@@ -1066,22 +1219,50 @@ for j, h in enumerate(["Metric (FY2030 unless noted)", "Base", "Upside", "Downsi
 style_header_row(ws_es, hdr, 1, 4)
 
 EXEC_ROWS = [
-    ("Revenue ($M)", lambda y: y.revenue, USD_FMT),
-    ("Net Income ($M)", lambda y: y.net_income, USD_FMT),
-    ("Diluted EPS ($)", lambda y: y.diluted_eps, "$0.00"),
-    ("CFO ($M)", lambda y: y.operating_cash_flow, USD_FMT),
-    ("FCF ($M)", lambda y: y.free_cash_flow, USD_FMT),
-    ("Deployable Capacity ($M)", lambda y: y.deployable_capacity, USD_FMT),
+    ("Revenue ($M)", lambda y, ty: y.revenue, USD_FMT),
+    ("Net Income ($M)", lambda y, ty: y.net_income, USD_FMT),
+    ("Diluted EPS ($)", lambda y, ty: y.diluted_eps, "$0.00"),
+    ("CFO ($M)", lambda y, ty: y.operating_cash_flow, USD_FMT),
+    ("FCF ($M)", lambda y, ty: y.free_cash_flow, USD_FMT),
 ]
 r = hdr + 1
 for label, getter, fmt in EXEC_ROWS:
     ws_es.cell(row=r, column=1, value=label).font = LABEL_FONT
     for j, scenario in enumerate(f.SCENARIOS):
-        val = getter(forecasts[scenario][-1])
+        val = getter(forecasts[scenario][-1], capacity_taxonomies[scenario][-1])
         cell = ws_es.cell(row=r, column=2 + j, value=round(val, 2))
         cell.number_format = fmt
         cell.border = BORDER
     r += 1
+
+r += 1
+ws_es.cell(row=r, column=1, value="Corrected Capacity Taxonomy (FY2030) -- see Sheet 9 for full detail").font = Font(bold=True, color="1F3864")
+r += 1
+CAPACITY_EXEC_ROWS = [
+    ("Self-Funded Capacity Generated ($M)", lambda ty: ty.self_funded_gross_capacity, USD_FMT),
+    ("Debt-Funded Capacity ($M)", lambda ty: ty.debt_funded_incremental_capacity, USD_FMT),
+    ("Discretionary Deployment ($M)", lambda ty: ty.total_discretionary_deployment, USD_FMT),
+    ("Remaining Deployable Headroom ($M)", lambda ty: ty.remaining_deployable_headroom, USD_FMT),
+]
+for label, getter, fmt in CAPACITY_EXEC_ROWS:
+    ws_es.cell(row=r, column=1, value=label).font = BOLD_FONT
+    for j, scenario in enumerate(f.SCENARIOS):
+        val = getter(capacity_taxonomies[scenario][-1])
+        cell = ws_es.cell(row=r, column=2 + j, value=round(val, 2))
+        cell.number_format = fmt
+        cell.font = BOLD_FONT
+        cell.border = BORDER
+    r += 1
+r += 1
+ws_es.merge_cells(f"A{r}:D{r}")
+ws_es.cell(row=r, column=1,
+           value="Note: a higher-revenue scenario can show LOWER remaining headroom -- it may be "
+                 "deploying far more into buybacks/deleveraging (Upside), not generating less. See the "
+                 "FY2030 scenario bridges in docs/investment_capacity_correction_evidence.md and Sheet 9.")
+ws_es.cell(row=r, column=1).font = Font(italic=True, size=9, color="C00000")
+ws_es.cell(row=r, column=1).alignment = Alignment(wrap_text=True)
+ws_es.row_dimensions[r].height = 28
+r += 1
 ws_es.cell(row=r, column=1, value="Implied DCF Value/Share ($)").font = BOLD_FONT
 for j, scenario in enumerate(f.SCENARIOS):
     cell = ws_es.cell(row=r, column=2 + j, value=round(dcf_results[scenario].implied_value_per_share, 2))
@@ -1100,15 +1281,15 @@ ws_es.cell(row=r, column=1,
 ws_es.cell(row=r, column=1).alignment = Alignment(wrap_text=True)
 ws_es.row_dimensions[r].height = 30
 
-# Chart: deployable capacity by scenario (FY2030)
+# Chart: remaining deployable headroom by scenario (FY2030) -- corrected metric
 chart_data_row = r + 2
 ws_es.cell(row=chart_data_row, column=1, value="Scenario")
-ws_es.cell(row=chart_data_row, column=2, value="Deployable Capacity FY2030 ($M)")
+ws_es.cell(row=chart_data_row, column=2, value="Remaining Deployable Headroom, FY2030 ($M)")
 for j, scenario in enumerate(f.SCENARIOS):
     ws_es.cell(row=chart_data_row + 1 + j, column=1, value=scenario.capitalize())
-    ws_es.cell(row=chart_data_row + 1 + j, column=2, value=round(forecasts[scenario][-1].deployable_capacity, 1))
+    ws_es.cell(row=chart_data_row + 1 + j, column=2, value=round(capacity_taxonomies[scenario][-1].remaining_deployable_headroom, 1))
 chart = BarChart()
-chart.title = "FY2030 Deployable Capacity by Scenario"
+chart.title = "FY2030 Remaining Deployable Headroom by Scenario"
 chart.y_axis.title = "$M"
 data = Reference(ws_es, min_col=2, min_row=chart_data_row, max_row=chart_data_row + 3)
 cats = Reference(ws_es, min_col=1, min_row=chart_data_row + 1, max_row=chart_data_row + 3)
@@ -1132,7 +1313,7 @@ r = 3
 for driver, rows in sensitivity.items():
     ws_s.cell(row=r, column=1, value=f"Driver: {driver} (Base scenario, FY2030 impact)").font = BOLD_FONT
     r += 1
-    headers = ["Delta", "CFO", "FCF", "Ending Cash", "Deployable Capacity", "Cumulative Deployable Capacity"]
+    headers = ["Delta", "CFO", "FCF", "Ending Cash", "Legacy Gross Capacity (DEPRECATED)", "Legacy Cumulative (DEPRECATED)"]
     for j, h in enumerate(headers):
         ws_s.cell(row=r, column=1 + j, value=h)
     style_header_row(ws_s, r, 1, 6)
@@ -1149,7 +1330,7 @@ for driver, rows in sensitivity.items():
         r += 1
     r += 1
 
-ws_s.cell(row=r, column=1, value="Two-Variable: Revenue Growth x Gross Margin (FY2030 Deployable Capacity)").font = BOLD_FONT
+ws_s.cell(row=r, column=1, value="Two-Variable: Revenue Growth x Gross Margin (FY2030 Legacy Gross Capacity, DEPRECATED)").font = BOLD_FONT
 r += 1
 ws_s.cell(row=r, column=1, value="Growth\\Margin")
 for j, cell_ in enumerate(two_var["grid"][0]["cells"]):
@@ -1283,6 +1464,35 @@ for name, rows in by_vcheck.items():
     r += 1
 val_fails = sum(1 for x in val_checks if x.status == "FAIL")
 ws_val.cell(row=r + 1, column=1, value=f"TOTAL: {len(val_checks)} results, {val_fails} failures").font = BOLD_FONT
+
+r += 3
+ws_val.cell(row=r, column=1, value="Corrected Capacity Taxonomy (Milestone 9 correction): 13 named checks").font = BOLD_FONT
+r += 1
+for j, h in enumerate(["Check", "Rows", "PASS", "FAIL", "WARNING"]):
+    ws_val.cell(row=r, column=1 + j, value=h)
+style_header_row(ws_val, r, 1, 5)
+r += 1
+capacity_validation_results = ct.validate_capacity_taxonomy_all(forecasts, capacity_taxonomies, capacity_summaries)
+by_cap_check = defaultdict(list)
+for res in capacity_validation_results:
+    by_cap_check[res.check_name].append(res)
+for name in sorted(ct.CAPACITY_CHECK_METADATA.keys()):
+    rows = by_cap_check.get(name, [])
+    c = Counter(x.status for x in rows)
+    ws_val.cell(row=r, column=1, value=name).font = LABEL_FONT
+    ws_val.cell(row=r, column=2, value=len(rows))
+    ws_val.cell(row=r, column=3, value=c.get("PASS", 0))
+    ws_val.cell(row=r, column=4, value=c.get("FAIL", 0))
+    ws_val.cell(row=r, column=5, value=c.get("WARNING", 0))
+    for cc in range(1, 6):
+        ws_val.cell(row=r, column=cc).border = BORDER
+    r += 1
+cap_fails = sum(1 for x in capacity_validation_results if x.status == "FAIL")
+ws_val.cell(row=r + 1, column=1,
+            value=f"TOTAL: {len(capacity_validation_results)} results, {cap_fails} failures "
+                  "(7 further structural/definitional proofs live in tests/unit/test_capacity_taxonomy.py)"
+            ).font = BOLD_FONT
+
 ws_val.sheet_view.showGridLines = False
 print("Validation Summary sheet written")
 
@@ -1311,6 +1521,15 @@ LIMITATIONS = [
     "such split.",
     "Dividends are modeled via a $/share growth proxy, not a disclosed per-share dividend policy statement.",
     "No information after the FY2025 10-K cutoff (2026-03-11) is used anywhere in this workbook.",
+    "Milestone 9 correction: the original 'DEPLOYABLE CAPACITY' headline (Sheet 9) was found to be "
+    "arithmetically correct but economically ambiguous -- a gross, pre-discretionary ceiling that never "
+    "subtracted that year's own repurchases. It is preserved, relabeled and deprecated, on Sheet 9 for "
+    "backward compatibility; the corrected taxonomy (Self-Funded / Debt-Funded / Discretionary Deployment "
+    "/ Remaining Deployable Headroom) on Sheets 2 and 9 is now the executive-facing figure. See "
+    "docs/investment_capacity_semantic_audit.md and docs/investment_capacity_correction_evidence.md.",
+    "strategic_investment, voluntary_debt_reduction, and other_discretionary_uses in the corrected "
+    "taxonomy are structural $0 placeholders -- no policy lever for them has been modeled this round, "
+    "following the same convention already established for management_selected_deployment.",
 ]
 r = 3
 for lim in LIMITATIONS:

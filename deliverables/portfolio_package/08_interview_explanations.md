@@ -35,7 +35,14 @@ which silently re-counts the same unused cash every year it carries
 forward. I caught that, it was overstating capacity by roughly 2.6 to
 3.8 times depending on scenario, and I fixed it and then built an
 explicit conservation-identity proof — every dollar generated has to be
-exactly one of five uses, provably, for every scenario and year.
+exactly one of five uses, provably, for every scenario and year. A later
+review found a second, more subtle issue in the same area: the
+single-year capacity figure was double-subtracting mandatory debt
+repayments and blending self-funded cash with new borrowing into one
+ambiguous number. I split it into self-funded capacity, debt-funded
+capacity shown separately, discretionary deployment, and remaining
+headroom — and kept the old field in the data, clearly relabeled as
+deprecated, so nothing about the historical record silently changed.
 
 "On top of that I built a restrained DCF valuation, clearly labeled as
 scenario analysis and not a price target, and then four ways to consume

@@ -825,6 +825,69 @@ def cmd_persist_valuation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_persist_capacity_taxonomy(args: argparse.Namespace) -> int:
+    """Milestone 9 correction: conditionally authorized persistence of the
+    corrected capacity taxonomy. Refuses unless every
+    target_cash.capacity_taxonomy check shows zero FAIL, and unless
+    forecast_scenarios is already populated (run `persist-forecast` first).
+    Backs up the database, writes transactionally, and reports post-write
+    integrity. Never touches the legacy investment_capacity_results table.
+    """
+    import shutil
+    from datetime import datetime, timezone
+
+    from target_cash.forecast_persistence import sha256_of_file
+    from target_cash.capacity_persistence import (
+        compute_capacity_preflight,
+        persist_capacity_taxonomy,
+        verify_capacity_persistence_integrity,
+    )
+
+    config = load_config(Path(args.config))
+    preflight = compute_capacity_preflight()
+
+    output = {
+        "command": "persist-capacity-taxonomy",
+        "preflight": preflight.summary(),
+        "validation_failures": [
+            {"check_name": r.check_name, "scenario": r.scenario, "fiscal_year": r.fiscal_year, "detail": r.detail}
+            for r in preflight.validation_failures
+        ],
+    }
+
+    if not preflight.is_authorized():
+        output["status"] = "refused"
+        print(json.dumps(output, default=str))
+        return 1
+
+    db_path = _resolve_path(config, "curated_dir") / config.get("paths", {}).get("db_filename", DEFAULT_PATHS["db_filename"])
+    backup_path = ""
+    backup_sha256 = ""
+    verified_backup_sha256 = ""
+    if db_path.exists():
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup_path_obj = db_path.parent / f"{db_path.name}.backup-{timestamp}"
+        shutil.copyfile(db_path, backup_path_obj)
+        backup_path = str(backup_path_obj)
+        backup_sha256 = sha256_of_file(str(db_path))
+        verified_backup_sha256 = sha256_of_file(backup_path)
+    output["backup_path"] = backup_path
+    output["backup_sha256"] = backup_sha256
+    output["backup_verified"] = backup_sha256 == verified_backup_sha256
+
+    conn = _connect_db(config)
+    result = persist_capacity_taxonomy(conn, preflight)
+    integrity = verify_capacity_persistence_integrity(conn)
+    conn.close()
+
+    output["status"] = result["status"]
+    output["written"] = result["written"]
+    output["integrity"] = integrity
+
+    print(json.dumps(output, default=str))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="target-cash", description="Target Cash Flow and Investment Capacity model")
     parser.add_argument("--version", action="version", version=__version__)
@@ -886,6 +949,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     persist_valuation_parser.add_argument("--config", required=True)
     persist_valuation_parser.set_defaults(func=cmd_persist_valuation)
+
+    persist_capacity_taxonomy_parser = subparsers.add_parser(
+        "persist-capacity-taxonomy",
+        help="Milestone 9 correction: conditionally authorized persistence of the corrected "
+             "capacity taxonomy (operating_fcf through remaining_deployable_headroom, plus the "
+             "5-year horizon reconciliation). Requires persist-forecast to have run first. "
+             "Refuses unless every target_cash.capacity_taxonomy check shows zero FAIL. Backs up "
+             "the database, writes transactionally, and reports post-write integrity. Never "
+             "touches the legacy investment_capacity_results table.",
+    )
+    persist_capacity_taxonomy_parser.add_argument("--config", required=True)
+    persist_capacity_taxonomy_parser.set_defaults(func=cmd_persist_capacity_taxonomy)
 
     return parser
 

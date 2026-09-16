@@ -99,20 +99,97 @@ SUM ( fact_investment_capacity[min_cash_buffer] )
 Debt Reserve =
 SUM ( fact_investment_capacity[near_term_debt_repayment_reserve] )
 
-Deployable Capacity =
+Deployable Capacity (LEGACY -- DEPRECATED, do not use as a KPI) =
 SUM ( fact_investment_capacity[deployable_capacity] )
+-- Milestone 9 correction: this measure is a GROSS, pre-discretionary
+-- ceiling -- it embeds carried-forward cash and new borrowing, and never
+-- subtracts that year's own repurchases. Preserved, unmodified, only for
+-- backward compatibility with fact_investment_capacity (also preserved
+-- verbatim). NEVER bind this measure to a headline card, KPI visual, or
+-- the Executive Overview page -- see the 4 corrected measures below and
+-- docs/investment_capacity_correction_evidence.md.
 
--- Milestone 3A's corrected formula: terminal-year balance already
--- reflects every prior year's carried-forward unused capacity, so the
--- cumulative figure is the TERMINAL row plus whatever was actually
--- deployed -- never a naive SUM() of every year's balance.
-Cumulative Deployable Capacity (Terminal Year) =
+Cumulative Deployable Capacity (LEGACY -- DEPRECATED, terminal year) =
 VAR MaxFY = CALCULATE ( MAX ( fact_investment_capacity[fiscal_year] ), ALLSELECTED ( dim_fiscal_year ) )
 RETURN
 CALCULATE (
     SUM ( fact_investment_capacity[cumulative_deployable_capacity] ),
     fact_investment_capacity[fiscal_year] = MaxFY
 )
+-- Also deprecated: adds back only management_selected_deployment
+-- (always $0 this round), never share_repurchases actually executed --
+-- materially understates total capacity generated for Base/Upside. See
+-- "Cumulative Self-Funded Generation" and the other corrected cumulative
+-- measures below for the replacement.
+
+-- ============================================================================
+-- CORRECTED CAPACITY TAXONOMY (Milestone 9 correction) -- these 4 measures
+-- are the executive-facing KPIs. Source: fact_capacity_taxonomy (per
+-- scenario-year) and fact_capacity_horizon (per-scenario cumulative).
+-- ============================================================================
+
+Self-Funded Capacity Generated =
+SUM ( fact_capacity_taxonomy[self_funded_gross_capacity] )
+-- Opening excess liquidity + post-dividend internally generated cash,
+-- net of mandatory debt uses -- EXCLUDES new borrowing entirely.
+
+Debt-Funded Capacity =
+SUM ( fact_capacity_taxonomy[debt_funded_incremental_capacity] )
+-- Eligible new debt proceeds. Shown SEPARATELY from Self-Funded Capacity
+-- Generated -- never combine these into one bar/card without labeling
+-- both, and never present new borrowing as if it were internally
+-- generated operating capacity.
+
+Total Gross Funding Capacity =
+SUM ( fact_capacity_taxonomy[total_gross_funding_capacity] )
+-- = Self-Funded Capacity Generated + Debt-Funded Capacity.
+
+Discretionary Deployment =
+SUM ( fact_capacity_taxonomy[total_discretionary_deployment] )
+-- Share repurchases + strategic investment + voluntary debt reduction +
+-- other discretionary uses (the latter three are structural $0 this
+-- round -- no policy lever has been modeled for them).
+
+Remaining Deployable Headroom =
+SUM ( fact_capacity_taxonomy[remaining_deployable_headroom] )
+-- = MAX(0, Total Gross Funding Capacity - Discretionary Deployment).
+-- THIS is the corrected executive KPI -- the actual amount still
+-- available to deploy, net of what has already been spent this year.
+-- Never sum this measure across multiple fiscal years in the same
+-- visual (e.g. a table with FY2026-FY2030 columns totaled) -- it is a
+-- STOCK, and doing so reproduces the exact double-counting error
+-- Milestone 3A already found and fixed once for the legacy measure.
+
+Cumulative Self-Funded Generation (FY2026-FY2030) =
+SUM ( fact_capacity_horizon[cumulative_self_funded_generation] )
+-- Deliberately EXCLUDES FY2026's own opening excess liquidity (a
+-- pre-existing stock, not capacity generated during the horizon).
+
+Cumulative Debt-Funded Capacity (FY2026-FY2030) =
+SUM ( fact_capacity_horizon[cumulative_debt_funded_capacity] )
+
+Opening Excess Liquidity (Horizon Start) =
+SUM ( fact_capacity_horizon[opening_excess_liquidity_at_horizon_start] )
+-- A STOCK, measured once at the start of FY2026 -- never re-added for
+-- later years.
+
+Cumulative Discretionary Deployment (FY2026-FY2030) =
+SUM ( fact_capacity_horizon[cumulative_discretionary_deployment] )
+-- Includes executed share repurchases across all 5 years -- unlike the
+-- legacy cumulative measure above, which only ever tracked
+-- management_selected_deployment (always $0).
+
+Terminal Remaining Headroom (FY2030) =
+SUM ( fact_capacity_horizon[terminal_remaining_headroom] )
+
+Total Horizon Capacity Accessible =
+SUM ( fact_capacity_horizon[total_horizon_capacity_accessible] )
+-- = Opening Excess Liquidity + Cumulative Self-Funded Generation +
+-- Cumulative Debt-Funded Capacity. Reconciles EXACTLY to Cumulative
+-- Discretionary Deployment + Terminal Remaining Headroom + Ending
+-- Reserve Movement -- see fact_capacity_horizon's own
+-- ending_reserve_movement column and
+-- docs/investment_capacity_correction_evidence.md for the proof.
 
 Net Debt (Forecast) =
 CALCULATE ( SUM ( fact_forecast[value] ), fact_forecast[metric] = "valuation_net_debt" )
@@ -121,8 +198,11 @@ Net Debt (DCF Valuation Date, FY2025 Actual) =
 SUM ( fact_valuation_results[valuation_date_net_debt] )
 
 -- Compares a metric's forecast value across the 3 scenarios for the
--- same fiscal year -- e.g. how much Deployable Capacity varies between
+-- same fiscal year -- e.g. how much Revenue Growth % varies between
 -- Upside and Downside. Use with a metric/fiscal-year filter context.
+-- (For capacity specifically, use Remaining Deployable Headroom -- see
+-- the Corrected Capacity Taxonomy section below -- never the legacy,
+-- deprecated capacity measure.)
 Scenario Variance (Selected Metric) =
 VAR UpsideVal =
     CALCULATE ( SUM ( fact_forecast[value] ), fact_forecast[scenario_id] = "upside" )

@@ -22,24 +22,56 @@ explicitly warned not to repeat.
 
 ## FY2030 scenario headline figures
 
-| Scenario | Revenue | Diluted EPS | Cumulative Deployable Capacity | DCF Value/Share | Enterprise Value | WACC |
-|---|---|---|---|---|---|---|
-| Base | $110,124.8M | $8.18 | $6,315.0M | $107.29 | $57,736.3M | 8.86% |
-| Upside | $121,468.7M | $13.15 | $3,241.9M | $138.32 | $71,873.7M | 8.86% |
-| Downside | $92,321.2M | $2.71 | $6,087.5M | $61.55 | $36,898.6M | 8.86% |
-
-Note Upside's cumulative deployable capacity is *lower* than Base's —
-this is correct, not a bug: Upside deploys more capital into buybacks
-along the way (see `docs/decisions.md`'s Milestone 3A scenario
-narratives), leaving less *undeployed* balance at the terminal year,
-even though Upside generates more cash overall. A "higher scenario
-always wins" assumption baked into a Power BI visual would misread this
-— if in doubt, chart deployable capacity alongside cumulative *deployed*
-amount so the tradeoff is visible, not just the ending balance.
+| Scenario | Revenue | Diluted EPS | DCF Value/Share | Enterprise Value | WACC |
+|---|---|---|---|---|---|
+| Base | $110,124.8M | $8.18 | $107.29 | $57,736.3M | 8.86% |
+| Upside | $121,468.7M | $13.15 | $138.32 | $71,873.7M | 8.86% |
+| Downside | $92,321.2M | $2.71 | $61.55 | $36,898.6M | 8.86% |
 
 WACC is scenario-invariant by construction (same capital-structure and
 market assumptions applied to all 3 operating scenarios) — a report
 where WACC differs by scenario has a bug.
+
+## FY2030 corrected capacity taxonomy (Milestone 9 correction — the executive KPIs)
+
+| Scenario | Self-Funded Capacity | Debt-Funded Capacity | Total Funding Capacity | Discretionary Deployment | Remaining Headroom |
+|---|---|---|---|---|---|
+| Base | $6,315.0M | $700.0M | $7,015.0M | $636.3M | $6,378.7M |
+| Upside | $3,941.9M | $300.0M | $4,241.9M | $1,498.4M | $2,743.5M |
+| Downside | $5,887.5M | $500.0M | $6,387.5M | $0.0M | $6,387.5M |
+
+Note Upside's Remaining Deployable Headroom is *lower* than Base's —
+this is correct, not a bug: Upside deploys far more capital into
+buybacks along the way ($1,498.4M vs. Base's $636.3M in FY2030 alone —
+see `docs/decisions.md`'s Milestone 3A scenario narratives), leaving
+less headroom unspent at year end, even though Upside generates more
+total funding capacity than Base in most years and much more cash
+overall. A "higher scenario always wins" assumption baked into a Power
+BI visual would misread this — always show Discretionary Deployment
+alongside Remaining Deployable Headroom so the tradeoff is visible, not
+just the ending balance. **Never present Debt-Funded Capacity as if it
+were internally generated operating capacity** — it is shown as a
+separate column specifically so a report cannot conflate the two.
+
+## Cumulative capacity reconciliation, FY2026-FY2030 (Milestone 9 correction)
+
+| Scenario | Cum. Self-Funded | Cum. Debt-Funded | Opening Excess Liquidity | Cum. Discretionary Deployment | Terminal Headroom | Ending Reserve Movement | Total Horizon Capacity |
+|---|---|---|---|---|---|---|---|
+| Base | $3,490.8M | $3,500.0M | $2,313.2M | $2,796.3M | $6,378.7M | $128.9M | $9,303.9M |
+| Upside | $4,776.8M | $1,500.0M | $2,250.3M | $5,377.2M | $2,743.5M | $406.4M | $8,527.1M |
+| Downside | $1,169.2M | $2,500.0M | $2,423.2M | $0.0M | $6,387.5M | $(295.2)M | $6,092.3M |
+
+For every scenario: **Total Horizon Capacity = Cumulative Discretionary
+Deployment + Terminal Remaining Headroom + Ending Reserve Movement**,
+exactly (to within $0.1M rounding) — proven in
+`docs/investment_capacity_correction_evidence.md`. Under this corrected,
+more complete measure, Upside trails Base by roughly 8% ($8,527.1M vs.
+$9,303.9M) rather than the ~48% gap the legacy, deprecated
+`cumulative_deployable_capacity` measure would have implied — because
+the legacy measure never counted capital Upside had already deployed as
+capacity the plan generated. **Never sum per-year
+`remaining_deployable_headroom` values across FY2026-FY2030** — use
+`fact_capacity_horizon`'s own cumulative columns instead.
 
 ## Row counts (must match `data/*.csv` exactly)
 
@@ -47,7 +79,9 @@ where WACC differs by scenario has a bug.
 |---|---|
 | `fact_annual_historical` | 488 |
 | `fact_forecast` | 765 |
-| `fact_investment_capacity` | 15 |
+| `fact_investment_capacity` (DEPRECATED, preserved verbatim) | 15 |
+| `fact_capacity_taxonomy` | 15 |
+| `fact_capacity_horizon` | 3 |
 | `fact_valuation_results` | 3 |
 | `fact_valuation_ufcf` | 15 |
 | `fact_validation_forecast` | 229 |
@@ -64,6 +98,7 @@ where WACC differs by scenario has a bug.
 
 - Forecast validation checks: **229 / 229 PASS** (0 FAIL, 0 WARNING).
 - Valuation validation checks: **28 / 28 PASS** (0 FAIL, 0 WARNING).
+- Capacity taxonomy validation checks (Milestone 9): **147 / 147 PASS** (0 FAIL, 0 WARNING) — 9 per-scenario-year checks × 15 scenario-years + 4 per-scenario checks × 3 scenarios.
 
 If the built report's `Validation Status (Combined Label)` measure ever
 reads anything other than "All checks PASS" against this same database,

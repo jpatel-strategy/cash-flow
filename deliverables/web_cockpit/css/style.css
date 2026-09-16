@@ -175,6 +175,31 @@ main { max-width: var(--max-width); margin: 0 auto; padding: 0 16px; }
 .chart-card.full { grid-column: 1 / -1; }
 .chart-card h3 { margin-top: 0; font-size: 1rem; color: var(--navy); }
 .chart-note { font-size: 0.8rem; color: var(--grey); margin-bottom: 0; }
+
+.capacity-kpi-heading {
+  margin: 4px 0 8px;
+  font-size: 0.95rem;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.section-divider {
+  margin: 28px 0 4px;
+  padding-top: 16px;
+  border-top: 2px solid var(--light-blue);
+  color: var(--navy);
+}
+.stock-badge {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--navy-dark);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
 .chart-target svg { width: 100%; height: auto; display: block; }
 
 .scenario-narrative {

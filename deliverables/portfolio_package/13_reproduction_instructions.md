@@ -35,8 +35,9 @@ python3 -m venv .venv
 
 This copies only the registered source filings and schema/config files
 into a fresh temporary directory, re-runs the entire CLI pipeline
-(`ingest` → `persist-annual` → `persist-forecast` → `persist-valuation`)
-from nothing, and then uses `scripts/compare_databases.py`'s
+(`ingest` → `persist-annual` → `persist-forecast` → `persist-valuation`
+→ `persist-capacity-taxonomy`) from nothing, and then uses
+`scripts/compare_databases.py`'s
 deterministic, sorted, hash-stable canonical exports to prove the
 result matches the active `data/curated/target_cash.db` exactly (wall-
 clock columns like `created_at` excluded, since deterministic primary
@@ -96,8 +97,9 @@ date and the milestone it belongs to.
   from its own content (scenario, metric, fiscal year, version) — never
   an autoincrement or a random UUID — so re-running persistence twice
   produces identical row counts, not duplicates.
-- **Idempotent persistence**: `persist-annual`, `persist-forecast`, and
-  `persist-valuation` can each be re-run any number of times against the
+- **Idempotent persistence**: `persist-annual`, `persist-forecast`,
+  `persist-valuation`, and `persist-capacity-taxonomy` can each be
+  re-run any number of times against the
   same inputs with no change in the resulting data.
 - **Canonical, hash-stable exports**: `scripts/compare_databases.py`
   exports every table in a sorted, deterministic order with

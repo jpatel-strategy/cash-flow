@@ -90,10 +90,11 @@ to the production database.
 
 ## Test coverage
 
-401 automated unit/integration tests (`pytest`), covering the mapping
+437 automated unit/integration tests (`pytest`), covering the mapping
 gate, the annual persistence pipeline, the forecast engine (including
 every validation check and the cumulative-capacity fix), the forecast
-persistence layer, the valuation engine, and the valuation persistence
+persistence layer, the valuation engine, the valuation persistence
+layer, and the corrected capacity-taxonomy engine and its persistence
 layer. Plus three independent, script-driven verification passes for
 the three presentation layers (Excel, Power BI handoff, web cockpit),
 none of which are pytest tests but all of which are automated and

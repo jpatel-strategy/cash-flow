@@ -19,11 +19,11 @@ dashed actual/forecast distinction), and the scenario narrative.*
 ## 0:45-2:00 — Scenario selector
 
 "Watch what happens when I switch to Upside." *Click Upside.* "Notice
-deployable capacity actually goes *down* in Upside versus Base, even
-though revenue and FCF are higher — that's not a bug. Upside deploys
-more of its cash into buybacks and faster deleveraging, so less sits
-idle. The narrative underneath explains exactly why — this isn't three
-scenarios that are just the same forecast multiplied by a number."
+remaining deployable headroom actually goes *down* in Upside versus
+Base, even though revenue and FCF are higher — that's not a bug. Upside
+deploys more of its cash into buybacks and faster deleveraging, so less
+sits idle. The narrative underneath explains exactly why — this isn't
+three scenarios that are just the same forecast multiplied by a number."
 
 ## 2:00-3:30 — Cash-flow definitions
 
@@ -50,6 +50,16 @@ exactly one of five uses — debt repayment, dividends, buybacks,
 management-selected deployment, or ending cash — never zero, never two.
 This banner right here is that proof, live, for whatever scenario and
 year you pick." *Click through a couple of years.*
+
+"There's actually a second correction on top of that one, right up in
+the Snapshot cards you saw earlier. The single-year figure was also
+double-subtracting mandatory debt repayments and blending internally
+generated cash with new borrowing into one ambiguous number. So the
+headline now shows four things instead of one: self-funded capacity
+generated, debt-funded capacity — always shown separately, never
+counted as internally generated cash — discretionary deployment, and
+remaining deployable headroom. The old field is still in the data,
+relabeled as a deprecated legacy figure, purely for audit trail."
 
 ## 5:00-6:30 — DCF and the disclaimer
 

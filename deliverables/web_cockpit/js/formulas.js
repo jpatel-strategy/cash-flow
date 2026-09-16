@@ -133,6 +133,7 @@
         post_dividend_capacity: postDividendCapacity, min_cash_buffer: minCashBuffer,
         deployable_capacity: deployableCapacity, funding_warning: fundingWarning,
         total_debt_gaap_ending: debtEnding,
+        debt_proceeds: debtProceeds, debt_repayments: debtRepayments,
       });
 
       prevRevenue = revenue;
@@ -147,5 +148,50 @@
     return years;
   }
 
-  global.TargetCashFormulas = { FORECAST_YEARS, runFromMetrics };
+  /**
+   * Milestone 9 correction: corrected capacity taxonomy, computed purely
+   * from one runFromMetrics() year object -- a line-for-line port of
+   * capacity_taxonomy.compute_capacity_taxonomy_year() (Python). Never
+   * reads deployable_capacity; strategic_investment, voluntary_debt_reduction,
+   * and other_discretionary_uses are structural $0 placeholders, matching
+   * the Python source of truth.
+   */
+  function computeCapacityTaxonomyYear(y) {
+    const operatingFcf = y.free_cash_flow;
+    const postDividendInternalGeneration = y.post_dividend_capacity;
+    const openingExcessLiquidity = Math.max(0, y.beginning_cash - y.min_cash_buffer);
+    const mandatoryDebtUses = y.debt_repayments;
+
+    const selfFundedGrossCapacity = openingExcessLiquidity + postDividendInternalGeneration - mandatoryDebtUses;
+    const debtFundedIncrementalCapacity = y.debt_proceeds;
+    const totalGrossFundingCapacity = selfFundedGrossCapacity + debtFundedIncrementalCapacity;
+
+    const strategicInvestment = 0;
+    const voluntaryDebtReduction = 0;
+    const otherDiscretionaryUses = 0;
+    const totalDiscretionaryDeployment = y.share_repurchases + strategicInvestment + voluntaryDebtReduction + otherDiscretionaryUses;
+
+    const remainingDeployableHeadroom = Math.max(0, totalGrossFundingCapacity - totalDiscretionaryDeployment);
+    const endingExcessLiquidity = Math.max(0, y.ending_cash - y.min_cash_buffer);
+
+    return {
+      fiscal_year: y.fiscal_year,
+      operating_fcf: operatingFcf,
+      post_dividend_internal_generation: postDividendInternalGeneration,
+      opening_excess_liquidity: openingExcessLiquidity,
+      mandatory_debt_uses: mandatoryDebtUses,
+      self_funded_gross_capacity: selfFundedGrossCapacity,
+      debt_funded_incremental_capacity: debtFundedIncrementalCapacity,
+      total_gross_funding_capacity: totalGrossFundingCapacity,
+      share_repurchases: y.share_repurchases,
+      strategic_investment: strategicInvestment,
+      voluntary_debt_reduction: voluntaryDebtReduction,
+      other_discretionary_uses: otherDiscretionaryUses,
+      total_discretionary_deployment: totalDiscretionaryDeployment,
+      remaining_deployable_headroom: remainingDeployableHeadroom,
+      ending_excess_liquidity: endingExcessLiquidity,
+    };
+  }
+
+  global.TargetCashFormulas = { FORECAST_YEARS, runFromMetrics, computeCapacityTaxonomyYear };
 })(window);

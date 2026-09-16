@@ -55,7 +55,13 @@ double counting.
    diagnosed, and fixed, with an explicit conservation-identity proof
    (`beginning cash + CFO + CFI + debt proceeds = debt repayments +
    dividends + repurchases + deployment + ending cash`) that every
-   scenario/year satisfies exactly.
+   scenario/year satisfies exactly. A second, independent review later
+   found that the same single-year figure was also conflating internally
+   generated (self-funded) capacity with new borrowing, and was silently
+   double-subtracting mandatory debt repayments — corrected by splitting
+   the metric into **self-funded capacity generated**, **debt-funded
+   capacity** (shown separately, never as internally generated cash), and
+   **remaining deployable headroom**; see `docs/investment_capacity_correction_evidence.md`.
 4. **A restrained DCF valuation** (Milestone 4): explicit WACC build,
    Gordon Growth terminal value, and a valuation bridge to per-share
    value — with checks preventing the two most common DCF errors
@@ -74,23 +80,31 @@ double counting.
 |---|---|---|---|
 | Revenue | $110,125M | $121,469M | $92,321M |
 | Diluted EPS | $8.18 | $13.15 | $2.71 |
-| Deployable Capacity (FY2030) | $6,315M | $3,242M | $6,088M |
+| Self-Funded Capacity Generated | $6,315M | $3,942M | $5,888M |
+| Debt-Funded Capacity (separate) | $700M | $300M | $500M |
+| Discretionary Deployment | $636M | $1,498M | $0M |
+| Remaining Deployable Headroom | $6,379M | $2,743M | $6,388M |
 | Implied DCF Value/Share | $107.29 | $138.32 | $61.55 |
 
-Note the counterintuitive result in row 3: Upside shows *lower* single-
-year deployable capacity than Base, despite generating more cash overall
+Note the counterintuitive result: Upside shows *lower* remaining
+headroom than Base, despite generating more self-funded capacity overall
 — because Upside deploys more of it (higher buyback payout, faster
 deleveraging) rather than letting it sit idle. A model that only showed
 "capacity went up" without this context would mislead a decision-maker;
-this one shows the full waterfall so the tradeoff is visible.
+this one shows the full waterfall, with debt-funded capacity always
+called out separately, so the tradeoff is visible. (Legacy `Deployable
+Capacity` figure, kept only as deprecated methodology evidence: $6,315M
+/ $3,242M / $6,088M — see the correction evidence doc for why the Upside
+and Downside values changed.)
 
 ## Why this matters for a finance role, not a software role
 
 The hard parts of this project were never the code — they were the
 finance judgment calls: what counts as CapEx versus total investing
 cash flow (never the same number, and conflating them is a real error
-this project explicitly avoids); how to define "deployable capacity"
-without double-counting; how to keep a DCF's valuation date consistent
+this project explicitly avoids); how to define investment capacity
+without double-counting and without conflating internally generated
+cash with new borrowing; how to keep a DCF's valuation date consistent
 with its balance-sheet inputs; how to write a scenario narrative that
 reads as a coherent business story rather than a mechanical dial-turn.
 Those are FP&A and strategic-finance skills. The code is the vehicle,

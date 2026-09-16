@@ -5,8 +5,9 @@ detail of the forecast/valuation export used by Excel, Power BI, and the
 web cockpit, see `deliverables/powerbi_handoff/data_dictionary.md` —
 this file gives the whole-database picture that sits behind it.
 
-`data/curated/target_cash.db` (SQLite), 24 tables, 5,701 rows as of the
-last full pipeline run (2026-09-16).
+`data/curated/target_cash.db` (SQLite), 28 tables, 6,101 rows as of the
+last full pipeline run (2026-09-16), including the capacity-taxonomy
+correction round.
 
 ## Source and lineage layer
 
@@ -36,7 +37,16 @@ last full pipeline run (2026-09-16).
 | `forecast_facts` | (scenario, fiscal_year, metric) | The 51-metric x 3-scenario x 5-year = 765 computed forecast results. |
 | `forecast_lineage` | one row per field-level dependency | Full formula-and-input lineage for every one of the 51 forecast fields — the "why is this number what it is" answer for any cell. |
 | `forecast_validation_results` | one row per check per scenario/year | 229 automated validation results (all PASS as of the last run). |
-| `investment_capacity_results` | (scenario, fiscal_year) | The capital-allocation waterfall's 9 stages, plus the corrected cumulative-deployable-capacity figure and a mandatory methodology disclosure per row. |
+| `investment_capacity_results` | (scenario, fiscal_year) | The capital-allocation waterfall's 9 stages, plus the corrected cumulative-deployable-capacity figure and a mandatory methodology disclosure per row. **Superseded for headline use** by the capacity-taxonomy tables below; preserved unmodified for backward compatibility and historical/methodology reference only. |
+
+## Capacity taxonomy layer (correction round)
+
+| Table | Grain | Purpose |
+|---|---|---|
+| `capacity_taxonomy_results` | (scenario, fiscal_year) | The corrected 14-field capacity taxonomy: self-funded vs. debt-funded capacity generated separately, discretionary deployment, and remaining deployable headroom — fixes a double-subtraction of mandatory debt repayments present in the legacy `investment_capacity_results.deployable_capacity` field. |
+| `capacity_horizon_results` | one row per scenario | Five-year cumulative reconciliation: total horizon capacity accessible, cumulative self-funded/debt-funded generation, cumulative discretionary deployment, terminal remaining headroom, and the ending reserve-movement term that makes the two sides reconcile exactly. |
+| `capacity_taxonomy_lineage` | one row per field-level dependency | Formula-and-input lineage for every new derived capacity-taxonomy field. |
+| `capacity_validation_results` | one row per check per scenario/year | 147 automated validation results proving the 13 named capacity-taxonomy identities (conservation, non-negativity, cross-checks against `ending_excess_liquidity`, and the horizon reconciliation identity). |
 
 ## Valuation layer (Milestone 4)
 

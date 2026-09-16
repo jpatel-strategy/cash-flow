@@ -8,6 +8,8 @@ single cross-filter direction (dimension filters fact) unless noted.
 |---|---|---|
 | `dim_scenario[scenario_id]` | `fact_forecast[scenario_id]` | scenario_id |
 | `dim_scenario[scenario_id]` | `fact_investment_capacity[scenario_id]` | scenario_id |
+| `dim_scenario[scenario_id]` | `fact_capacity_taxonomy[scenario_id]` | scenario_id |
+| `dim_scenario[scenario_id]` | `fact_capacity_horizon[scenario_id]` | scenario_id |
 | `dim_scenario[scenario_id]` | `fact_valuation_results[scenario_id]` | scenario_id |
 | `dim_scenario[scenario_id]` | `fact_valuation_ufcf[scenario_id]` | scenario_id |
 | `dim_scenario[scenario_id]` | `fact_validation_forecast[scenario_id]` | scenario_id (some rows null — cross-scenario checks) |
@@ -15,6 +17,7 @@ single cross-filter direction (dimension filters fact) unless noted.
 | `dim_fiscal_year[fiscal_year]` | `fact_annual_historical[fiscal_year]` | fiscal_year |
 | `dim_fiscal_year[fiscal_year]` | `fact_forecast[fiscal_year]` | fiscal_year |
 | `dim_fiscal_year[fiscal_year]` | `fact_investment_capacity[fiscal_year]` | fiscal_year |
+| `dim_fiscal_year[fiscal_year]` | `fact_capacity_taxonomy[fiscal_year]` | fiscal_year |
 | `dim_fiscal_year[fiscal_year]` | `fact_valuation_ufcf[fiscal_year]` | fiscal_year |
 | `dim_fiscal_year[fiscal_year]` | `fact_validation_forecast[fiscal_year]` | fiscal_year (some rows null) |
 | `dim_fiscal_year[fiscal_year]` | `fact_filing_vintage_comparison[fiscal_year]` | fiscal_year |
@@ -28,6 +31,13 @@ single cross-filter direction (dimension filters fact) unless noted.
 
 ## Notes
 
+- **Milestone 9 correction**: `fact_investment_capacity` (and its
+  `deployable_capacity`/`cumulative_deployable_capacity` columns) is
+  preserved verbatim for backward compatibility and is DEPRECATED --
+  never relate it into a new visual or measure. `fact_capacity_taxonomy`
+  (per scenario-year) and `fact_capacity_horizon` (per-scenario
+  cumulative) are the corrected tables; every new capacity measure in
+  `dax_measures.md` reads from these two instead.
 - `fact_annual_historical` carries BOTH `as_originally_filed` and
   `latest_restated` rows for the same (metric, fiscal_year) — when
   building a "headline" visual (Executive Overview, Scenario Forecast

@@ -2,7 +2,7 @@
   "use strict";
 
   const { lineChart, barChart, waterfallChart, fmtM } = window.TargetCashCharts;
-  const { runFromMetrics } = window.TargetCashFormulas;
+  const { runFromMetrics, computeCapacityTaxonomyYear } = window.TargetCashFormulas;
 
   const SCENARIO_COLORS = { base: "#1F3864", upside: "#548235", downside: "#C00000" };
 
@@ -68,8 +68,9 @@
     const badges = document.getElementById("header-badges");
     badges.innerHTML = "";
     const v = DATA.validation;
-    const totalChecks = v.forecast.total + v.valuation.total;
-    const totalPass = v.forecast.PASS + v.valuation.PASS;
+    const capCheck = v.capacity_taxonomy || { total: 0, PASS: 0 };
+    const totalChecks = v.forecast.total + v.valuation.total + capCheck.total;
+    const totalPass = v.forecast.PASS + v.valuation.PASS + capCheck.PASS;
     badges.appendChild(el("span", { class: "badge status-historical", text: "Historical: SEC-filed, FY2021–FY2025" }));
     badges.appendChild(el("span", { class: "badge status-forecast", text: "Forecast: scenario-based, FY2026–FY2030" }));
     badges.appendChild(el("span", { class: "badge status-not-advice", text: "Not investment advice" }));
@@ -89,12 +90,23 @@
 
     const grid = document.getElementById("kpi-grid");
     grid.innerHTML = "";
+    const capCheck = DATA.validation.capacity_taxonomy || { total: 0, PASS: 0 };
+    const totalPass = DATA.validation.forecast.PASS + DATA.validation.valuation.PASS + capCheck.PASS;
+    const totalChecks = DATA.validation.forecast.total + DATA.validation.valuation.total + capCheck.total;
     grid.appendChild(kpiCard("Revenue, FY2030", fmtM(terminal.revenue), `${currentScenario} scenario`));
     grid.appendChild(kpiCard("Free Cash Flow, FY2030", fmtM(terminal.free_cash_flow), "CFO − CapEx"));
-    grid.appendChild(kpiCard("Deployable Capacity, FY2030", fmtM(terminal.deployable_capacity), "after buffer & debt reserve"));
-    grid.appendChild(kpiCard("Cumulative Deployable Capacity", fmtM(sc.cumulative_deployable_capacity_terminal), "terminal + amounts deployed"));
     grid.appendChild(kpiCard("Implied DCF Value/Share", "$" + fmtNum(dcf.implied_value_per_share), "scenario-based, not a price target"));
-    grid.appendChild(kpiCard("Validation Status", `${DATA.validation.forecast.PASS + DATA.validation.valuation.PASS}/${DATA.validation.forecast.total + DATA.validation.valuation.total} PASS`, "all checks"));
+    grid.appendChild(kpiCard("Validation Status", `${totalPass}/${totalChecks} PASS`, "all checks"));
+    grid.appendChild(kpiCard("Net Debt (Valuation Date)", fmtM(dcf.valuation_date_net_debt), "FY2025 actual"));
+    grid.appendChild(kpiCard("Funding Warning?", terminal.funding_warning ? "Yes" : "No", `${currentScenario}, FY2030`));
+
+    const capGrid = document.getElementById("capacity-kpi-grid");
+    capGrid.innerHTML = "";
+    const capTerminal = sc.capacity_taxonomy_by_year[String(terminal.fiscal_year)];
+    capGrid.appendChild(kpiCard("Self-Funded Capacity Generated", fmtM(capTerminal.self_funded_gross_capacity), "excludes new borrowing"));
+    capGrid.appendChild(kpiCard("Debt-Funded Capacity", fmtM(capTerminal.debt_funded_incremental_capacity), "shown separately — never internally generated"));
+    capGrid.appendChild(kpiCard("Discretionary Deployment", fmtM(capTerminal.total_discretionary_deployment), "repurchases + other discretionary uses"));
+    capGrid.appendChild(kpiCard("Remaining Deployable Headroom", fmtM(capTerminal.remaining_deployable_headroom), "the corrected KPI — net of this year's own deployment"));
 
     const histSeries = DATA.historical_years.map((fy) => ({
       fy: Number(fy), value: DATA.historical[fy].revenue,
@@ -112,14 +124,18 @@
       ],
     });
 
-    const capBars = ["base", "upside", "downside"].map((s) => ({
-      label: s.charAt(0).toUpperCase() + s.slice(1),
-      value: DATA.scenarios[s].years[DATA.scenarios[s].years.length - 1].deployable_capacity,
-      color: SCENARIO_COLORS[s],
-    }));
+    const capBars = ["base", "upside", "downside"].map((s) => {
+      const sYears = DATA.scenarios[s].years;
+      const sTerminalFy = sYears[sYears.length - 1].fiscal_year;
+      return {
+        label: s.charAt(0).toUpperCase() + s.slice(1),
+        value: DATA.scenarios[s].capacity_taxonomy_by_year[String(sTerminalFy)].remaining_deployable_headroom,
+        color: SCENARIO_COLORS[s],
+      };
+    });
     barChart(document.getElementById("chart-capacity-by-scenario"), { bars: capBars });
     document.getElementById("capacity-note").textContent =
-      "Single-year FY2030 deployable capacity (not cumulative) — see the Cash Bridge section for the cumulative, non-double-counted figure.";
+      "A higher-revenue scenario can show LOWER headroom if it deploys more (see Upside) — check Discretionary Deployment in the Cash Bridge section before assuming a lower bar means less capacity was generated.";
 
     document.getElementById("scenario-narrative-snapshot").textContent = sc.narrative;
   }
@@ -209,7 +225,8 @@
       ["Gross Margin %", "gross_margin_pct"], ["Operating Income", "operating_income"], ["Operating Margin %", "operating_margin_pct"],
       ["Net Income", "net_income"], ["Diluted EPS ($)", "diluted_eps"], ["CFO", "operating_cash_flow"],
       ["CapEx", "capital_expenditure"], ["Free Cash Flow", "free_cash_flow"], ["Dividends Paid", "dividends_paid"],
-      ["Share Repurchases", "share_repurchases"], ["Ending Cash", "ending_cash"], ["Deployable Capacity", "deployable_capacity"],
+      ["Share Repurchases", "share_repurchases"], ["Ending Cash", "ending_cash"],
+      ["Legacy Gross Capacity (deprecated)", "deployable_capacity"],
     ];
     const table = document.getElementById("table-forecast");
     table.dataset.caption = `Full scenario forecast — ${currentScenario} scenario, $ millions unless noted`;
@@ -227,9 +244,13 @@
   // 5. Cash bridge & investment capacity
   // ---------------------------------------------------------------------
   function renderBridge() {
-    const years = DATA.scenarios[currentScenario].years;
+    const sc = DATA.scenarios[currentScenario];
+    const years = sc.years;
     const terminal = years[years.length - 1];
+    const capYears = years.map((y) => sc.capacity_taxonomy_by_year[String(y.fiscal_year)]);
+    const capTerminal = capYears[capYears.length - 1];
 
+    // Legacy waterfall (deprecated) -- preserved verbatim for backward compatibility.
     waterfallChart(document.getElementById("chart-bridge"), {
       steps: [
         { label: "CFO", amount: terminal.operating_cash_flow },
@@ -239,29 +260,63 @@
         { label: "= Post-Dividend Capacity", amount: terminal.post_dividend_capacity, isTotal: true },
         { label: "− Min-Cash Buffer", amount: -terminal.min_cash_buffer },
         { label: "− Debt Reserve", amount: -terminal.near_term_debt_repayment_reserve },
-        { label: "= Deployable Capacity", amount: terminal.deployable_capacity, isTotal: true },
+        { label: "= Legacy Gross Ceiling (DEPRECATED)", amount: terminal.deployable_capacity, isTotal: true },
+      ],
+    });
+
+    // Corrected capacity taxonomy waterfall (Milestone 9 correction).
+    waterfallChart(document.getElementById("chart-capacity-taxonomy"), {
+      steps: [
+        { label: "Opening Excess Liquidity", amount: capTerminal.opening_excess_liquidity, isTotal: true },
+        { label: "+ Post-Dividend Internal Generation", amount: capTerminal.post_dividend_internal_generation },
+        { label: "− Mandatory Debt Uses", amount: -capTerminal.mandatory_debt_uses },
+        { label: "= Self-Funded Gross Capacity", amount: capTerminal.self_funded_gross_capacity, isTotal: true },
+        { label: "+ Debt-Funded Capacity (new borrowing)", amount: capTerminal.debt_funded_incremental_capacity },
+        { label: "= Total Gross Funding Capacity", amount: capTerminal.total_gross_funding_capacity, isTotal: true },
+        { label: "− Discretionary Deployment", amount: -capTerminal.total_discretionary_deployment },
+        { label: "= Remaining Deployable Headroom", amount: capTerminal.remaining_deployable_headroom, isTotal: true },
       ],
     });
 
     lineChart(document.getElementById("chart-capacity-series"), {
       series: [
-        { label: "Deployable Capacity", points: years.map((y) => ({ fy: y.fiscal_year, value: y.deployable_capacity })), color: "#1F3864" },
-        {
-          label: "Cumulative Deployable Capacity (running)",
-          points: DATA.scenarios[currentScenario].cumulative_deployable_capacity_series.map((v, i) => ({ fy: years[i].fiscal_year, value: v })),
-          color: "#C9A227",
-        },
+        { label: "Remaining Deployable Headroom", points: capYears.map((cy) => ({ fy: cy.fiscal_year, value: cy.remaining_deployable_headroom })), color: "#1F3864" },
+        { label: "Discretionary Deployment (same year)", points: capYears.map((cy) => ({ fy: cy.fiscal_year, value: cy.total_discretionary_deployment })), color: "#C9A227" },
       ],
     });
 
+    const horizonTable = document.getElementById("table-capacity-horizon");
+    const hz = sc.capacity_horizon_summary;
+    renderTable(
+      horizonTable,
+      ["Metric", "Value"],
+      [
+        ["Cumulative Self-Funded Generation", fmtM(hz.cumulative_self_funded_generation)],
+        ["Cumulative Debt-Funded Capacity", fmtM(hz.cumulative_debt_funded_capacity)],
+        ["Opening Excess Liquidity (horizon start)", fmtM(hz.opening_excess_liquidity_at_horizon_start)],
+        ["Cumulative Discretionary Deployment", fmtM(hz.cumulative_discretionary_deployment)],
+        ["Terminal Remaining Headroom (FY2030)", fmtM(hz.terminal_remaining_headroom)],
+        ["Ending Reserve Movement", fmtM(hz.ending_reserve_movement)],
+        [{ text: "Total Horizon Capacity Accessible", className: "reclassified" }, { text: fmtM(hz.total_horizon_capacity_accessible), className: "reclassified" }],
+      ]
+    );
+
     const table = document.getElementById("table-capacity");
-    table.dataset.caption = `Investment capacity detail — ${currentScenario} scenario`;
+    table.dataset.caption = `Corrected capacity taxonomy detail — ${currentScenario} scenario (legacy fields shown at bottom, deprecated)`;
     const metrics = [
-      ["Gross FCF Capacity", "gross_fcf_capacity"], ["Post-Dividend Capacity", "post_dividend_capacity"],
-      ["Min-Cash Buffer", "min_cash_buffer"], ["Near-Term Debt Reserve", "near_term_debt_repayment_reserve"],
-      ["Deployable Capacity", "deployable_capacity"],
+      ["A. Operating FCF", "operating_fcf"], ["B. Post-Dividend Internal Generation", "post_dividend_internal_generation"],
+      ["Opening Excess Liquidity", "opening_excess_liquidity"], ["Mandatory Debt Uses", "mandatory_debt_uses"],
+      ["C. Self-Funded Gross Capacity", "self_funded_gross_capacity"], ["D. Debt-Funded Incremental Capacity", "debt_funded_incremental_capacity"],
+      ["E. Total Gross Funding Capacity", "total_gross_funding_capacity"], ["Share Repurchases", "share_repurchases"],
+      ["F. Total Discretionary Deployment", "total_discretionary_deployment"],
+      ["G. Remaining Deployable Headroom", "remaining_deployable_headroom"],
+      ["Ending Excess Liquidity (cross-check of G)", "ending_excess_liquidity"],
     ];
-    const rows = metrics.map(([label, key]) => [label, ...years.map((y) => fmtM(y[key]))]);
+    const rows = metrics.map(([label, key]) => [label, ...capYears.map((cy) => fmtM(cy[key]))]);
+    rows.push([
+      { text: "Legacy Gross Pre-Discretionary Ceiling (DEPRECATED)", className: "reclassified" },
+      ...years.map((y) => ({ text: fmtM(y.deployable_capacity), className: "reclassified" })),
+    ]);
     renderTable(table, ["Metric", ...years.map((y) => "FY" + y.fiscal_year)], rows);
   }
 
@@ -448,12 +503,16 @@
 
     const result = runFromMetrics(seed, metrics);
     const terminal = result[result.length - 1];
+    const capTerminal = computeCapacityTaxonomyYear(terminal);
 
     const out = document.getElementById("whatif-results");
     out.innerHTML = "";
     out.appendChild(kpiCard("FY2030 Revenue", fmtM(terminal.revenue)));
     out.appendChild(kpiCard("FY2030 Free Cash Flow", fmtM(terminal.free_cash_flow)));
-    out.appendChild(kpiCard("FY2030 Deployable Capacity", fmtM(terminal.deployable_capacity)));
+    out.appendChild(kpiCard("FY2030 Self-Funded Capacity", fmtM(capTerminal.self_funded_gross_capacity)));
+    out.appendChild(kpiCard("FY2030 Debt-Funded Capacity", fmtM(capTerminal.debt_funded_incremental_capacity)));
+    out.appendChild(kpiCard("FY2030 Discretionary Deployment", fmtM(capTerminal.total_discretionary_deployment)));
+    out.appendChild(kpiCard("FY2030 Remaining Deployable Headroom", fmtM(capTerminal.remaining_deployable_headroom)));
     out.appendChild(kpiCard("FY2030 Diluted EPS", "$" + fmtNum(terminal.diluted_eps)));
     out.appendChild(kpiCard("FY2030 Ending Cash", fmtM(terminal.ending_cash)));
     out.appendChild(kpiCard("Funding Warning?", terminal.funding_warning ? "Yes" : "No"));
@@ -515,6 +574,8 @@
     "True Power BI Desktop and true Excel/LibreOffice recalculation were unavailable in the build environment; verification instead used the `formulas` Python package for Excel and CSV/DAX-level checks for the Power BI package — both documented in docs/decisions.md.",
     "The client-side What-If Sandbox on this page is a manually-maintained port of the Python forecast formulas for illustrative interactivity only; the authoritative model is always the Python codebase in src/target_cash/.",
     "Minimum-cash-buffer and near-term reserve percentages are policy assumptions calibrated to Target's own observed FY2025 quarterly cash seasonality, not a disclosed corporate policy.",
+    "Milestone 9 correction: the legacy 'deployable capacity' figure (still shown, de-emphasized, in the Cash Bridge section for backward compatibility) was found to be a gross, pre-discretionary ceiling that never subtracted a given year's own repurchases and commingled new borrowing with internally generated cash. The corrected taxonomy (Self-Funded Capacity Generated, Debt-Funded Capacity, Discretionary Deployment, Remaining Deployable Headroom) replaces it as the executive KPI — see docs/investment_capacity_correction_evidence.md.",
+    "strategic_investment, voluntary_debt_reduction, and other_discretionary_uses in the corrected taxonomy are structural $0 placeholders — no policy lever has been modeled for them this round.",
   ];
   function renderAbout() {
     const list = document.getElementById("limitations-list");

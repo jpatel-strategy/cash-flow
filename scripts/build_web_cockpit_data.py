@@ -19,6 +19,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from target_cash import forecast as f  # noqa: E402
 from target_cash import valuation as v  # noqa: E402
+from target_cash import capacity_taxonomy as ct  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "curated" / "target_cash.db"
 OUT_PATH = REPO_ROOT / "deliverables" / "web_cockpit" / "data" / "model_data.json"
@@ -132,6 +133,13 @@ for scenario in ["base", "upside", "downside"]:
     cum_series = f.cumulative_deployable_capacity_through_each_year(years)
     cum_terminal = f.cumulative_deployable_capacity(years)
 
+    # Milestone 9 correction: corrected capacity taxonomy, computed purely
+    # from these same ForecastYear objects -- never a re-derivation from
+    # raw assumptions, and never reading the legacy deployable_capacity
+    # field (see capacity_taxonomy.py's own module docstring).
+    capacity_years = ct.build_capacity_taxonomy(years)
+    capacity_summary = ct.compute_capacity_horizon_summary(scenario, years, capacity_years)
+
     scenarios_out[scenario] = {
         "name": scenario.capitalize(),
         "narrative": f.scenario_narrative(scenario),
@@ -145,6 +153,10 @@ for scenario in ["base", "upside", "downside"]:
         "no_double_counting": {
             str(y.fiscal_year): f.verify_no_double_counting(y) for y in years
         },
+        "capacity_taxonomy_by_year": {
+            str(cy.fiscal_year): dataclasses.asdict(cy) for cy in capacity_years
+        },
+        "capacity_horizon_summary": dataclasses.asdict(capacity_summary),
     }
 
 # ---------------------------------------------------------------------------
@@ -182,6 +194,10 @@ lineage = {s: f.build_lineage(years, assumptions) for s, years in forecasts.item
 forecast_checks = f.validate_all(forecasts, assumptions, lineage)
 valuation_checks = v.run_all_valuation_checks(forecasts, dcf_results)
 
+capacity_taxonomies_all = ct.build_capacity_taxonomy_all_scenarios(forecasts)
+capacity_summaries_all = ct.build_capacity_horizon_summaries(forecasts, capacity_taxonomies_all)
+capacity_checks = ct.validate_capacity_taxonomy_all(forecasts, capacity_taxonomies_all, capacity_summaries_all)
+
 
 def _status_counts(results):
     counts = {"PASS": 0, "FAIL": 0, "WARNING": 0}
@@ -193,6 +209,7 @@ def _status_counts(results):
 validation_out = {
     "forecast": {"total": len(forecast_checks), **_status_counts(forecast_checks)},
     "valuation": {"total": len(valuation_checks), **_status_counts(valuation_checks)},
+    "capacity_taxonomy": {"total": len(capacity_checks), **_status_counts(capacity_checks)},
 }
 
 # ---------------------------------------------------------------------------

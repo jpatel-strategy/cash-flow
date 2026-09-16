@@ -10,6 +10,7 @@ required file in the package is present and well-formed.
 Usage: .venv/bin/python scripts/verify_powerbi_handoff.py
 """
 import json
+import re
 import sqlite3
 import sys
 import xml.dom.minidom as minidom
@@ -39,6 +40,8 @@ DB_COUNT_QUERIES = {
     "fact_annual_historical.csv": "SELECT COUNT(*) FROM annual_facts",
     "fact_forecast.csv": "SELECT COUNT(*) FROM forecast_facts",
     "fact_investment_capacity.csv": "SELECT COUNT(*) FROM investment_capacity_results",
+    "fact_capacity_taxonomy.csv": "SELECT COUNT(*) FROM capacity_taxonomy_results",
+    "fact_capacity_horizon.csv": "SELECT COUNT(*) FROM capacity_horizon_results",
     "fact_valuation_results.csv": "SELECT COUNT(*) FROM valuation_results",
     "fact_valuation_ufcf.csv": "SELECT COUNT(*) FROM valuation_ufcf_facts",
     "fact_validation_forecast.csv": "SELECT COUNT(*) FROM forecast_validation_results",
@@ -98,6 +101,18 @@ check(
     set(fact_ic["scenario_id"]).issubset(scenario_ids)
     and set(fact_ic["fiscal_year"]).issubset(fiscal_years),
     "fact_investment_capacity: every scenario_id/fiscal_year exists in dimensions",
+)
+
+fact_captax = pd.read_csv(DATA_DIR / "fact_capacity_taxonomy.csv")
+check(
+    set(fact_captax["scenario_id"]).issubset(scenario_ids)
+    and set(fact_captax["fiscal_year"]).issubset(fiscal_years),
+    "fact_capacity_taxonomy: every scenario_id/fiscal_year exists in dimensions",
+)
+fact_caphrz = pd.read_csv(DATA_DIR / "fact_capacity_horizon.csv")
+check(
+    set(fact_caphrz["scenario_id"]).issubset(scenario_ids),
+    "fact_capacity_horizon: every scenario_id exists in dim_scenario",
 )
 
 fact_val = pd.read_csv(DATA_DIR / "fact_valuation_results.csv")
@@ -170,6 +185,72 @@ check(abs(hist_val("free_cash_flow") - 2835.0) < 0.01, "FY2025 FCF = $2,835M rep
 check(
     abs(hist_val("capital_expenditure") - abs(hist_val("investing_cash_flow"))) > 1.0,
     "CapEx is NOT equal to |CFI| in the export -- the two are correctly distinct measures",
+)
+
+# --- 3b. Milestone 9 correction: capacity taxonomy reconciles exactly ------
+check(len(fact_captax) == 15, f"fact_capacity_taxonomy has 15 rows (found {len(fact_captax)})")
+check(len(fact_caphrz) == 3, f"fact_capacity_horizon has 3 rows (found {len(fact_caphrz)})")
+
+for _, row in fact_captax.iterrows():
+    lhs = row["self_funded_gross_capacity"] + row["debt_funded_incremental_capacity"]
+    check(
+        abs(lhs - row["total_gross_funding_capacity"]) < 0.1,
+        f"{row['scenario_id']} FY{row['fiscal_year']}: self-funded + debt-funded == total gross funding capacity",
+    )
+    deployment = (row["share_repurchases"] + row["strategic_investment"]
+                  + row["voluntary_debt_reduction"] + row["other_discretionary_uses"])
+    check(
+        abs(deployment - row["total_discretionary_deployment"]) < 0.1,
+        f"{row['scenario_id']} FY{row['fiscal_year']}: 4 discretionary components sum to total_discretionary_deployment",
+    )
+    check(row["remaining_deployable_headroom"] >= 0, f"{row['scenario_id']} FY{row['fiscal_year']}: headroom is non-negative")
+    check(
+        abs(row["remaining_deployable_headroom"] - row["ending_excess_liquidity"]) < 0.1,
+        f"{row['scenario_id']} FY{row['fiscal_year']}: remaining headroom equals its independent ending-excess-liquidity cross-check",
+    )
+
+for _, row in fact_caphrz.iterrows():
+    rhs = row["cumulative_discretionary_deployment"] + row["terminal_remaining_headroom"] + row["ending_reserve_movement"]
+    check(
+        abs(row["total_horizon_capacity_accessible"] - rhs) < 0.5,
+        f"{row['scenario_id']}: total horizon capacity accessible reconciles exactly to "
+        "deployment + terminal headroom + ending reserve movement",
+    )
+
+# Legacy vs. corrected: Upside's corrected total horizon capacity must trail
+# Base's by a MUCH smaller margin than the deprecated cumulative measure
+# implied -- proving the correction materially changes the comparative picture,
+# not just relabels it.
+base_legacy = fact_ic[fact_ic["scenario_id"] == "base"]["cumulative_deployable_capacity"].dropna().iloc[-1]
+upside_legacy = fact_ic[fact_ic["scenario_id"] == "upside"]["cumulative_deployable_capacity"].dropna().iloc[-1]
+legacy_gap_pct = (base_legacy - upside_legacy) / base_legacy
+base_corrected = fact_caphrz[fact_caphrz["scenario_id"] == "base"]["total_horizon_capacity_accessible"].iloc[0]
+upside_corrected = fact_caphrz[fact_caphrz["scenario_id"] == "upside"]["total_horizon_capacity_accessible"].iloc[0]
+corrected_gap_pct = (base_corrected - upside_corrected) / base_corrected
+check(
+    corrected_gap_pct < legacy_gap_pct - 0.1,
+    f"Corrected Base-vs-Upside horizon-capacity gap ({corrected_gap_pct:.1%}) is materially smaller than "
+    f"the deprecated legacy gap ({legacy_gap_pct:.1%})",
+)
+
+# --- 3c. No bare, unqualified "deployable capacity" label in DAX/dictionary -
+dax_text = (PKG / "dax_measures.md").read_text()
+dict_text = (PKG / "data_dictionary.md").read_text()
+bare_legacy_mentions = [
+    m for m in re.finditer(r"(?i)deployable capacity", dax_text)
+    if not any(
+        q in dax_text[max(0, m.start() - 80):m.end() + 80].lower()
+        for q in ("legacy", "deprecated")
+    )
+]
+check(
+    len(bare_legacy_mentions) == 0,
+    f"dax_measures.md: no bare 'deployable capacity' mention lacking a legacy/deprecated qualifier "
+    f"nearby (found {len(bare_legacy_mentions)})",
+)
+check(
+    "fact_capacity_taxonomy" in dict_text and "DEPRECATED" in dict_text,
+    "data_dictionary.md: documents both the new fact_capacity_taxonomy table and the legacy deprecation",
 )
 
 # --- 4. Required package files are all present and well-formed -------------
