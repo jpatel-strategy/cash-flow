@@ -778,7 +778,9 @@ cum_labels = [
     "C. Opening Excess Liquidity (horizon start)", "D. Cumulative Discretionary Deployment",
     "E. Terminal Remaining Headroom", "Ending Reserve Movement",
     "Terminal Forward Debt-Repayment Reserve (FY2031 proxy)",
-    "Total Horizon Capacity Accessible (C+A+B)", "Reconciles To (D+E+Reserve Mvmt+Forward Reserve)",
+    "Gross Horizon Funding, Before Reserve Adjustments (C+A+B) -- NOT net accessible capacity",
+    "NET Horizon Deployable Capacity (Gross - Reserve Mvmt - Terminal Forward Reserve)",
+    "Reconciles To (D+E)",
 ]
 for j, label in enumerate(cum_labels):
     ws_ic.cell(row=cum_hdr2, column=1 + j, value=label)
@@ -786,20 +788,22 @@ style_header_row(ws_ic, cum_hdr2, 1, len(cum_labels))
 rr2 = cum_hdr2 + 1
 for scenario in f.SCENARIOS:
     summary = capacity_summaries[scenario]
-    reconciles_to = (summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom
-                      + summary.ending_reserve_movement + summary.terminal_forward_debt_repayment_reserve)
+    reconciles_to = summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom
     values = [
         scenario.capitalize(), summary.cumulative_self_funded_generation, summary.cumulative_debt_funded_capacity,
         summary.opening_excess_liquidity_at_horizon_start, summary.cumulative_discretionary_deployment,
         summary.terminal_remaining_headroom, summary.ending_reserve_movement,
         summary.terminal_forward_debt_repayment_reserve,
-        summary.total_horizon_capacity_accessible, reconciles_to,
+        summary.gross_horizon_funding_before_reserve_adjustments, summary.net_horizon_deployable_capacity,
+        reconciles_to,
     ]
     for j, val in enumerate(values):
         cell = ws_ic.cell(row=rr2, column=1 + j, value=val if j == 0 else round(val, 1))
         if j > 0:
             cell.number_format = USD_FMT
         cell.border = BORDER
+        if j == 9:  # NET Horizon Deployable Capacity -- the corrected headline figure
+            cell.font = BOLD_FONT
     rr2 += 1
 
 ws_ic.sheet_view.showGridLines = False

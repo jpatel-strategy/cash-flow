@@ -301,9 +301,22 @@
         ["Terminal Remaining Headroom (FY2030)", fmtM(hz.terminal_remaining_headroom)],
         ["Ending Reserve Movement", fmtM(hz.ending_reserve_movement)],
         ["Terminal Forward Debt-Repayment Reserve (FY2031 proxy)", fmtM(hz.terminal_forward_debt_repayment_reserve)],
-        [{ text: "Total Horizon Capacity Accessible", className: "reclassified" }, { text: fmtM(hz.total_horizon_capacity_accessible), className: "reclassified" }],
+        [
+          { text: "Gross Horizon Funding, Before Reserve Adjustments (NOT accessible capacity)", className: "reclassified" },
+          { text: fmtM(hz.gross_horizon_funding_before_reserve_adjustments), className: "reclassified" },
+        ],
+        [
+          { text: "Net Horizon Deployable Capacity (corrected headline figure, replaces legacy gross total)", className: "reclassified-net" },
+          { text: fmtM(hz.net_horizon_deployable_capacity), className: "reclassified-net" },
+        ],
       ]
     );
+    horizonTable.dataset.caption =
+      "Gross Horizon Funding = Opening Excess Liquidity + Cumulative Self-Funded Generation + Cumulative Debt-Funded Capacity, " +
+      "computed BEFORE reserve deductions -- never publish it as accessible capacity. " +
+      "Net Horizon Deployable Capacity = Gross Horizon Funding − Ending Reserve Movement − Terminal Forward Debt-Repayment Reserve, " +
+      "which reconciles exactly to Cumulative Discretionary Deployment + Terminal Remaining Headroom -- this is the correct headline " +
+      "accessible-capacity figure. See docs/investment_capacity_correction_evidence.md for the proof.";
 
     const table = document.getElementById("table-capacity");
     table.dataset.caption = `Corrected (v2) capacity taxonomy detail — ${currentScenario} scenario (legacy/deprecated fields shown at bottom)`;

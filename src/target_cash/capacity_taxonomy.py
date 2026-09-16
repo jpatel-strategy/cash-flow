@@ -84,6 +84,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from target_cash import forecast as f
+from target_cash.forecast_persistence import FORECAST_MODEL_VERSION
 
 CAPACITY_TAXONOMY_VERSION = "v2"
 CAPACITY_TAXONOMY_INFORMATION_CUTOFF = f.FORECAST_INFORMATION_CUTOFF
@@ -310,6 +311,23 @@ class CapacityHorizonSummary:
     reconciling term on the right-hand side -- it represents cash held
     back for an obligation that occurs entirely outside the 5-year
     forecast, never double-counted against any in-horizon flow.
+
+    **Final independent-audit closeout correction**:
+    `gross_horizon_funding_before_reserve_adjustments` (formerly named
+    `total_horizon_capacity_accessible` -- the OLD name is preserved as
+    the underlying database column name for backward compatibility, but
+    is deprecated as a display label everywhere in this project) is
+    computed BEFORE `ending_reserve_movement` and
+    `terminal_forward_debt_repayment_reserve` are deducted. It is
+    therefore a GROSS, pre-reserve-adjustment figure -- never "net
+    accessible capacity." `net_horizon_deployable_capacity` is the
+    corrected, genuinely net figure:
+    `gross_horizon_funding_before_reserve_adjustments -
+    ending_reserve_movement - terminal_forward_debt_repayment_reserve`,
+    proven (in `check_net_horizon_capacity_reconciles` below) to equal
+    `cumulative_discretionary_deployment + terminal_remaining_headroom`
+    exactly -- the identity this project's headline capacity claim must
+    satisfy.
     """
     scenario: str
     cumulative_self_funded_generation: float
@@ -320,7 +338,8 @@ class CapacityHorizonSummary:
     ending_reserve_movement: float
     terminal_forward_debt_repayment_reserve: float
     terminal_forward_reserve_is_proxied: bool
-    total_horizon_capacity_accessible: float
+    gross_horizon_funding_before_reserve_adjustments: float
+    net_horizon_deployable_capacity: float
     information_cutoff: str = CAPACITY_TAXONOMY_INFORMATION_CUTOFF
 
 
@@ -379,6 +398,13 @@ def compute_capacity_horizon_summary(
     reserve_movement = buffer_last - buffer_first
     terminal = taxonomy_years[-1]
 
+    gross_before_reserves = (
+        opening_excess_liquidity_at_horizon_start(taxonomy_years)
+        + cumulative_self_funded_generation(taxonomy_years)
+        + cumulative_debt_funded_capacity(taxonomy_years)
+    )
+    net_deployable = gross_before_reserves - reserve_movement - terminal.forward_debt_repayment_reserve
+
     return CapacityHorizonSummary(
         scenario=scenario,
         cumulative_self_funded_generation=cumulative_self_funded_generation(taxonomy_years),
@@ -389,11 +415,8 @@ def compute_capacity_horizon_summary(
         ending_reserve_movement=reserve_movement,
         terminal_forward_debt_repayment_reserve=terminal.forward_debt_repayment_reserve,
         terminal_forward_reserve_is_proxied=terminal.forward_reserve_is_proxied,
-        total_horizon_capacity_accessible=(
-            opening_excess_liquidity_at_horizon_start(taxonomy_years)
-            + cumulative_self_funded_generation(taxonomy_years)
-            + cumulative_debt_funded_capacity(taxonomy_years)
-        ),
+        gross_horizon_funding_before_reserve_adjustments=gross_before_reserves,
+        net_horizon_deployable_capacity=net_deployable,
     )
 
 
@@ -485,9 +508,9 @@ CAPACITY_CHECK_METADATA: dict[str, dict] = {
     },
     "cumulative_excludes_repeated_balances": {
         "check_type": "arithmetic_invariant",
-        "formula": "total_horizon_capacity_accessible uses opening_excess_liquidity from FY2026 ONLY, "
-                    "never summed across years; proven to differ from the (deliberately wrong) naive "
-                    "sum of all 5 years' opening_excess_liquidity whenever that sum is nonzero",
+        "formula": "gross_horizon_funding_before_reserve_adjustments uses opening_excess_liquidity from "
+                    "FY2026 ONLY, never summed across years; proven to differ from the (deliberately wrong) "
+                    "naive sum of all 5 years' opening_excess_liquidity whenever that sum is nonzero",
     },
     "opening_excess_liquidity_excluded_from_generation": {
         "check_type": "arithmetic_invariant",
@@ -499,9 +522,17 @@ CAPACITY_CHECK_METADATA: dict[str, dict] = {
     },
     "capacity_accounted_for_reconciliation": {
         "check_type": "arithmetic_invariant",
-        "formula": "total_horizon_capacity_accessible == cumulative_discretionary_deployment "
+        "formula": "gross_horizon_funding_before_reserve_adjustments == cumulative_discretionary_deployment "
                     "+ terminal_remaining_headroom + ending_reserve_movement "
                     "+ terminal_forward_debt_repayment_reserve",
+    },
+    "net_horizon_capacity_reconciles": {
+        "check_type": "arithmetic_invariant",
+        "formula": "net_horizon_deployable_capacity == gross_horizon_funding_before_reserve_adjustments "
+                    "- ending_reserve_movement - terminal_forward_debt_repayment_reserve == "
+                    "cumulative_discretionary_deployment + terminal_remaining_headroom -- the genuinely NET "
+                    "accessible-capacity figure, never gross_horizon_funding_before_reserve_adjustments "
+                    "itself, which is computed before either reserve deduction",
     },
     "scenario_and_cutoff_lineage_complete": {
         "check_type": "structural_completeness_check",
@@ -684,7 +715,7 @@ def check_cumulative_excludes_repeated_balances(
     naive_wrong_sum = sum(ty.opening_excess_liquidity for ty in taxonomy_years) + \
         sum(ty.self_funded_capacity_generated for ty in taxonomy_years) + \
         sum(ty.debt_funded_incremental_capacity for ty in taxonomy_years)
-    correct = summary.total_horizon_capacity_accessible
+    correct = summary.gross_horizon_funding_before_reserve_adjustments
     extra_years_opening = sum(ty.opening_excess_liquidity for ty in taxonomy_years[1:])
     # If any non-FY2026 year has nonzero opening excess liquidity, the naive sum
     # (which would re-add it) must differ from the correct total by exactly that amount.
@@ -732,11 +763,40 @@ def check_capacity_accounted_for_reconciliation(
         + summary.ending_reserve_movement
         + summary.terminal_forward_debt_repayment_reserve
     )
-    ok = f._close(summary.total_horizon_capacity_accessible, rhs)
+    ok = f._close(summary.gross_horizon_funding_before_reserve_adjustments, rhs)
     return f.ValidationResult(
         "capacity_accounted_for_reconciliation", scenario, None, "PASS" if ok else "FAIL",
-        f"total_horizon_capacity_accessible={summary.total_horizon_capacity_accessible:.1f} vs "
+        f"gross_horizon_funding_before_reserve_adjustments={summary.gross_horizon_funding_before_reserve_adjustments:.1f} vs "
         f"deployment+headroom+reserve_movement+terminal_forward_reserve={rhs:.1f}",
+    )
+
+
+def check_net_horizon_capacity_reconciles(
+    scenario: str, summary: CapacityHorizonSummary
+) -> f.ValidationResult:
+    """Proves net_horizon_deployable_capacity -- the genuinely NET
+    accessible-capacity figure -- both (a) equals
+    gross_horizon_funding_before_reserve_adjustments minus the two reserve
+    terms, and (b) equals cumulative_discretionary_deployment +
+    terminal_remaining_headroom exactly. gross_horizon_funding_before_
+    reserve_adjustments (the field formerly published as
+    total_horizon_capacity_accessible) is NEVER an acceptable substitute
+    for this figure -- it is computed BEFORE either reserve deduction.
+    """
+    from_gross = (
+        summary.gross_horizon_funding_before_reserve_adjustments
+        - summary.ending_reserve_movement
+        - summary.terminal_forward_debt_repayment_reserve
+    )
+    from_deployment_and_headroom = summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom
+    ok = (
+        f._close(summary.net_horizon_deployable_capacity, from_gross)
+        and f._close(summary.net_horizon_deployable_capacity, from_deployment_and_headroom)
+    )
+    return f.ValidationResult(
+        "net_horizon_capacity_reconciles", scenario, None, "PASS" if ok else "FAIL",
+        f"net_horizon_deployable_capacity={summary.net_horizon_deployable_capacity:.1f}, "
+        f"gross_minus_reserves={from_gross:.1f}, deployment_plus_headroom={from_deployment_and_headroom:.1f}",
     )
 
 
@@ -768,6 +828,7 @@ def validate_capacity_taxonomy_all(
         results.append(check_opening_excess_liquidity_excluded_from_generation(scenario, taxonomy_years, summary))
         results.append(check_cumulative_deployment_includes_repurchases(scenario, taxonomy_years, summary))
         results.append(check_capacity_accounted_for_reconciliation(scenario, summary))
+        results.append(check_net_horizon_capacity_reconciles(scenario, summary))
     return results
 
 
@@ -881,9 +942,21 @@ _HORIZON_FIELD_SPECS: dict[str, tuple[str, list[str]]] = {
         "terminal_remaining_headroom; a fourth reconciling term, not a plug)",
         ["forward_debt_repayment_reserve"],
     ),
-    "total_horizon_capacity_accessible": (
-        "opening_excess_liquidity_at_horizon_start + cumulative_self_funded_generation + cumulative_debt_funded_capacity",
+    "gross_horizon_funding_before_reserve_adjustments": (
+        "opening_excess_liquidity_at_horizon_start + cumulative_self_funded_generation + "
+        "cumulative_debt_funded_capacity; a GROSS figure computed BEFORE ending_reserve_movement and "
+        "terminal_forward_debt_repayment_reserve are deducted -- never labeled 'net accessible capacity' "
+        "(see net_horizon_deployable_capacity for that). Persisted under the legacy column name "
+        "total_horizon_capacity_accessible for backward compatibility; the column NAME is unchanged, only "
+        "its display label is corrected.",
         [],
+    ),
+    "net_horizon_deployable_capacity": (
+        "gross_horizon_funding_before_reserve_adjustments - ending_reserve_movement - "
+        "terminal_forward_debt_repayment_reserve; proven equal to cumulative_discretionary_deployment + "
+        "terminal_remaining_headroom -- THIS is the genuinely net, accessible-capacity figure",
+        ["gross_horizon_funding_before_reserve_adjustments", "ending_reserve_movement",
+         "terminal_forward_debt_repayment_reserve"],
     ),
 }
 
@@ -891,15 +964,26 @@ _HORIZON_FIELD_SPECS: dict[str, tuple[str, list[str]]] = {
 def build_capacity_taxonomy_lineage(
     scenario: str, taxonomy_years: list[CapacityTaxonomyYear], version: str = CAPACITY_TAXONOMY_VERSION
 ) -> list[dict]:
-    """One lineage row per (field, fiscal_year) for all 14 per-year fields,
-    citing its formula and every same-year input it depends on -- the
-    capacity-taxonomy analogue of forecast.build_full_lineage()."""
+    """One lineage row per (field, fiscal_year) for every per-year field,
+    citing its formula and every input it depends on -- the
+    capacity-taxonomy analogue of forecast.build_full_lineage().
+
+    Final independent-audit closeout: `forward_debt_repayment_reserve`
+    is the one field whose true input is NOT same-year. For FY2026-FY2029
+    it depends on the NEXT fiscal year's `debt_proceeds`/`debt_repayments`
+    forecast facts (`dependency_timing='next_year'`, with explicit
+    `input_fiscal_year` and next-year fact-ID columns populated). For the
+    terminal FY2030 row, it is a documented proxy of FY2030's OWN
+    `net_mandatory_debt_service` (`dependency_timing='terminal_proxy'`) --
+    no actual FY2031 obligation is claimed anywhere in this row.
+    """
     rows = []
-    for ty in taxonomy_years:
+    for i, ty in enumerate(taxonomy_years):
         sequence = 0
+        is_terminal = i == len(taxonomy_years) - 1
         for field_name, (formula, fy_inputs, ty_inputs) in _PER_YEAR_FIELD_SPECS.items():
             sequence += 1
-            rows.append({
+            row = {
                 "capacity_lineage_id": capacity_lineage_id(scenario, field_name, ty.fiscal_year, sequence, version),
                 "scenario_id": scenario,
                 "fiscal_year": ty.fiscal_year,
@@ -909,7 +993,31 @@ def build_capacity_taxonomy_lineage(
                 "same_year_capacity_inputs": ",".join(ty_inputs) if ty_inputs else None,
                 "information_cutoff": ty.information_cutoff,
                 "version": version,
-            })
+                "dependency_timing": "same_year",
+                "input_fiscal_year": ty.fiscal_year,
+                "next_year_debt_proceeds_fact_id": None,
+                "next_year_debt_repayments_fact_id": None,
+                "proxy_note": None,
+            }
+            if field_name == "forward_debt_repayment_reserve":
+                if is_terminal:
+                    row["dependency_timing"] = "terminal_proxy"
+                    row["input_fiscal_year"] = ty.fiscal_year
+                    row["proxy_note"] = (
+                        f"PROXY: repeats FY{ty.fiscal_year}'s own net_mandatory_debt_service as the best "
+                        f"available estimate for FY{ty.fiscal_year + 1}, which is outside the forecast "
+                        "horizon. No actual FY{next} debt-service obligation is claimed or known."
+                        .format(next=ty.fiscal_year + 1)
+                    )
+                else:
+                    next_fy = ty.fiscal_year + 1
+                    row["dependency_timing"] = "next_year"
+                    row["input_fiscal_year"] = next_fy
+                    row["same_year_forecast_inputs"] = None
+                    row["same_year_capacity_inputs"] = None
+                    row["next_year_debt_proceeds_fact_id"] = f.forecast_fact_id(scenario, "debt_proceeds", next_fy, FORECAST_MODEL_VERSION)
+                    row["next_year_debt_repayments_fact_id"] = f.forecast_fact_id(scenario, "debt_repayments", next_fy, FORECAST_MODEL_VERSION)
+            rows.append(row)
     return rows
 
 
@@ -930,5 +1038,10 @@ def build_capacity_horizon_lineage(scenario: str, version: str = CAPACITY_TAXONO
             "same_year_capacity_inputs": ",".join(per_year_inputs) if per_year_inputs else None,
             "information_cutoff": CAPACITY_TAXONOMY_INFORMATION_CUTOFF,
             "version": version,
+            "dependency_timing": "same_year",
+            "input_fiscal_year": None,
+            "next_year_debt_proceeds_fact_id": None,
+            "next_year_debt_repayments_fact_id": None,
+            "proxy_note": None,
         })
     return rows

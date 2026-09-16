@@ -1,4 +1,4 @@
-capacity_horizon_result_id,scenario_id,cumulative_self_funded_generation,cumulative_debt_funded_capacity,opening_excess_liquidity_at_horizon_start,cumulative_discretionary_deployment,terminal_remaining_headroom,ending_reserve_movement,terminal_forward_debt_repayment_reserve,terminal_forward_reserve_is_proxied,total_horizon_capacity_accessible,version,information_cutoff
-caphrz_base_v2,base,6990.764300591656,0.0,2313.1659999999997,2796.3057202366626,6378.7135888706525,128.91099148433977,0.0,1,9303.930300591655,v2,2026-03-11
-caphrz_downside_v2,downside,2669.15850881128,1000.0,2423.185,0.0,6387.522306305421,-295.1787974941403,0.0,1,6092.34350881128,v2,2026-03-11
-caphrz_upside_v2,upside,6276.8037949255095,0.0,2250.298,5377.24208720903,2043.499582561859,406.3601251546206,700.0,1,8527.10179492551,v2,2026-03-11
+capacity_horizon_result_id,scenario_id,cumulative_self_funded_generation,cumulative_debt_funded_capacity,opening_excess_liquidity_at_horizon_start,cumulative_discretionary_deployment,terminal_remaining_headroom,ending_reserve_movement,terminal_forward_debt_repayment_reserve,terminal_forward_reserve_is_proxied,total_horizon_capacity_accessible,net_horizon_deployable_capacity,version,information_cutoff
+caphrz_base_v2,base,6990.764300591656,0.0,2313.1659999999997,2796.3057202366626,6378.7135888706525,128.91099148433977,0.0,1,9303.930300591655,9175.019309107316,v2,2026-03-11
+caphrz_downside_v2,downside,2669.15850881128,1000.0,2423.185,0.0,6387.522306305421,-295.1787974941403,0.0,1,6092.34350881128,6387.52230630542,v2,2026-03-11
+caphrz_upside_v2,upside,6276.8037949255095,0.0,2250.298,5377.24208720903,2043.499582561859,406.3601251546206,700.0,1,8527.10179492551,7420.741669770889,v2,2026-03-11

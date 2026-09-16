@@ -230,15 +230,36 @@ SUM ( fact_capacity_horizon[terminal_forward_debt_repayment_reserve] )
 -- forward reserve (a documented FY2031 proxy), held back from Terminal
 -- Remaining Headroom. See fact_capacity_horizon[terminal_forward_reserve_is_proxied].
 
-Total Horizon Capacity Accessible =
+Gross Horizon Funding, Before Reserve Adjustments =
 SUM ( fact_capacity_horizon[total_horizon_capacity_accessible] )
--- = Opening Excess Liquidity + Cumulative Self-Funded Generation +
--- Cumulative Debt-Funded Capacity. Reconciles EXACTLY to Cumulative
--- Discretionary Deployment + Terminal Remaining Headroom + Ending
--- Reserve Movement + Terminal Forward Debt-Repayment Reserve -- see
--- fact_capacity_horizon's own ending_reserve_movement and
--- terminal_forward_debt_repayment_reserve columns and
--- docs/investment_capacity_correction_evidence.md for the proof.
+-- Sourced from the legacy/deprecated-label column (still named
+-- total_horizon_capacity_accessible in SQL/CSV for backward
+-- compatibility) = Opening Excess Liquidity + Cumulative Self-Funded
+-- Generation + Cumulative Debt-Funded Capacity. This is a GROSS figure
+-- computed BEFORE Ending Reserve Movement and Terminal Forward
+-- Debt-Repayment Reserve are deducted -- under this legacy, pre-adjustment
+-- definition it is NOT net accessible/deployable capacity and must not be
+-- published as such. It reconciles EXACTLY to Cumulative Discretionary
+-- Deployment + Terminal Remaining Headroom + Ending Reserve Movement +
+-- Terminal Forward Debt-Repayment Reserve -- see fact_capacity_horizon's
+-- own ending_reserve_movement and terminal_forward_debt_repayment_reserve
+-- columns and docs/investment_capacity_correction_evidence.md for the
+-- proof. This DAX measure carries the corrected, non-misleading label
+-- (replacing the legacy/deprecated "Total Horizon Capacity Accessible"
+-- name) per the final independent-audit closeout.
+
+Net Horizon Deployable Capacity = -- (not the legacy/deprecated gross measure above)
+SUM ( fact_capacity_horizon[net_horizon_deployable_capacity] )
+-- This is the corrected,
+-- non-legacy figure: = Gross Horizon Funding, Before Reserve Adjustments
+-- - Ending Reserve Movement - Terminal Forward Debt-Repayment Reserve.
+-- This IS net accessible/deployable capacity (unlike the legacy/deprecated
+-- gross measure above) and is the correct headline figure -- use this
+-- measure, not the legacy/deprecated Gross Horizon Funding one, wherever
+-- "accessible capacity" is reported. Reconciles EXACTLY to Cumulative
+-- Discretionary Deployment + Terminal Remaining Headroom (a dual identity;
+-- see docs/investment_capacity_correction_evidence.md for the proof).
+-- Expected values: Base 9,175.0M; Upside 7,420.7M; Downside 6,387.5M.
 
 Net Debt (Forecast) =
 CALCULATE ( SUM ( fact_forecast[value] ), fact_forecast[metric] = "valuation_net_debt" )

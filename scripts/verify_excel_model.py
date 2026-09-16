@@ -238,6 +238,49 @@ for required_label in ["Opening Excess Liquidity", "Self-Funded Capacity Generat
         f"Executive Summary: corrected headline label present: {required_label!r}",
     )
 
+# --- Final independent-audit closeout: NET vs. GROSS horizon capacity ------
+capacity_summaries_all = ct.build_capacity_horizon_summaries(
+    forecasts, ct.build_capacity_taxonomy_all_scenarios(forecasts)
+)
+
+
+def find_cell(ws, value):
+    for row in ws.iter_rows():
+        for c in row:
+            if c.value == value:
+                return c.row, c.column
+    raise KeyError(value)
+
+
+gross_header_row, gross_col = find_cell(
+    ws_ic, "Gross Horizon Funding, Before Reserve Adjustments (C+A+B) -- NOT net accessible capacity"
+)
+net_header_row, net_col = find_cell(ws_ic, "NET Horizon Deployable Capacity (Gross - Reserve Mvmt - Terminal Forward Reserve)")
+scenario_col = 1
+check(gross_header_row == net_header_row, "Investment Capacity: gross and net horizon-capacity headers share one row")
+
+for offset, scenario in enumerate(f.SCENARIOS, start=1):
+    row_num = gross_header_row + offset
+    excel_scenario = ws_ic.cell(row=row_num, column=scenario_col).value
+    excel_gross = ws_ic.cell(row=row_num, column=gross_col).value
+    excel_net = ws_ic.cell(row=row_num, column=net_col).value
+    summary = capacity_summaries_all[scenario]
+    values_match = (
+        str(excel_scenario).lower() == scenario
+        and abs(excel_gross - summary.gross_horizon_funding_before_reserve_adjustments) < 0.1
+        and abs(excel_net - summary.net_horizon_deployable_capacity) < 0.1
+    )
+    has_reserves = bool(summary.ending_reserve_movement) or bool(summary.terminal_forward_debt_repayment_reserve)
+    net_differs_from_gross = abs(excel_net - excel_gross) > 0.1
+    check(
+        values_match and (net_differs_from_gross if has_reserves else True),
+        f"{scenario}: Excel gross/net horizon-capacity figures match Python exactly, and net != gross whenever reserves are nonzero",
+    )
+    check(
+        abs(excel_net - (summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom)) < 0.1,
+        f"{scenario}: Excel NET horizon deployable capacity == cumulative deployment + terminal headroom",
+    )
+
 # --- 5. Scenario selector genuinely recalculates (Upside/Downside) --------
 import tempfile
 

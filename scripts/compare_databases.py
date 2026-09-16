@@ -299,13 +299,19 @@ def export_capacity_taxonomy_results(conn):
 
 
 def export_capacity_horizon_results(conn):
+    # total_horizon_capacity_accessible is the legacy column name (kept for
+    # backward compatibility; its display label everywhere else in this
+    # project is "Gross Horizon Funding, Before Reserve Adjustments" --
+    # never "net accessible capacity"). net_horizon_deployable_capacity is
+    # the genuinely net figure, added by the final independent-audit
+    # closeout correction.
     rows = conn.execute(
         """
         SELECT capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation,
                cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start,
                cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement,
                terminal_forward_debt_repayment_reserve, terminal_forward_reserve_is_proxied,
-               total_horizon_capacity_accessible, version, information_cutoff
+               total_horizon_capacity_accessible, net_horizon_deployable_capacity, version, information_cutoff
         FROM capacity_horizon_results WHERE version = ? ORDER BY scenario_id
         """,
         (_CURRENT_CAPACITY_VERSION,),
@@ -314,10 +320,17 @@ def export_capacity_horizon_results(conn):
 
 
 def export_capacity_taxonomy_lineage(conn):
+    # dependency_timing/input_fiscal_year/next_year_*_fact_id/proxy_note added
+    # by the final independent-audit closeout correction: forward_debt_
+    # repayment_reserve's true input for FY2026-FY2029 is the NEXT fiscal
+    # year's debt_proceeds/debt_repayments, never a same-year dependency; the
+    # terminal year's reserve is an explicitly documented proxy.
     rows = conn.execute(
         """
         SELECT capacity_lineage_id, scenario_id, fiscal_year, target_field, formula,
-               same_year_forecast_inputs, same_year_capacity_inputs, information_cutoff, version
+               same_year_forecast_inputs, same_year_capacity_inputs, information_cutoff, version,
+               dependency_timing, input_fiscal_year, next_year_debt_proceeds_fact_id,
+               next_year_debt_repayments_fact_id, proxy_note
         FROM capacity_taxonomy_lineage WHERE version = ? ORDER BY scenario_id, target_field, fiscal_year
         """,
         (_CURRENT_CAPACITY_VERSION,),

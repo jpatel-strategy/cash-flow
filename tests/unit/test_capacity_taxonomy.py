@@ -93,7 +93,7 @@ def test_opening_excess_liquidity_is_a_stock_used_exactly_once(taxonomies, summa
             sum(ty.debt_funded_incremental_capacity for ty in taxonomy_years)
         extra_opening = sum(ty.opening_excess_liquidity for ty in taxonomy_years[1:])
         if extra_opening > 0:
-            assert not f._close(naive_wrong, summary.total_horizon_capacity_accessible), (
+            assert not f._close(naive_wrong, summary.gross_horizon_funding_before_reserve_adjustments), (
                 f"{scenario}: naive multi-year sum of opening_excess_liquidity must NOT "
                 "match the correct horizon total when later years carry nonzero opening liquidity"
             )
@@ -344,7 +344,7 @@ def test_capacity_accounted_for_reconciliation_without_summing_annual_stocks(tax
         summary = summaries[scenario]
         naive_sum_of_headroom_balances = sum(ty.remaining_deployable_headroom for ty in taxonomy_years)
         if len(taxonomy_years) > 1 and naive_sum_of_headroom_balances != summary.terminal_remaining_headroom:
-            assert not f._close(naive_sum_of_headroom_balances, summary.total_horizon_capacity_accessible), (
+            assert not f._close(naive_sum_of_headroom_balances, summary.gross_horizon_funding_before_reserve_adjustments), (
                 f"{scenario}: summing annual headroom balances must NOT reproduce the correct horizon total"
             )
 
@@ -565,3 +565,108 @@ def test_total_gross_funding_capacity_unchanged_by_v2_decomposition(forecasts):
             ty = ct.compute_capacity_taxonomy_year(y, next_y)
             expected = ty.opening_excess_liquidity + ty.post_dividend_internal_generation - ty.net_mandatory_debt_service + ty.debt_funded_incremental_capacity
             assert f._close(ty.total_gross_funding_capacity, expected)
+
+
+# --- Final independent-audit closeout: net vs. gross horizon capacity ------
+
+def test_gross_horizon_funding_is_not_net_accessible_capacity(summaries):
+    """gross_horizon_funding_before_reserve_adjustments (the field formerly
+    published as total_horizon_capacity_accessible) is computed BEFORE
+    ending_reserve_movement and terminal_forward_debt_repayment_reserve are
+    deducted -- it must never be published or treated as 'net accessible
+    capacity.' net_horizon_deployable_capacity is the corrected figure."""
+    for scenario, summary in summaries.items():
+        gross = summary.gross_horizon_funding_before_reserve_adjustments
+        net = summary.net_horizon_deployable_capacity
+        reserves = summary.ending_reserve_movement + summary.terminal_forward_debt_repayment_reserve
+        if reserves != 0:
+            assert not f._close(gross, net), (
+                f"{scenario}: gross horizon funding must differ from net deployable capacity "
+                "whenever the reserve terms are nonzero"
+            )
+        assert f._close(net, gross - reserves)
+
+
+def test_net_horizon_deployable_capacity_equals_deployment_plus_terminal_headroom(summaries):
+    """The identity this correction requires: net_horizon_deployable_capacity
+    == cumulative_discretionary_deployment + terminal_remaining_headroom,
+    exactly -- proven both algebraically (via gross - reserves) and via this
+    independent right-hand-side reconstruction."""
+    for scenario, summary in summaries.items():
+        result = ct.check_net_horizon_capacity_reconciles(scenario, summary)
+        assert result.status == "PASS", result
+        expected = summary.cumulative_discretionary_deployment + summary.terminal_remaining_headroom
+        assert f._close(summary.net_horizon_deployable_capacity, expected)
+
+
+def test_net_horizon_deployable_capacity_expected_values(summaries):
+    """Exact expected values from the final independent-audit closeout
+    authorization."""
+    expected = {"base": 9175.0, "upside": 7420.7, "downside": 6387.5}
+    for scenario, value in expected.items():
+        assert summaries[scenario].net_horizon_deployable_capacity == pytest.approx(value, abs=0.5)
+
+
+def test_net_horizon_capacity_reconciles_catches_corruption(summaries):
+    summary = summaries["base"]
+    corrupted = dataclasses.replace(summary, net_horizon_deployable_capacity=summary.net_horizon_deployable_capacity + 500.0)
+    result = ct.check_net_horizon_capacity_reconciles("base", corrupted)
+    assert result.status == "FAIL"
+
+
+# --- Final independent-audit closeout: cross-year lineage for the forward --
+# --- debt-repayment reserve, never recorded as a same-year dependency -----
+
+def test_forward_reserve_lineage_records_next_year_dependency_for_non_terminal_years(taxonomies):
+    for scenario, taxonomy_years in taxonomies.items():
+        lineage = ct.build_capacity_taxonomy_lineage(scenario, taxonomy_years)
+        fdr_rows = {r["fiscal_year"]: r for r in lineage if r["target_field"] == "forward_debt_repayment_reserve"}
+        for ty in taxonomy_years[:-1]:
+            row = fdr_rows[ty.fiscal_year]
+            assert row["dependency_timing"] == "next_year"
+            assert row["input_fiscal_year"] == ty.fiscal_year + 1
+            assert row["next_year_debt_proceeds_fact_id"] == f.forecast_fact_id(scenario, "debt_proceeds", ty.fiscal_year + 1, ct.FORECAST_MODEL_VERSION)
+            assert row["next_year_debt_repayments_fact_id"] == f.forecast_fact_id(scenario, "debt_repayments", ty.fiscal_year + 1, ct.FORECAST_MODEL_VERSION)
+            assert row["proxy_note"] is None
+            # Never recorded as a same-year dependency.
+            assert row["same_year_forecast_inputs"] is None
+            assert row["same_year_capacity_inputs"] is None
+
+
+def test_forward_reserve_lineage_records_terminal_proxy_for_terminal_year(taxonomies):
+    for scenario, taxonomy_years in taxonomies.items():
+        lineage = ct.build_capacity_taxonomy_lineage(scenario, taxonomy_years)
+        terminal_fy = taxonomy_years[-1].fiscal_year
+        row = next(r for r in lineage if r["target_field"] == "forward_debt_repayment_reserve" and r["fiscal_year"] == terminal_fy)
+        assert row["dependency_timing"] == "terminal_proxy"
+        assert row["input_fiscal_year"] == terminal_fy
+        assert row["next_year_debt_proceeds_fact_id"] is None
+        assert row["next_year_debt_repayments_fact_id"] is None
+        assert row["proxy_note"] is not None
+        assert "net_mandatory_debt_service" in row["proxy_note"] or "PROXY" in row["proxy_note"]
+        assert str(terminal_fy + 1) in row["proxy_note"], "must name the out-of-horizon year the proxy stands in for"
+        assert "no actual" in row["proxy_note"].lower() or "not claimed" in row["proxy_note"].lower() or "not known" in row["proxy_note"].lower()
+
+
+def test_all_other_per_year_fields_remain_same_year_dependencies(taxonomies):
+    """Only forward_debt_repayment_reserve has a cross-year dependency --
+    every other per-year field's lineage row must still be same_year."""
+    for scenario, taxonomy_years in taxonomies.items():
+        lineage = ct.build_capacity_taxonomy_lineage(scenario, taxonomy_years)
+        for row in lineage:
+            if row["target_field"] != "forward_debt_repayment_reserve":
+                assert row["dependency_timing"] == "same_year"
+                assert row["input_fiscal_year"] == row["fiscal_year"]
+                assert row["next_year_debt_proceeds_fact_id"] is None
+                assert row["next_year_debt_repayments_fact_id"] is None
+                assert row["proxy_note"] is None
+
+
+def test_horizon_lineage_rows_carry_default_dependency_metadata():
+    lineage = ct.build_capacity_horizon_lineage("base")
+    for row in lineage:
+        assert row["dependency_timing"] == "same_year"
+        assert row["input_fiscal_year"] is None
+        assert row["next_year_debt_proceeds_fact_id"] is None
+        assert row["next_year_debt_repayments_fact_id"] is None
+        assert row["proxy_note"] is None

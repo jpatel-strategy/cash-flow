@@ -67,30 +67,45 @@ separate column specifically so a report cannot conflate the two.
 
 ## Cumulative capacity reconciliation, FY2026-FY2030 (Milestone 9 v2 finance-semantics correction)
 
-| Scenario | Cum. Self-Funded | Cum. Debt-Funded | Opening Excess Liquidity | Cum. Discretionary Deployment | Terminal Headroom | Ending Reserve Movement | Terminal Forward Reserve | Total Horizon Capacity |
-|---|---|---|---|---|---|---|---|---|
-| Base | $6,990.8M | $0.0M | $2,313.2M | $2,796.3M | $6,378.7M | $128.9M | $0.0M | $9,303.9M |
-| Upside | $6,276.8M | $0.0M | $2,250.3M | $5,377.2M | $2,043.5M | $406.4M | $700.0M | $8,527.1M |
-| Downside | $2,669.2M | $1,000.0M | $2,423.2M | $0.0M | $6,387.5M | $(295.2)M | $0.0M | $6,092.3M |
+| Scenario | Cum. Self-Funded | Cum. Debt-Funded | Opening Excess Liquidity | Cum. Discretionary Deployment | Terminal Headroom | Ending Reserve Movement | Terminal Forward Reserve | Gross Horizon Funding (Before Reserves) | **Net Horizon Deployable Capacity** |
+|---|---|---|---|---|---|---|---|---|---|
+| Base | $6,990.8M | $0.0M | $2,313.2M | $2,796.3M | $6,378.7M | $128.9M | $0.0M | $9,303.9M | **$9,175.0M** |
+| Upside | $6,276.8M | $0.0M | $2,250.3M | $5,377.2M | $2,043.5M | $406.4M | $700.0M | $8,527.1M | **$7,420.7M** |
+| Downside | $2,669.2M | $1,000.0M | $2,423.2M | $0.0M | $6,387.5M | $(295.2)M | $0.0M | $6,092.3M | **$6,387.5M** |
 
-For every scenario: **Total Horizon Capacity = Cumulative Discretionary
-Deployment + Terminal Remaining Headroom + Ending Reserve Movement +
-Terminal Forward Debt-Repayment Reserve**, exactly (to within $0.1M
-rounding) — proven in `docs/investment_capacity_correction_evidence.md`.
-`Total Horizon Capacity` itself is **unchanged** from the prior (v1)
-correction round for all 3 scenarios — the v2 correction only changes
-how it decomposes into self-funded vs. debt-funded generation (netting
+**Final independent-audit closeout correction (this round):** the prior
+round's `Total Horizon Capacity` column (= Opening Excess Liquidity +
+Cumulative Self-Funded + Cumulative Debt-Funded, i.e. computed BEFORE any
+reserve deduction) is relabeled here as **Gross Horizon Funding, Before
+Reserve Adjustments** — it was never net accessible capacity and must not
+be published as such. For every scenario: **Gross Horizon Funding =
+Cumulative Discretionary Deployment + Terminal Remaining Headroom +
+Ending Reserve Movement + Terminal Forward Debt-Repayment Reserve**,
+exactly (to within $0.1M rounding). The new, corrected headline figure is
+**Net Horizon Deployable Capacity = Gross Horizon Funding − Ending
+Reserve Movement − Terminal Forward Debt-Repayment Reserve**, which
+reconciles EXACTLY to **Cumulative Discretionary Deployment + Terminal
+Remaining Headroom** (a dual identity) — both proven in
+`docs/investment_capacity_correction_evidence.md`. **Do not publish
+$9,303.9M / $8,527.1M / $6,092.3M as "accessible capacity" — those are
+gross figures before reserve adjustments; use $9,175.0M / $7,420.7M /
+$6,387.5M (Net Horizon Deployable Capacity) instead.**
+
+The gross/net split is unchanged from the prior (v1) correction round in
+its underlying decomposition — the v2 correction only changes how gross
+funding decomposes into self-funded vs. debt-funded generation (netting
 out simultaneous issuance/repayment materially raises Cumulative
 Self-Funded and lowers Cumulative Debt-Funded, since most of the gross
 debt activity in this model is refinancing, not net new borrowing), and
-adds the new Terminal Forward Reserve reconciling term. Under this
-corrected, more complete measure, Upside trails Base by roughly 8%
-($8,527.1M vs. $9,303.9M) rather than the ~48% gap the legacy,
-deprecated `cumulative_deployable_capacity` measure would have implied
-— because the legacy measure never counted capital Upside had already
-deployed as capacity the plan generated. **Never sum per-year
+adds the Terminal Forward Reserve reconciling term plus this round's
+gross/net split. Under the corrected NET measure, Upside trails Base by
+roughly 19% ($7,420.7M vs. $9,175.0M) — Downside's NET figure equals its
+Terminal Headroom exactly, since Downside has no Ending Reserve Movement
+offset and no Terminal Forward Reserve. **Never sum per-year
 `remaining_deployable_headroom` values across FY2026-FY2030** — use
-`fact_capacity_horizon`'s own cumulative columns instead.
+`fact_capacity_horizon`'s own cumulative columns instead, and always use
+`net_horizon_deployable_capacity`, never the gross column, when reporting
+"accessible capacity".
 
 ## Row counts (must match `data/*.csv` exactly)
 
@@ -117,7 +132,7 @@ deployed as capacity the plan generated. **Never sum per-year
 
 - Forecast validation checks: **229 / 229 PASS** (0 FAIL, 0 WARNING).
 - Valuation validation checks: **28 / 28 PASS** (0 FAIL, 0 WARNING).
-- Capacity taxonomy validation checks (Milestone 9, v2 finance-semantics correction): **210 / 210 PASS** (0 FAIL, 0 WARNING) — 13 per-scenario-year checks × 15 scenario-years + 1 per-scenario forward-reserve-documentation check × 3 scenarios + 4 per-scenario cumulative checks × 3 scenarios.
+- Capacity taxonomy validation checks (Milestone 9, v2 finance-semantics correction, final independent-audit closeout): **213 / 213 PASS** (0 FAIL, 0 WARNING) — 13 per-scenario-year checks × 15 scenario-years + 1 per-scenario forward-reserve-documentation check × 3 scenarios + 5 per-scenario cumulative/horizon checks × 3 scenarios (the fifth being the new `net_horizon_capacity_reconciles` check added by the gross/net horizon-capacity split).
 
 If the built report's `Validation Status (Combined Label)` measure ever
 reads anything other than "All checks PASS" against this same database,

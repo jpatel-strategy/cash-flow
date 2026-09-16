@@ -1379,7 +1379,8 @@
         "ending_reserve_movement": 128.91099148433977,
         "terminal_forward_debt_repayment_reserve": 0.0,
         "terminal_forward_reserve_is_proxied": true,
-        "total_horizon_capacity_accessible": 9303.930300591655,
+        "gross_horizon_funding_before_reserve_adjustments": 9303.930300591655,
+        "net_horizon_deployable_capacity": 9175.019309107316,
         "information_cutoff": "2026-03-11"
       }
     },
@@ -2357,7 +2358,8 @@
         "ending_reserve_movement": 406.3601251546206,
         "terminal_forward_debt_repayment_reserve": 700.0,
         "terminal_forward_reserve_is_proxied": true,
-        "total_horizon_capacity_accessible": 8527.10179492551,
+        "gross_horizon_funding_before_reserve_adjustments": 8527.10179492551,
+        "net_horizon_deployable_capacity": 7420.741669770889,
         "information_cutoff": "2026-03-11"
       }
     },
@@ -3335,7 +3337,8 @@
         "ending_reserve_movement": -295.1787974941403,
         "terminal_forward_debt_repayment_reserve": 0.0,
         "terminal_forward_reserve_is_proxied": true,
-        "total_horizon_capacity_accessible": 6092.34350881128,
+        "gross_horizon_funding_before_reserve_adjustments": 6092.34350881128,
+        "net_horizon_deployable_capacity": 6387.52230630542,
         "information_cutoff": "2026-03-11"
       }
     }
@@ -3961,8 +3964,8 @@
       "WARNING": 0
     },
     "capacity_taxonomy": {
-      "total": 210,
-      "PASS": 210,
+      "total": 213,
+      "PASS": 213,
       "FAIL": 0,
       "WARNING": 0
     }

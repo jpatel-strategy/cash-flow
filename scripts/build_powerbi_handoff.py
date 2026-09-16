@@ -190,12 +190,18 @@ fact_capacity_taxonomy = q(
 )
 fact_capacity_taxonomy.to_csv(DATA_DIR / "fact_capacity_taxonomy.csv", index=False)
 
+# Final independent-audit closeout: total_horizon_capacity_accessible (legacy
+# column name, kept for backward compatibility) is a GROSS figure computed
+# BEFORE ending_reserve_movement/terminal_forward_debt_repayment_reserve are
+# deducted -- never "net accessible capacity." net_horizon_deployable_capacity
+# is the corrected, genuinely net figure and is the one DAX/pages label as
+# the headline cumulative KPI.
 fact_capacity_horizon = q(
     "SELECT capacity_horizon_result_id, scenario_id, cumulative_self_funded_generation, "
     "cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start, "
     "cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement, "
     "terminal_forward_debt_repayment_reserve, terminal_forward_reserve_is_proxied, "
-    "total_horizon_capacity_accessible, version, information_cutoff "
+    "total_horizon_capacity_accessible, net_horizon_deployable_capacity, version, information_cutoff "
     "FROM capacity_horizon_results WHERE version = ? ORDER BY scenario_id",
     (ct.CAPACITY_TAXONOMY_VERSION,),
 )

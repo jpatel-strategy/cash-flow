@@ -226,27 +226,59 @@ for _, row in fact_captax.iterrows():
     )
 
 for _, row in fact_caphrz.iterrows():
-    rhs = (row["cumulative_discretionary_deployment"] + row["terminal_remaining_headroom"]
-           + row["ending_reserve_movement"] + row["terminal_forward_debt_repayment_reserve"])
+    # total_horizon_capacity_accessible (legacy column name, kept for backward
+    # compatibility) is a GROSS figure -- reconciles to deployment + terminal
+    # headroom + ending reserve movement + terminal forward reserve. It must
+    # NEVER be read as "net accessible capacity" -- see net_horizon_deployable_
+    # capacity below for that.
+    gross_rhs = (row["cumulative_discretionary_deployment"] + row["terminal_remaining_headroom"]
+                 + row["ending_reserve_movement"] + row["terminal_forward_debt_repayment_reserve"])
     check(
-        abs(row["total_horizon_capacity_accessible"] - rhs) < 0.5,
-        f"{row['scenario_id']}: total horizon capacity accessible reconciles exactly to "
-        "deployment + terminal headroom + ending reserve movement + terminal forward reserve",
+        abs(row["total_horizon_capacity_accessible"] - gross_rhs) < 0.5,
+        f"{row['scenario_id']}: gross horizon funding (legacy column total_horizon_capacity_accessible) "
+        "reconciles exactly to deployment + terminal headroom + ending reserve movement + terminal forward reserve",
+    )
+    # net_horizon_deployable_capacity is the CORRECTED, genuinely net figure --
+    # proven equal to BOTH (a) gross minus the two reserve terms, and (b) the
+    # simpler deployment + terminal headroom identity.
+    net_from_gross = row["total_horizon_capacity_accessible"] - row["ending_reserve_movement"] - row["terminal_forward_debt_repayment_reserve"]
+    net_from_deployment_headroom = row["cumulative_discretionary_deployment"] + row["terminal_remaining_headroom"]
+    check(
+        abs(row["net_horizon_deployable_capacity"] - net_from_gross) < 0.5
+        and abs(row["net_horizon_deployable_capacity"] - net_from_deployment_headroom) < 0.5,
+        f"{row['scenario_id']}: net_horizon_deployable_capacity reconciles exactly to both "
+        "(gross - reserves) and (cumulative deployment + terminal headroom)",
+    )
+    check(
+        row["net_horizon_deployable_capacity"] != row["total_horizon_capacity_accessible"]
+        or (row["ending_reserve_movement"] == 0 and row["terminal_forward_debt_repayment_reserve"] == 0),
+        f"{row['scenario_id']}: net horizon deployable capacity differs from gross whenever reserves are nonzero",
     )
 
-# Legacy vs. corrected: Upside's corrected total horizon capacity must trail
+# Expected net values from the final independent-audit closeout authorization.
+EXPECTED_NET_HORIZON = {"base": 9175.0, "upside": 7420.7, "downside": 6387.5}
+for scenario, expected in EXPECTED_NET_HORIZON.items():
+    actual = fact_caphrz[fact_caphrz["scenario_id"] == scenario]["net_horizon_deployable_capacity"].iloc[0]
+    check(
+        abs(actual - expected) < 0.5,
+        f"{scenario}: net_horizon_deployable_capacity == ${expected:,.1f}M (final independent-audit closeout value)",
+    )
+
+# Legacy vs. corrected: Upside's corrected NET horizon capacity must trail
 # Base's by a MUCH smaller margin than the deprecated cumulative measure
 # implied -- proving the correction materially changes the comparative picture,
-# not just relabels it.
+# not just relabels it. Uses net_horizon_deployable_capacity (the genuinely
+# net, accessible-capacity figure) -- never the gross column, which is not an
+# "accessible capacity" claim.
 base_legacy = fact_ic[fact_ic["scenario_id"] == "base"]["cumulative_deployable_capacity"].dropna().iloc[-1]
 upside_legacy = fact_ic[fact_ic["scenario_id"] == "upside"]["cumulative_deployable_capacity"].dropna().iloc[-1]
 legacy_gap_pct = (base_legacy - upside_legacy) / base_legacy
-base_corrected = fact_caphrz[fact_caphrz["scenario_id"] == "base"]["total_horizon_capacity_accessible"].iloc[0]
-upside_corrected = fact_caphrz[fact_caphrz["scenario_id"] == "upside"]["total_horizon_capacity_accessible"].iloc[0]
+base_corrected = fact_caphrz[fact_caphrz["scenario_id"] == "base"]["net_horizon_deployable_capacity"].iloc[0]
+upside_corrected = fact_caphrz[fact_caphrz["scenario_id"] == "upside"]["net_horizon_deployable_capacity"].iloc[0]
 corrected_gap_pct = (base_corrected - upside_corrected) / base_corrected
 check(
     corrected_gap_pct < legacy_gap_pct - 0.1,
-    f"Corrected Base-vs-Upside horizon-capacity gap ({corrected_gap_pct:.1%}) is materially smaller than "
+    f"Corrected (NET) Base-vs-Upside horizon-capacity gap ({corrected_gap_pct:.1%}) is materially smaller than "
     f"the deprecated legacy gap ({legacy_gap_pct:.1%})",
 )
 

@@ -79,7 +79,7 @@ from SEC filings, for a portfolio/case-study purpose.
 
 ## Validation coverage and its honest limits
 
-467 automated checks currently pass (229 forecast + 28 valuation + 210
+470 automated checks currently pass (229 forecast + 28 valuation + 213
 capacity taxonomy). Of these, the large majority are **arithmetic
 invariants** (the model's own formulas are internally consistent) or
 **structural completeness checks** (every required field/relationship

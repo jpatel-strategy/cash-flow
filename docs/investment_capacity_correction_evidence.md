@@ -5,21 +5,33 @@ This document records the corrective round that followed
 not repeat that audit's discovery narrative; it documents what was
 built, proved, persisted, and verified in response to it.
 
-**Two correction rounds are documented here.** Part I (sections 1–10)
+**Three correction rounds are documented here.** Part I (sections 1–10)
 documents the original correction (`version='v1'` in the database):
 introducing the self-funded/debt-funded/deployment/headroom taxonomy and
 fixing the legacy field's double-subtraction of mandatory debt
 repayments. Part II (section 11 onward) documents a **second,
-independent finance-semantics correction** (`version='v2'`, the current,
-authoritative version) that fixed two further defects found in `v1`
-itself: gross debt issuance was still mislabeled as capacity even when
-simultaneously repaid, and opening excess liquidity (a stock) was still
-blended into a figure read as "capacity generated." **All FY2030 values,
-cumulative reconciliations, and bridges in Part I reflect `v1` only and
-are superseded by Part II's `v2` values** — Part I is retained for the
-historical record of the first correction's own root-cause proof, which
-remains valid and unaffected by the `v2` fix. Both `v1` and `v2` rows are
-preserved permanently in the database; nothing is overwritten.
+independent finance-semantics correction** (`version='v2'` in the
+database) that fixed two further defects found in `v1` itself: gross debt
+issuance was still mislabeled as capacity even when simultaneously
+repaid, and opening excess liquidity (a stock) was still blended into a
+figure read as "capacity generated." Part III (section 21 onward)
+documents a **final independent-audit closeout** — three corrections
+made entirely within `v2`'s own schema and data (no version bump was
+needed): a test-suite hygiene fix so the full suite passes in a clean
+public clone with no database present, an explicit non-same-year lineage
+model for `forward_debt_repayment_reserve`'s true next-fiscal-year
+dependency, and a gross/net split of the horizon-capacity figure so the
+published "accessible capacity" number is net of reserve deductions, not
+gross. **All FY2030 values, cumulative reconciliations, and bridges in
+Part I reflect `v1` only and are superseded by Part II's `v2` values;
+Part II's horizon-capacity figure is itself relabeled GROSS and
+superseded by Part III's NET figure for any "accessible capacity"
+reporting.** Part I and Part II are retained for the historical record of
+each correction's own root-cause proof, both of which remain valid and
+unaffected by later rounds. `v1` and `v2` rows are both preserved
+permanently in the database; nothing is overwritten, and Part III adds no
+new version because it is corrective/additive within `v2` itself
+(new columns, never a change to a previously-persisted value's meaning).
 
 **Scope discipline** (restated from the authorizing instruction): no
 historical fact, historical mapping, historical lineage, forecast
@@ -777,3 +789,300 @@ corrected metrics, third-correction narrative), `03_finance_methodology_summary.
 - **This correction, like Part I, does not re-derive or re-validate the
   underlying forecast assumptions or `ForecastYear`'s own fields** — it
   remains a purely additive, presentation/derivation-layer fix.
+
+# Part III: Final Independent-Audit Closeout
+
+**The `v2` per-year capacity formulas themselves are unchanged and were
+explicitly approved as-is in the authorizing instruction for this round.**
+This closeout corrects three defects found in how `v2` is tested,
+how one of its lineage relationships is recorded, and how one of its
+horizon-summary figures is labeled and computed — never the per-year
+formulas.
+
+## 21. What was wrong
+
+An independent audit of the `v2` correction found three defects, none of
+which touch the per-year capacity arithmetic:
+
+1. **A test opened the gitignored production database.**
+   `test_annual_fact_id_matches_real_database_convention` in
+   `tests/unit/test_forecast.py` connected directly to
+   `data/curated/target_cash.db` to check an ID-format convention. That
+   database is gitignored and does not exist in a fresh clone, so the
+   full test suite could not pass in one — a real reproducibility gap,
+   not a cosmetic one.
+2. **A same-year lineage record for a cross-year dependency.**
+   `forward_debt_repayment_reserve` for FY2026–FY2029 is, by its own
+   formula, next fiscal year's `net_mandatory_debt_service` — it depends
+   on **next year's** `debt_proceeds` and `debt_repayments`, never the
+   current year's. The lineage rows built by
+   `build_capacity_taxonomy_lineage` nonetheless recorded this field with
+   the same same-year `fiscal_year` and same-year forecast-input citations
+   as every other field, with no marker distinguishing its true
+   next-year dependency, and no distinct treatment for FY2030's terminal
+   proxy (which cites its **own** year's service, not a real FY2031
+   obligation).
+3. **The published horizon-capacity figure was gross, not net, of
+   reserves.** `total_horizon_capacity_accessible` was computed as
+   Opening Excess Liquidity + Cumulative Self-Funded Generation +
+   Cumulative Debt-Funded Capacity — entirely **before** `Ending Reserve
+   Movement` and `Terminal Forward Debt-Repayment Reserve` are deducted.
+   Labeling this "accessible capacity" overstates what is actually
+   deployable by the exact amount of those two reserve terms
+   ($128.9M/$406.4M/$-295.2M and $0.0M/$700.0M/$0.0M respectively for
+   Base/Upside/Downside) — a real, not cosmetic, overstatement of
+   deployable capacity.
+
+## 22. Item 1 — clean-clone test fix
+
+`test_annual_fact_id_matches_real_database_convention` was rewritten as a
+fully deterministic unit test with zero I/O:
+
+```python
+def test_annual_fact_id_matches_real_database_convention():
+    assert f.annual_fact_id_for(
+        "revenue", 2025, "latest_restated"
+    ) == "annual:revenue:2025:latest_restated"
+```
+
+This still enforces the real convention (`target_cash.annual_persistence`
+builds `annual_facts.annual_fact_id` with the identical
+`f"annual:{metric}:{fiscal_year}:{analytical_view}"` format), it just no
+longer needs the database to prove it. A repo-wide search
+(`grep -rln "data/curated/target_cash.db\"" tests/`) confirmed this was
+the *only* test opening the gitignored database directly — no other
+test needed a corresponding fix. §28 below records the actual fresh
+public-clone pytest run proving the fix.
+
+## 23. Item 2 — cross-year lineage correction
+
+`build_capacity_taxonomy_lineage` now special-cases
+`forward_debt_repayment_reserve`. Five new additive columns were added to
+`capacity_taxonomy_lineage` (migrations `0037`–`0041`, each a plain
+`ColumnMigration` with a safe default — no column ever renamed or
+dropped): `dependency_timing`, `input_fiscal_year`,
+`next_year_debt_proceeds_fact_id`, `next_year_debt_repayments_fact_id`,
+`proxy_note`.
+
+- **FY2026–FY2029** (non-terminal years): `dependency_timing='next_year'`,
+  `input_fiscal_year` = the *next* fiscal year, and explicit fact-ID
+  citations built the same way `forecast.forecast_fact_id` builds every
+  other forecast citation:
+  `next_year_debt_proceeds_fact_id = forecast_fact_id(scenario,
+  "debt_proceeds", fiscal_year + 1, FORECAST_MODEL_VERSION)` (and the
+  same for `debt_repayments`). These are real fact IDs, not placeholders
+  — `fct_base_debt_proceeds_2027_v1` and `fct_base_debt_repayments_2027_v1`
+  were confirmed present in the production `forecast_facts` table before
+  this lineage was persisted. The row's `same_year_forecast_inputs`
+  field is cleared to `None` for this field, since the dependency is, by
+  construction, never same-year.
+- **FY2030** (terminal year): `dependency_timing='terminal_proxy'` and an
+  explicit `proxy_note` stating the row repeats FY2030's own
+  `net_mandatory_debt_service` as the best available FY2031 estimate and
+  that **no actual FY2031 obligation is claimed**. Every other per-year
+  field on every row keeps `dependency_timing='same_year'` (the
+  overwhelming majority of rows — this correction touches only the one
+  field whose dependency was actually cross-year).
+
+**Integrity checks were tightened to an exact `(scenario_id, fiscal_year,
+version)` match.** The persistence-time integrity check formerly named
+`zero_orphan_lineage` matched only on `(scenario_id, fiscal_year)`,
+which meant a `v1` result row could spuriously satisfy the existence
+check for a `v2` lineage row citing the same scenario/year. It is now
+`zero_orphan_lineage_exact_version`, with `AND ctr.version = ctl.version`
+added to its `EXISTS` subquery. A second, new check,
+`zero_orphan_horizon_lineage_exact_version`, applies the same exact-version
+discipline to the separate horizon-lineage rows (`fiscal_year IS NULL`)
+against `capacity_horizon_results`. A dedicated corruption test,
+`test_zero_orphan_lineage_exact_version_rejects_cross_version_match` (in
+`tests/unit/test_capacity_persistence.py`), manually inserts a lineage row
+under `version='v2'` after deleting its true `v2` result row, leaving only
+a coincidentally-matching `v1` result row for the same scenario/fiscal
+year — and proves the tightened check correctly reports failure, whereas
+the old, looser check would have passed it.
+
+**A second correctness gap was found and fixed while implementing this
+change**, not requested by the audit but a direct consequence of it:
+renaming a field's lineage identity *within* the same version (as Item 3
+below also does) changes that field's deterministic
+`capacity_lineage_id` (`captaxlin_{scenario}_{metric}_{fy}_{sequence}_{version}`,
+derived from field name and sequence), which orphans the row previously
+persisted under the old name. `capacity_persistence.py`'s persist
+function now deletes, in the same transaction as the writes and scoped
+strictly to `version = preflight.version`, any `capacity_taxonomy_lineage`
+row whose `capacity_lineage_id` is not among the IDs just written for
+that version — never touching other, frozen versions. A dedicated test,
+`test_persist_prunes_stale_current_version_lineage_after_field_rename`,
+proves stale current-version rows are removed while older-version rows
+with the same (now-defunct) field name survive untouched.
+
+## 24. Item 3 — gross/net horizon-capacity split
+
+`CapacityHorizonSummary.total_horizon_capacity_accessible` is renamed, at
+the Python dataclass/display layer only, to
+`gross_horizon_funding_before_reserve_adjustments`. The underlying SQL
+column keeps its legacy name (`total_horizon_capacity_accessible`) for
+backward compatibility — this project's migration framework treats a
+SQLite column rename as unsafe (it requires a table rebuild) and never
+performs one; every "rename" in this project happens at the
+Python/display layer while the column name is preserved. A new field and
+column, `net_horizon_deployable_capacity` (migration `0042`, a plain
+additive `ColumnMigration`), holds the corrected figure:
+
+```
+gross_horizon_funding_before_reserve_adjustments
+    = opening_excess_liquidity_at_horizon_start
+    + cumulative_self_funded_generation
+    + cumulative_debt_funded_capacity
+
+net_horizon_deployable_capacity
+    = gross_horizon_funding_before_reserve_adjustments
+    - ending_reserve_movement
+    - terminal_forward_debt_repayment_reserve
+```
+
+A new named check, `net_horizon_capacity_reconciles`, proves the dual
+identity the authorization required — that the net figure equals **both**
+(gross minus the two reserve terms) **and**
+(`cumulative_discretionary_deployment + terminal_remaining_headroom`) —
+for every scenario:
+
+| Scenario | Gross Horizon Funding, Before Reserve Adjustments (legacy label/column) | Ending Reserve Movement | Terminal Forward Debt-Repayment Reserve | **Net Horizon Deployable Capacity** |
+|---|---|---|---|---|
+| Base | $9,303.9M | $128.9M | $0.0M | **$9,175.0M** |
+| Upside | $8,527.1M | $406.4M | $700.0M | **$7,420.7M** |
+| Downside | $6,092.3M | $(295.2)M | $0.0M | **$6,387.5M** |
+
+These NET values match the authorization's required values exactly:
+**Base $9,175.0M, Upside $7,420.7M, Downside $6,387.5M.** Per the
+authorization: **do not publish $9,303.9M / $8,527.1M / $6,092.3M as
+"accessible capacity" — those are gross figures before reserve
+adjustments.** Every deliverable in this closeout (Excel, Power BI, web
+cockpit, this document, and the portfolio package) now labels the gross
+figure explicitly as pre-reserve and non-headline, and uses
+`net_horizon_deployable_capacity` as the sole "accessible capacity"
+figure.
+
+## 25. Validation totals (19 named checks, 213 results per version)
+
+One new check, `net_horizon_capacity_reconciles`, was added to
+`CAPACITY_CHECK_METADATA` (18 → 19 named checks) and wired into
+`validate_capacity_taxonomy_all` as a fifth per-scenario cumulative/
+horizon check. **Result for `v2`: 213/213 PASS** (13 per-scenario-year
+checks × 15 scenario-years + 1 forward-reserve-documentation check × 3
+scenarios + 5 per-scenario cumulative/horizon checks × 3 scenarios).
+Combined with forecast (229) and valuation (28): **470 total validation
+results, all PASS.** `v1`'s own 147 results are untouched — this
+correction adds a new check and new lineage detail to `v2` only; it does
+not re-run or reinterpret `v1`.
+
+## 26. Database, persistence, and versioning evidence
+
+- **No version bump.** Unlike Parts I→II, this closeout does not
+  introduce `version='v3'`. Items 2 and 3 add columns and lineage detail
+  *within* `v2` — they correct how `v2` is recorded and labeled, not
+  `v2`'s own per-year arithmetic, which the authorization explicitly
+  approved and required to remain unchanged. All six new migrations
+  (`0037`–`0042`) are plain additive `ColumnMigration`s with safe
+  defaults, verified to apply cleanly against scratch copies of the
+  production database before ever touching the real one.
+- **Real production database persisted twice**, proving idempotency:
+  both runs wrote 15 / 3 / 312 / 213 rows respectively to
+  `capacity_taxonomy_results` / `capacity_horizon_results` (per version)
+  `capacity_taxonomy_lineage` / `capacity_validation_results` (per
+  version), with identical row counts and content both times. Final
+  production row counts: `capacity_taxonomy_results` = 30 (15 `v1` + 15
+  `v2`), `capacity_horizon_results` = 6 (3 + 3), `capacity_taxonomy_lineage`
+  = 543 (231 `v1` + 312 `v2` — correctly pruned from a would-be 546 per
+  the stale-lineage fix in §23), `capacity_validation_results` = 360
+  (147 `v1` + 213 `v2`).
+- **Integrity: `all_passed: true`** on both persists, including the two
+  new exact-version checks (`zero_orphan_lineage_exact_version`,
+  `zero_orphan_horizon_lineage_exact_version`).
+- **Backup taken before either persist**:
+  `data/curated/target_cash.db.backup-20260916T225500Z`
+  (sha256 `ba1bfe2a34adaebf88f3a94862625c21bbb7c6fbaacbe8a4c349c1af8a7054eb`).
+
+## 27. Deliverable-by-deliverable verification (final closeout)
+
+### 27.1 Python / tests
+`tests/unit/test_forecast.py`: the one database-dependent test rewritten
+as a deterministic unit test (§22). `tests/unit/test_capacity_taxonomy.py`:
+50 tests, all passing. `tests/unit/test_capacity_persistence.py`: 15
+tests, all passing, including the two new corruption/pruning tests from
+§23. **Full source-complete suite: 466/466 passed** (`.venv/bin/python -m
+pytest -q`). See §28 for the separate fresh-public-clone run.
+
+### 27.2 Excel
+The cumulative-reconciliation table on the Investment Capacity sheet now
+carries both figures explicitly labeled: "Gross Horizon Funding, Before
+Reserve Adjustments (C+A+B) -- NOT net accessible capacity" and "NET
+Horizon Deployable Capacity (Gross - Reserve Mvmt - Terminal Forward
+Reserve)," with the NET row bolded. `scripts/verify_excel_model.py`:
+**41/41 checks pass**, including new checks that the Excel gross/net
+figures match Python exactly for all three scenarios, that NET differs
+from gross whenever reserves are nonzero, and that NET equals cumulative
+deployment plus terminal headroom in the live, recalculated workbook.
+
+### 27.3 Power BI handoff
+`fact_capacity_horizon.csv` now includes `net_horizon_deployable_capacity`.
+The `Total Horizon Capacity Accessible` DAX measure is relabeled `Gross
+Horizon Funding, Before Reserve Adjustments` with an explicit "NOT
+accessible capacity" disclaimer, and a new `Net Horizon Deployable
+Capacity` measure is added as the corrected headline. `data_dictionary.md`
+and `validation_totals.md` both carry the gross/net split, the corrected
+213/470 check counts, and the explicit "do not publish the gross figures
+as accessible capacity" instruction. `scripts/verify_powerbi_handoff.py`:
+**168/168 checks pass**, including exact-value checks for all three
+scenarios' NET figures ($9,175.0M / $7,420.7M / $6,387.5M) and a check
+that no bare "deployable capacity" mention in the DAX documentation lacks
+a legacy/deprecated qualifier.
+
+### 27.4 Web cockpit
+The horizon table now shows both figures as distinct, separately styled
+rows — gross labeled "(NOT accessible capacity)," net labeled "(corrected
+headline figure, replaces legacy gross total)" — with a caption spelling
+out both reconciliation identities. `scripts/verify_web_cockpit.py`
+(Playwright against the pre-installed headless Chromium): **44/44 checks
+pass**, including exact-value checks for all three scenarios' NET figures
+and both reconciliation identities (gross-minus-reserves and
+deployment-plus-headroom), run against `deliverables/web_cockpit/data/model_data.json`
+regenerated via `scripts/build_web_cockpit_data.py`.
+
+### 27.5 Portfolio / recruiter package
+`04_data_dictionary.md`: `capacity_horizon_results` and
+`capacity_taxonomy_lineage` row descriptions rewritten for the gross/net
+split and the next-year/terminal-proxy lineage model, with the exact
+expected NET values and the explicit "never publish gross as accessible
+capacity" instruction. `05_model_risk_and_limitations.md`: validation
+count corrected from 467/210 to **470/213**.
+
+## 28. Fresh public-clone and clean-room evidence
+
+(Recorded in the final report accompanying this commit — see the
+session's final report for the literal `git clone` transcript into a new
+temporary directory, the `pytest` run against that clone with no database
+copied or built beforehand, and the `scripts/clean_room_rebuild.py` +
+`scripts/compare_databases.py` canonical-export comparison.)
+
+## 29. Limitations (final-closeout-specific, in addition to Parts I–II)
+
+- **No version bump for Items 2–3.** This is a deliberate scope decision,
+  not an oversight: the authorization explicitly approved `v2`'s per-year
+  formulas and asked only for corrected lineage recording and a corrected
+  horizon label/split, both implemented as additive detail *within* `v2`.
+  A future consumer reading `v2` lineage rows should be aware that the
+  five new lineage columns did not exist before this closeout — a `v2`
+  row persisted before this round (there is none in production, since
+  this closeout was applied before any external consumer read `v2`) would
+  have had `NULL`/default values in those columns.
+- **The gross column's SQL name is unchanged.** `total_horizon_capacity_accessible`
+  remains the literal column name in `capacity_horizon_results` and every
+  CSV export; only the Python dataclass field and every human-facing label
+  (Excel, DAX, web cockpit, documentation) are renamed. A consumer
+  querying the raw SQL/CSV by column name must know this to avoid
+  re-introducing the original mislabeling.
+- **The terminal-year forward-reserve proxy limitation from Part II §20
+  is unchanged and still applies** — FY2030's `forward_debt_repayment_reserve`
+  (and, transitively, its lineage's `terminal_proxy` note) remains a
+  documented estimate, not a real scheduled FY2031 obligation.

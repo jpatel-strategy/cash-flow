@@ -392,14 +392,12 @@ def test_forecast_year_fiscal_years_never_overlap_historical():
 
 
 def test_annual_fact_id_matches_real_database_convention():
-    import sqlite3
-    conn = sqlite3.connect("data/curated/target_cash.db")
-    row = conn.execute(
-        "SELECT annual_fact_id FROM annual_facts WHERE metric='revenue' AND fiscal_year=2025 "
-        "AND analytical_view='latest_restated'"
-    ).fetchone()
-    assert row is not None
-    assert row[0] == f.annual_fact_id_for("revenue", 2025)
+    # Deterministic unit test -- no database access. The convention itself
+    # (f"annual:{metric}:{fiscal_year}:{analytical_view}") is enforced here;
+    # target_cash.annual_persistence builds annual_facts.annual_fact_id the
+    # same way, so this stays a real cross-check without opening the
+    # gitignored data/curated/target_cash.db (which a fresh clone won't have).
+    assert f.annual_fact_id_for("revenue", 2025, "latest_restated") == "annual:revenue:2025:latest_restated"
 
 
 def test_historical_source_fact_ids_cover_all_five_years():

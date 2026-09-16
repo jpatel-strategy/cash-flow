@@ -126,11 +126,23 @@ requirement from FY2026 to FY2030 — a reconciling term, not a plug),
 `terminal_forward_debt_repayment_reserve` (FY2030's own forward
 reserve, a documented FY2031 proxy — a second reconciling term
 required by the v2 correction; see `terminal_forward_reserve_is_proxied`),
-and `total_horizon_capacity_accessible`, which reconciles EXACTLY to
-`cumulative_discretionary_deployment + terminal_remaining_headroom +
-ending_reserve_movement + terminal_forward_debt_repayment_reserve` for
-every scenario (proven in
-`docs/investment_capacity_correction_evidence.md`).
+and `total_horizon_capacity_accessible` (retained under its legacy
+column name for schema compatibility, but relabeled in the DAX layer as
+`Gross Horizon Funding, Before Reserve Adjustments` — see
+`dax_measures.md`), which is a GROSS figure computed BEFORE reserve
+deductions and must **never** be published as "accessible capacity". It
+reconciles EXACTLY to `cumulative_discretionary_deployment +
+terminal_remaining_headroom + ending_reserve_movement +
+terminal_forward_debt_repayment_reserve` for every scenario (proven in
+`docs/investment_capacity_correction_evidence.md`). The corrected, NET
+figure is `net_horizon_deployable_capacity` (= the gross figure above
+minus `ending_reserve_movement` minus
+`terminal_forward_debt_repayment_reserve`), which reconciles EXACTLY to
+`cumulative_discretionary_deployment + terminal_remaining_headroom` (a
+dual identity, also proven in the evidence doc). **This net figure is
+the correct headline "accessible capacity" for every downstream
+consumer** — expected values Base 9,175.0M / Upside 7,420.7M / Downside
+6,387.5M.
 
 ### `fact_valuation_results.csv` (3 rows)
 **Grain**: one row per `scenario_id`. The full DCF bridge: PV of explicit

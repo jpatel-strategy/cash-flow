@@ -233,6 +233,7 @@ main { max-width: var(--max-width); margin: 0 auto; padding: 0 16px; }
 .data-table tbody tr:nth-child(even) { background: var(--grey-light); }
 .data-table.heatmap td.cell { font-variant-numeric: tabular-nums; }
 .data-table td.reclassified { background: #fff4e5; font-weight: 600; }
+.data-table td.reclassified-net { background: #e5f4ea; font-weight: 700; color: #1a5c3a; }
 
 .proof-banner {
   margin-top: 14px;

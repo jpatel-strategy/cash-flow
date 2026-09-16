@@ -138,7 +138,8 @@ def test_verify_capacity_persistence_integrity_all_pass():
     persist_capacity_taxonomy(conn, pre)
     checks = verify_capacity_persistence_integrity(conn)
     assert checks["all_passed"], checks
-    assert checks["zero_orphan_lineage"]
+    assert checks["zero_orphan_lineage_exact_version"]
+    assert checks["zero_orphan_horizon_lineage_exact_version"]
     assert checks["zero_duplicate_capacity_results"]
     assert checks["zero_duplicate_horizon_results"]
     assert checks["zero_missing_scenario_or_cutoff"]
@@ -189,3 +190,172 @@ def test_persisted_horizon_v2_rows_carry_terminal_forward_reserve():
     reserve, proxied = row
     assert reserve == pytest.approx(700.0)
     assert proxied == 1
+
+
+def test_persisted_horizon_v2_rows_carry_net_horizon_deployable_capacity():
+    conn = _seeded_conn()
+    pre = compute_capacity_preflight()
+    persist_capacity_taxonomy(conn, pre)
+    row = conn.execute(
+        "SELECT total_horizon_capacity_accessible, net_horizon_deployable_capacity, "
+        "cumulative_discretionary_deployment, terminal_remaining_headroom "
+        "FROM capacity_horizon_results WHERE scenario_id='base' AND version=?",
+        (CAPACITY_MODEL_VERSION,),
+    ).fetchone()
+    assert row is not None
+    gross, net, deployment, headroom = row
+    assert gross == pytest.approx(9303.9, abs=0.5)
+    assert net == pytest.approx(9175.0, abs=0.5)
+    assert net == pytest.approx(deployment + headroom, abs=0.1)
+    assert net != pytest.approx(gross, abs=1.0), "net must differ from gross once reserves are nonzero"
+
+
+def test_lineage_forward_reserve_rows_carry_cross_year_dependency_metadata():
+    conn = _seeded_conn()
+    pre = compute_capacity_preflight()
+    persist_capacity_taxonomy(conn, pre)
+    rows = conn.execute(
+        "SELECT fiscal_year, dependency_timing, input_fiscal_year, next_year_debt_proceeds_fact_id, "
+        "next_year_debt_repayments_fact_id, proxy_note "
+        "FROM capacity_taxonomy_lineage WHERE scenario_id='base' AND version=? "
+        "AND target_field='forward_debt_repayment_reserve' ORDER BY fiscal_year",
+        (CAPACITY_MODEL_VERSION,),
+    ).fetchall()
+    assert len(rows) == 5
+    for fiscal_year, timing, input_fy, proceeds_id, repayments_id, proxy_note in rows[:-1]:
+        assert timing == "next_year"
+        assert input_fy == fiscal_year + 1
+        assert proceeds_id == f"fct_base_debt_proceeds_{fiscal_year + 1}_v1"
+        assert repayments_id == f"fct_base_debt_repayments_{fiscal_year + 1}_v1"
+        assert proxy_note is None
+    terminal_fy, terminal_timing, terminal_input_fy, terminal_proceeds, terminal_repayments, terminal_note = rows[-1]
+    assert terminal_fy == 2030
+    assert terminal_timing == "terminal_proxy"
+    assert terminal_input_fy == 2030
+    assert terminal_proceeds is None
+    assert terminal_repayments is None
+    assert "PROXY" in terminal_note and "FY2031" in terminal_note
+
+
+def test_persist_prunes_stale_current_version_lineage_after_field_rename():
+    """A field renamed within the SAME version (e.g. total_horizon_capacity_
+    accessible -> gross_horizon_funding_before_reserve_adjustments) leaves a
+    stale lineage row under the old target_field name, since its
+    deterministic ID is derived from the field name. persist_capacity_
+    taxonomy must prune stale rows for the CURRENT version only -- a
+    frozen historical version (e.g. 'v1') carrying the same target_field
+    name legitimately is never touched."""
+    conn = _seeded_conn()
+    pre = compute_capacity_preflight()
+    persist_capacity_taxonomy(conn, pre)
+
+    # Manually insert a fake v1 lineage row under the old field name -- this
+    # must survive pruning, since pruning is scoped to the current version only.
+    conn.execute(
+        "INSERT INTO capacity_taxonomy_lineage (capacity_lineage_id, scenario_id, fiscal_year, "
+        "target_field, formula, information_cutoff, version) VALUES (?,?,?,?,?,?,?)",
+        ("captaxlin_base_total_horizon_capacity_accessible_horizon_8_v1_fake", "base", None,
+         "total_horizon_capacity_accessible", "legacy formula", "2026-03-11", "v1"),
+    )
+    # And a fake STALE current-version row under a field name the current
+    # code no longer emits -- this one MUST be pruned.
+    conn.execute(
+        "INSERT INTO capacity_taxonomy_lineage (capacity_lineage_id, scenario_id, fiscal_year, "
+        "target_field, formula, information_cutoff, version) VALUES (?,?,?,?,?,?,?)",
+        (f"captaxlin_base_total_horizon_capacity_accessible_horizon_8_{CAPACITY_MODEL_VERSION}",
+         "base", None, "total_horizon_capacity_accessible", "stale formula", "2026-03-11", CAPACITY_MODEL_VERSION),
+    )
+    conn.commit()
+
+    persist_capacity_taxonomy(conn, pre)
+    conn.commit()
+
+    stale_current = conn.execute(
+        "SELECT COUNT(*) FROM capacity_taxonomy_lineage WHERE target_field='total_horizon_capacity_accessible' AND version=?",
+        (CAPACITY_MODEL_VERSION,),
+    ).fetchone()[0]
+    assert stale_current == 0, "stale current-version lineage row must be pruned on re-persist"
+
+    v1_survives = conn.execute(
+        "SELECT COUNT(*) FROM capacity_taxonomy_lineage WHERE target_field='total_horizon_capacity_accessible' AND version='v1'"
+    ).fetchone()[0]
+    assert v1_survives == 1, "a frozen historical version's lineage row must never be touched by pruning"
+
+
+def test_v2_lineage_cannot_pass_via_matching_v1_result():
+    """Corruption test: a v2 lineage row must NOT be considered satisfied
+    merely because a v1 result row exists for the same scenario_id and
+    fiscal_year. Before the exact-version fix, the orphan-lineage check's
+    EXISTS clause omitted `version`, so deleting the real v2 result while a
+    v1 row remained for the same (scenario_id, fiscal_year) would have
+    incorrectly reported zero orphans."""
+    conn = _seeded_conn()
+    pre = compute_capacity_preflight()
+    persist_capacity_taxonomy(conn, pre)
+
+    scenario, fiscal_year = "base", 2026
+    v1_columns = (
+        "capacity_taxonomy_result_id, scenario_id, fiscal_year, operating_fcf, "
+        "post_dividend_internal_generation, opening_excess_liquidity, mandatory_debt_uses, "
+        "self_funded_gross_capacity, debt_funded_incremental_capacity, total_gross_funding_capacity, "
+        "share_repurchases, strategic_investment, voluntary_debt_reduction, other_discretionary_uses, "
+        "total_discretionary_deployment, remaining_deployable_headroom, ending_excess_liquidity, "
+        "version, information_cutoff"
+    )
+    conn.execute(
+        f"INSERT INTO capacity_taxonomy_results ({v1_columns}) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (f"captax_{scenario}_{fiscal_year}_v1_fake", scenario, fiscal_year,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "v1", "2026-03-11"),
+    )
+    conn.commit()
+
+    # Sanity check: before deleting the real v2 row, everything passes.
+    assert verify_capacity_persistence_integrity(conn)["zero_orphan_lineage_exact_version"]
+
+    # Remove the REAL v2 result row for this scenario/fiscal_year. A v1 row
+    # (same scenario_id + fiscal_year) still exists.
+    conn.execute(
+        "DELETE FROM capacity_taxonomy_results WHERE scenario_id=? AND fiscal_year=? AND version=?",
+        (scenario, fiscal_year, CAPACITY_MODEL_VERSION),
+    )
+    conn.commit()
+
+    checks = verify_capacity_persistence_integrity(conn)
+    assert not checks["zero_orphan_lineage_exact_version"], (
+        "a v2 lineage row must not pass merely because a matching v1 result row exists"
+    )
+    assert not checks["all_passed"]
+
+
+def test_horizon_lineage_cannot_pass_via_matching_v1_horizon_result():
+    """Same corruption proof as above, for horizon-level lineage rows
+    (fiscal_year IS NULL)."""
+    conn = _seeded_conn()
+    pre = compute_capacity_preflight()
+    persist_capacity_taxonomy(conn, pre)
+
+    scenario = "base"
+    conn.execute(
+        "INSERT INTO capacity_horizon_results (capacity_horizon_result_id, scenario_id, "
+        "cumulative_self_funded_generation, cumulative_debt_funded_capacity, "
+        "opening_excess_liquidity_at_horizon_start, cumulative_discretionary_deployment, "
+        "terminal_remaining_headroom, ending_reserve_movement, total_horizon_capacity_accessible, "
+        "version, information_cutoff) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (f"caphrz_{scenario}_v1_fake", scenario, 0, 0, 0, 0, 0, 0, 0, "v1", "2026-03-11"),
+    )
+    conn.commit()
+
+    assert verify_capacity_persistence_integrity(conn)["zero_orphan_horizon_lineage_exact_version"]
+
+    conn.execute(
+        "DELETE FROM capacity_horizon_results WHERE scenario_id=? AND version=?",
+        (scenario, CAPACITY_MODEL_VERSION),
+    )
+    conn.commit()
+
+    checks = verify_capacity_persistence_integrity(conn)
+    assert not checks["zero_orphan_horizon_lineage_exact_version"], (
+        "a v2 horizon-lineage row must not pass merely because a matching v1 horizon result row exists"
+    )
+    assert not checks["all_passed"]

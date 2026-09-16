@@ -183,6 +183,52 @@ with sync_playwright() as p:
         "Debt-Funded Capacity renders as $0M on the page for Base FY2030",
     )
 
+    # Final independent-audit closeout: horizon table shows BOTH the gross
+    # (pre-reserve) figure and the corrected NET headline figure, distinctly
+    # labeled, and both match Python exactly for the Base scenario.
+    EXPECTED_NET_HORIZON = {"base": 9175.0, "upside": 7420.7, "downside": 6387.5}
+    horizon_text = page.locator("#table-capacity-horizon").inner_text()
+    horizon_text_lower = horizon_text.lower()
+    check(
+        "gross horizon funding" in horizon_text_lower and "not accessible capacity" in horizon_text_lower,
+        "Horizon table labels the gross figure as NOT accessible capacity",
+    )
+    check(
+        "net horizon deployable capacity" in horizon_text_lower,
+        "Horizon table displays the corrected 'Net Horizon Deployable Capacity' headline figure",
+    )
+    base_hz = data["scenarios"]["base"]["capacity_horizon_summary"]
+    check(
+        f"${round(base_hz['gross_horizon_funding_before_reserve_adjustments']):,}".replace(",", "")
+        in horizon_text.replace(",", ""),
+        "Gross Horizon Funding value on the page matches Python (Base)",
+    )
+    check(
+        f"${round(base_hz['net_horizon_deployable_capacity']):,}".replace(",", "") in horizon_text.replace(",", ""),
+        "Net Horizon Deployable Capacity value on the page matches Python (Base)",
+    )
+    check(
+        abs(base_hz["net_horizon_deployable_capacity"] - EXPECTED_NET_HORIZON["base"]) < 0.1,
+        f"Base Net Horizon Deployable Capacity matches expected {EXPECTED_NET_HORIZON['base']}M exactly",
+    )
+    for scenario, expected_net in EXPECTED_NET_HORIZON.items():
+        hz = data["scenarios"][scenario]["capacity_horizon_summary"]
+        check(
+            abs(hz["net_horizon_deployable_capacity"] - expected_net) < 0.1,
+            f"{scenario.capitalize()} Net Horizon Deployable Capacity matches expected {expected_net}M exactly (data file)",
+        )
+        gross = hz["gross_horizon_funding_before_reserve_adjustments"]
+        net = hz["net_horizon_deployable_capacity"]
+        reserves = hz["ending_reserve_movement"] + hz["terminal_forward_debt_repayment_reserve"]
+        check(
+            abs(net - (gross - reserves)) < 0.1,
+            f"{scenario.capitalize()}: Net = Gross - Ending Reserve Movement - Terminal Forward Reserve, exactly",
+        )
+        check(
+            abs(net - (hz["cumulative_discretionary_deployment"] + hz["terminal_remaining_headroom"])) < 0.1,
+            f"{scenario.capitalize()}: Net also equals Cumulative Discretionary Deployment + Terminal Remaining Headroom (dual identity)",
+        )
+
     # No bare "Deployable Capacity" label anywhere without a qualifier (legacy/deprecated/corrected wording).
     full_page_text = page.locator("body").inner_text()
     bare_mentions = [

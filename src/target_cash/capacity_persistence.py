@@ -109,7 +109,11 @@ def compute_capacity_preflight(version: str = CAPACITY_MODEL_VERSION) -> Capacit
             "ending_reserve_movement": summary.ending_reserve_movement,
             "terminal_forward_debt_repayment_reserve": summary.terminal_forward_debt_repayment_reserve,
             "terminal_forward_reserve_is_proxied": int(summary.terminal_forward_reserve_is_proxied),
-            "total_horizon_capacity_accessible": summary.total_horizon_capacity_accessible,
+            # Persisted under the legacy column name (backward-compatible, additive-only migration
+            # framework cannot safely rename a column) -- display layers relabel this
+            # "Gross Horizon Funding (Before Reserve Adjustments)", never "net accessible capacity".
+            "total_horizon_capacity_accessible": summary.gross_horizon_funding_before_reserve_adjustments,
+            "net_horizon_deployable_capacity": summary.net_horizon_deployable_capacity,
             "version": version, "information_cutoff": summary.information_cutoff,
         })
 
@@ -224,8 +228,8 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                      cumulative_debt_funded_capacity, opening_excess_liquidity_at_horizon_start,
                      cumulative_discretionary_deployment, terminal_remaining_headroom, ending_reserve_movement,
                      terminal_forward_debt_repayment_reserve, terminal_forward_reserve_is_proxied,
-                     total_horizon_capacity_accessible, version, information_cutoff)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     total_horizon_capacity_accessible, net_horizon_deployable_capacity, version, information_cutoff)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(capacity_horizon_result_id) DO UPDATE SET
                     cumulative_self_funded_generation=excluded.cumulative_self_funded_generation,
                     cumulative_debt_funded_capacity=excluded.cumulative_debt_funded_capacity,
@@ -235,31 +239,58 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                     ending_reserve_movement=excluded.ending_reserve_movement,
                     terminal_forward_debt_repayment_reserve=excluded.terminal_forward_debt_repayment_reserve,
                     terminal_forward_reserve_is_proxied=excluded.terminal_forward_reserve_is_proxied,
-                    total_horizon_capacity_accessible=excluded.total_horizon_capacity_accessible
+                    total_horizon_capacity_accessible=excluded.total_horizon_capacity_accessible,
+                    net_horizon_deployable_capacity=excluded.net_horizon_deployable_capacity
                 """,
                 (row["capacity_horizon_result_id"], row["scenario_id"], row["cumulative_self_funded_generation"],
                  row["cumulative_debt_funded_capacity"], row["opening_excess_liquidity_at_horizon_start"],
                  row["cumulative_discretionary_deployment"], row["terminal_remaining_headroom"],
                  row["ending_reserve_movement"], row["terminal_forward_debt_repayment_reserve"],
                  row["terminal_forward_reserve_is_proxied"], row["total_horizon_capacity_accessible"],
-                 row["version"], row["information_cutoff"]),
+                 row["net_horizon_deployable_capacity"], row["version"], row["information_cutoff"]),
             )
             written["capacity_horizon_results"] += 1
 
+        written_lineage_ids = []
         for row in preflight.lineage:
             conn.execute(
                 """
                 INSERT INTO capacity_taxonomy_lineage
                     (capacity_lineage_id, scenario_id, fiscal_year, target_field, formula,
-                     same_year_forecast_inputs, same_year_capacity_inputs, information_cutoff, version)
-                VALUES (?,?,?,?,?,?,?,?,?)
-                ON CONFLICT(capacity_lineage_id) DO UPDATE SET formula=excluded.formula
+                     same_year_forecast_inputs, same_year_capacity_inputs, information_cutoff, version,
+                     dependency_timing, input_fiscal_year, next_year_debt_proceeds_fact_id,
+                     next_year_debt_repayments_fact_id, proxy_note)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(capacity_lineage_id) DO UPDATE SET
+                    formula=excluded.formula,
+                    dependency_timing=excluded.dependency_timing,
+                    input_fiscal_year=excluded.input_fiscal_year,
+                    next_year_debt_proceeds_fact_id=excluded.next_year_debt_proceeds_fact_id,
+                    next_year_debt_repayments_fact_id=excluded.next_year_debt_repayments_fact_id,
+                    proxy_note=excluded.proxy_note
                 """,
                 (row["capacity_lineage_id"], row["scenario_id"], row["fiscal_year"], row["target_field"],
                  row["formula"], row["same_year_forecast_inputs"], row["same_year_capacity_inputs"],
-                 row["information_cutoff"], row["version"]),
+                 row["information_cutoff"], row["version"],
+                 row["dependency_timing"], row["input_fiscal_year"], row["next_year_debt_proceeds_fact_id"],
+                 row["next_year_debt_repayments_fact_id"], row["proxy_note"]),
             )
             written["capacity_taxonomy_lineage"] += 1
+            written_lineage_ids.append(row["capacity_lineage_id"])
+
+        # Prune stale lineage rows for the CURRENT version only (e.g. a field
+        # renamed within the same version, like total_horizon_capacity_accessible
+        # -> gross_horizon_funding_before_reserve_adjustments, leaves behind a row
+        # under a target_field this version's code no longer emits). Every OTHER
+        # version (e.g. 'v1', frozen historical evidence) is never touched --
+        # this only removes rows whose own version matches preflight.version and
+        # whose ID isn't among what was just written for that same version.
+        if written_lineage_ids:
+            placeholders = ",".join("?" for _ in written_lineage_ids)
+            conn.execute(
+                f"DELETE FROM capacity_taxonomy_lineage WHERE version = ? AND capacity_lineage_id NOT IN ({placeholders})",
+                (preflight.version, *written_lineage_ids),
+            )
 
         for row in preflight.validation_results:
             conn.execute(
@@ -300,15 +331,35 @@ def verify_capacity_persistence_integrity(conn: sqlite3.Connection) -> dict:
     def scalar(sql, params=()):
         return conn.execute(sql, params).fetchone()[0]
 
+    # Final independent-audit closeout: the EXISTS match must require an EXACT
+    # (scenario_id, fiscal_year, version) match -- previously this omitted
+    # `version`, so a v2 lineage row could pass merely because a v1 result row
+    # existed for the same scenario/fiscal_year, even with no matching v2
+    # result at all. See test_v2_lineage_cannot_pass_via_matching_v1_result.
     orphans = scalar("""
         SELECT COUNT(*) FROM capacity_taxonomy_lineage ctl
         WHERE ctl.fiscal_year IS NOT NULL
           AND NOT EXISTS (
             SELECT 1 FROM capacity_taxonomy_results ctr
             WHERE ctr.scenario_id = ctl.scenario_id AND ctr.fiscal_year = ctl.fiscal_year
+              AND ctr.version = ctl.version
           )
     """)
-    checks["zero_orphan_lineage"] = orphans == 0
+    checks["zero_orphan_lineage_exact_version"] = orphans == 0
+
+    # Separate exact-version integrity check for HORIZON lineage (the
+    # fiscal_year IS NULL rows written by build_capacity_horizon_lineage) --
+    # previously these were never checked for orphans at all (the check above
+    # explicitly excludes fiscal_year IS NULL rows).
+    orphan_horizon_lineage = scalar("""
+        SELECT COUNT(*) FROM capacity_taxonomy_lineage ctl
+        WHERE ctl.fiscal_year IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM capacity_horizon_results chr
+            WHERE chr.scenario_id = ctl.scenario_id AND chr.version = ctl.version
+          )
+    """)
+    checks["zero_orphan_horizon_lineage_exact_version"] = orphan_horizon_lineage == 0
 
     dup_results = scalar("""
         SELECT COUNT(*) FROM (

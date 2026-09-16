@@ -981,6 +981,81 @@ MIGRATIONS: tuple[ColumnMigration | TableMigration, ...] = (
         column="terminal_forward_reserve_is_proxied",
         column_def="INTEGER",
     ),
+    ColumnMigration(
+        migration_id="0037_capacity_lineage_dependency_timing",
+        description=(
+            "Final independent-audit closeout: capacity_taxonomy_lineage.forward_debt_repayment_reserve "
+            "rows previously cited their input as same-year, when for FY2026-FY2029 the true input is the "
+            "NEXT fiscal year's debt_proceeds/debt_repayments (and for the terminal FY2030 row, a documented "
+            "proxy of FY2030's own net_mandatory_debt_service, never an actual FY2031 obligation). Adds "
+            "dependency_timing ('same_year' | 'next_year' | 'terminal_proxy'), defaulting existing rows to "
+            "'same_year' (correct for all fields except forward_debt_repayment_reserve, corrected on next "
+            "persist)."
+        ),
+        table="capacity_taxonomy_lineage",
+        column="dependency_timing",
+        column_def="TEXT NOT NULL DEFAULT 'same_year'",
+    ),
+    ColumnMigration(
+        migration_id="0038_capacity_lineage_input_fiscal_year",
+        description=(
+            "Companion to migration 0037: the fiscal year the cited input actually belongs to -- equal to "
+            "the row's own fiscal_year for 'same_year' rows, fiscal_year+1 for 'next_year' rows, and the "
+            "row's own fiscal_year again for 'terminal_proxy' rows (the proxy source is FY2030's own value)."
+        ),
+        table="capacity_taxonomy_lineage",
+        column="input_fiscal_year",
+        column_def="INTEGER",
+    ),
+    ColumnMigration(
+        migration_id="0039_capacity_lineage_next_year_debt_proceeds_fact_id",
+        description=(
+            "Companion to migration 0037: explicit forecast_fact_id reference to the NEXT fiscal year's "
+            "debt_proceeds forecast fact, populated only for dependency_timing='next_year' rows."
+        ),
+        table="capacity_taxonomy_lineage",
+        column="next_year_debt_proceeds_fact_id",
+        column_def="TEXT",
+    ),
+    ColumnMigration(
+        migration_id="0040_capacity_lineage_next_year_debt_repayments_fact_id",
+        description=(
+            "Companion to migration 0037: explicit forecast_fact_id reference to the NEXT fiscal year's "
+            "debt_repayments forecast fact, populated only for dependency_timing='next_year' rows."
+        ),
+        table="capacity_taxonomy_lineage",
+        column="next_year_debt_repayments_fact_id",
+        column_def="TEXT",
+    ),
+    ColumnMigration(
+        migration_id="0041_capacity_lineage_proxy_note",
+        description=(
+            "Companion to migration 0037: free-text note populated only for dependency_timing='terminal_proxy' "
+            "rows, stating the proxy source and explicitly disclaiming any actual FY2031 obligation."
+        ),
+        table="capacity_taxonomy_lineage",
+        column="proxy_note",
+        column_def="TEXT",
+    ),
+    ColumnMigration(
+        migration_id="0042_capacity_horizon_gross_funding_rename_support",
+        description=(
+            "Final independent-audit closeout: total_horizon_capacity_accessible was being read as 'net "
+            "accessible capacity' when it is actually computed BEFORE the ending_reserve_movement and "
+            "terminal_forward_debt_repayment_reserve deductions -- a gross, pre-reserve-adjustment figure. "
+            "Adds net_horizon_deployable_capacity = gross_horizon_funding_before_reserve_adjustments - "
+            "ending_reserve_movement - terminal_forward_debt_repayment_reserve, which reconciles exactly to "
+            "cumulative_discretionary_deployment + terminal_remaining_headroom. The existing "
+            "total_horizon_capacity_accessible column is preserved additively (never renamed in-place, "
+            "since SQLite column rename requires a table rebuild this project's migration framework treats "
+            "as unsafe) and is re-labeled 'gross_horizon_funding_before_reserve_adjustments' in every "
+            "downstream display; the column NAME in the database is unchanged for backward compatibility, "
+            "documented as deprecated-label in the data dictionary."
+        ),
+        table="capacity_horizon_results",
+        column="net_horizon_deployable_capacity",
+        column_def="REAL",
+    ),
 )
 
 
