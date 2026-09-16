@@ -282,6 +282,43 @@ def test_persist_prunes_stale_current_version_lineage_after_field_rename():
     assert v1_survives == 1, "a frozen historical version's lineage row must never be touched by pruning"
 
 
+def test_reconflicted_lineage_row_updates_same_year_input_columns():
+    """A lineage row already present under its deterministic ID (the ON
+    CONFLICT path, not a fresh INSERT) must have every changed column --
+    including same_year_forecast_inputs/same_year_capacity_inputs --
+    overwritten with the freshly-computed value, never left stale. This
+    is exactly the gap a clean-room rebuild comparison against production
+    caught: production's forward_debt_repayment_reserve rows pre-dated the
+    next_year cross-year lineage change and still carried the OLD
+    same_year_capacity_inputs value ('net_mandatory_debt_service') because
+    the ON CONFLICT DO UPDATE SET clause omitted that column."""
+    conn = _seeded_conn()
+    pre = compute_capacity_preflight()
+    persist_capacity_taxonomy(conn, pre)
+
+    row_id = "captaxlin_base_forward_debt_repayment_reserve_2026_15_" + CAPACITY_MODEL_VERSION
+    conn.execute(
+        "UPDATE capacity_taxonomy_lineage SET same_year_capacity_inputs = ? WHERE capacity_lineage_id = ?",
+        ("net_mandatory_debt_service", row_id),
+    )
+    conn.commit()
+    assert conn.execute(
+        "SELECT same_year_capacity_inputs FROM capacity_taxonomy_lineage WHERE capacity_lineage_id = ?", (row_id,)
+    ).fetchone()[0] == "net_mandatory_debt_service"
+
+    persist_capacity_taxonomy(conn, pre)
+    conn.commit()
+
+    same_year_capacity_inputs = conn.execute(
+        "SELECT same_year_capacity_inputs FROM capacity_taxonomy_lineage WHERE capacity_lineage_id = ?", (row_id,)
+    ).fetchone()[0]
+    assert same_year_capacity_inputs is None, (
+        "forward_debt_repayment_reserve's next-year dependency has no same-year capacity "
+        "inputs -- re-persisting must overwrite a stale value from before this field's lineage "
+        "model changed, not merely leave it in place because the row already existed"
+    )
+
+
 def test_v2_lineage_cannot_pass_via_matching_v1_result():
     """Corruption test: a v2 lineage row must NOT be considered satisfied
     merely because a v1 result row exists for the same scenario_id and

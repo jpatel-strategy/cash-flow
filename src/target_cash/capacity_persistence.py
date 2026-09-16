@@ -263,6 +263,8 @@ def persist_capacity_taxonomy(conn: sqlite3.Connection, preflight: CapacityPersi
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(capacity_lineage_id) DO UPDATE SET
                     formula=excluded.formula,
+                    same_year_forecast_inputs=excluded.same_year_forecast_inputs,
+                    same_year_capacity_inputs=excluded.same_year_capacity_inputs,
                     dependency_timing=excluded.dependency_timing,
                     input_fiscal_year=excluded.input_fiscal_year,
                     next_year_debt_proceeds_fact_id=excluded.next_year_debt_proceeds_fact_id,
