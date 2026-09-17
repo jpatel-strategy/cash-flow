@@ -1,0 +1,55 @@
+name: Deploy web cockpit to GitHub Pages
+
+# Publishes deliverables/web_cockpit/ (a static, dependency-free HTML/CSS/JS
+# site reading a pre-generated data/model_data.json -- no backend, no build
+# step required) as this repository's GitHub Pages site.
+#
+# ONE-TIME MANUAL SETUP REQUIRED before this workflow can deploy anything:
+#   Repository Settings -> Pages -> Build and deployment -> Source:
+#   select "GitHub Actions" (it defaults to "Deploy from a branch", which
+#   this workflow does not use). This cannot be done from within the
+#   workflow file itself -- it is a one-time repository setting change by
+#   someone with admin access.
+#
+# Until that setting is changed, every run of this workflow will fail at
+# the "Deploy to GitHub Pages" step with an error naming the missing Pages
+# configuration -- that failure is expected and is not a bug in this file.
+
+on:
+  push:
+    branches: [main, claude/gallant-dijkstra-p9xrvr]
+    paths:
+      - "deliverables/web_cockpit/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload web cockpit as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: deliverables/web_cockpit
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,4 +1,10 @@
-# Target Corporation Cash Flow & Investment Capacity Model — Recruiter Package
+# Target Cash Flow & Investment Capacity Decision Cockpit — Recruiter Package
+
+**Independent portfolio case study. Not affiliated with Target Corporation.**
+Forecasts and valuation outputs are scenario-based analytical assumptions,
+not investment advice or price targets. The primary recruiter entry point
+is the live web decision cockpit — see `deliverables/web_cockpit/` (deploy
+status and URL in `docs/ui_ux_audit.md` and the phase's final report).
 
 **What this is**: an independent, public-data FP&A / strategic-finance
 case study built entirely from Target Corporation's SEC filings — no
@@ -43,7 +49,7 @@ filings only — historical validation (catching a real, undisclosed
 segment-expense reclassification), a 3-scenario 5-year forecast with a
 provably non-double-counted capital-allocation framework, a restrained
 DCF, and four decision-support deliverables (Excel, Power BI, a web
-cockpit, and this package) — all backed by 453 automated tests, a
+cockpit, and this package) — all backed by 467 automated tests, a
 reproducible clean-room rebuild, and full source-to-output lineage.
 
 ## What to actually look at, if short on time

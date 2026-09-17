@@ -43,7 +43,7 @@ across four formats: a live-formula Excel model, a Power BI-ready data
 package, and an interactive web dashboard with an editable what-if
 sandbox.
 
-✅ 453 automated tests, a from-scratch reproducible rebuild, and a full
+✅ 467 automated tests, a from-scratch reproducible rebuild, and a full
 decision log recording every judgment call and every bug along the way
 — because I think the audit trail is as much the deliverable as the
 numbers are.

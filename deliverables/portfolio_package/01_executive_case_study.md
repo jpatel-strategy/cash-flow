@@ -1,4 +1,8 @@
-# Executive Case Study: Target Corporation Cash Flow & Investment Capacity Model
+# Executive Case Study: Target Cash Flow & Investment Capacity Decision Cockpit
+
+**Independent portfolio case study. Not affiliated with Target Corporation.**
+Forecasts and valuation outputs are scenario-based analytical assumptions,
+not investment advice or price targets.
 
 ## The problem
 

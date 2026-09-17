@@ -9,10 +9,14 @@
 
   const NAVY = "#1F3864";
   const GOLD = "#C9A227";
+  const TEAL = "#2E7D74";
   const GREY = "#7F7F7F";
   const GOOD = "#548235";
   const BAD = "#C00000";
-  const PALETTE = [NAVY, GOLD, "#2E75B6", GOOD, BAD];
+  // Fixed categorical order for identity (never cycled, never reused for status).
+  // GOOD/BAD are reserved for pass/fail and positive/negative deltas only --
+  // never for scenario identity (a scenario is not a "failure").
+  const PALETTE = [NAVY, GOLD, TEAL, "#2E75B6", "#8A5A44"];
 
   function svgEl(tag, attrs) {
     const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -132,6 +136,48 @@
     container.appendChild(svg);
   }
 
+  /** Grouped bar chart. groups: [{label, bars:[{seriesLabel, value, color}]}] */
+  function groupedBarChart(container, { groups, width = 560, height = 280 }) {
+    clear(container);
+    const margin = { top: 24, right: 16, bottom: 40, left: 60 };
+    const w = width - margin.left - margin.right;
+    const h = height - margin.top - margin.bottom;
+    const allVals = groups.flatMap((g) => g.bars.map((b) => b.value));
+    const maxV = Math.max(...allVals, 0);
+    const groupGap = w / groups.length;
+    const seriesCount = groups[0].bars.length;
+    const groupInnerW = groupGap * 0.7;
+    const barW = groupInnerW / seriesCount;
+
+    const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
+    for (let i = 0; i <= 4; i++) {
+      const v = (maxV * i) / 4;
+      const y = margin.top + h - (v / (maxV || 1)) * h;
+      svg.appendChild(svgEl("line", { x1: margin.left, x2: width - margin.right, y1: y, y2: y, stroke: "#eee" }));
+      const t = svgEl("text", { x: margin.left - 8, y: y + 4, "font-size": 10, fill: GREY, "text-anchor": "end" });
+      t.textContent = fmtM(v);
+      svg.appendChild(t);
+    }
+    groups.forEach((g, gi) => {
+      const groupX = margin.left + gi * groupGap + (groupGap - groupInnerW) / 2;
+      g.bars.forEach((b, bi) => {
+        const x = groupX + bi * barW;
+        const barH = ((b.value || 0) / (maxV || 1)) * h;
+        const y = margin.top + h - barH;
+        svg.appendChild(svgEl("rect", { x: x + 2, y, width: Math.max(barW - 4, 1), height: barH, fill: b.color || PALETTE[bi % PALETTE.length], rx: 2 }));
+        const valLabel = svgEl("text", { x: x + barW / 2, y: y - 6, "font-size": 9.5, fill: NAVY, "text-anchor": "middle", "font-weight": "bold" });
+        valLabel.textContent = fmtM(b.value);
+        svg.appendChild(valLabel);
+      });
+      const catLabel = svgEl("text", { x: groupX + groupInnerW / 2, y: height - 12, "font-size": 11, fill: GREY, "text-anchor": "middle" });
+      catLabel.textContent = g.label;
+      svg.appendChild(catLabel);
+    });
+    container.appendChild(svg);
+    const seriesLabels = groups[0].bars.map((b, i) => ({ label: b.seriesLabel, color: b.color || PALETTE[i % PALETTE.length] }));
+    appendLegend(container, seriesLabels);
+  }
+
   /** Waterfall chart. steps: [{label, amount, isTotal}] -- isTotal steps
    * draw from 0 to their own value (e.g. Ending Cash); others draw as a
    * floating bar from running total to running total + amount. */
@@ -185,5 +231,5 @@
     container.appendChild(svg);
   }
 
-  global.TargetCashCharts = { lineChart, barChart, waterfallChart, fmtM };
+  global.TargetCashCharts = { lineChart, barChart, groupedBarChart, waterfallChart, fmtM };
 })(window);
