@@ -115,3 +115,22 @@ documents for Milestones 1-3.
 - No use of any information beyond the FY2025 10-K (filed 2026-03-11)
   anywhere in the model.
 - No paid services, no external publishing, no exposed credentials.
+
+## Release addendum (public launch)
+
+The inventory above is the Milestone 8 snapshot and is preserved as a
+historical record, not rewritten. As of the public release:
+
+- **The web cockpit is now deployed publicly** at
+  https://jpatel-strategy.github.io/cash-flow/ via GitHub Pages (GitHub
+  Actions workflow `.github/workflows/deploy-pages.yml`). The "not
+  deployed publicly" statements above (line 106, "What is explicitly NOT
+  in this project") no longer apply.
+- **The web cockpit's verified check count is now 114**, not 30 or 104 —
+  the suite grew across the UI-polish and mobile-visibility-fix phases
+  after this document was written. `pytest` (467), Excel verification
+  (41), and web cockpit verification (114) were all re-run fresh for this
+  release and pass. The Power BI verification's 168/168 result is carried
+  forward from `docs/investment_capacity_correction_evidence.md` as
+  documented evidence (see the root `README.md`'s *Known limitations* for
+  why it was not independently re-run in this release's environment).

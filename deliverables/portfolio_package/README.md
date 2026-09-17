@@ -3,8 +3,10 @@
 **Independent portfolio case study. Not affiliated with Target Corporation.**
 Forecasts and valuation outputs are scenario-based analytical assumptions,
 not investment advice or price targets. The primary recruiter entry point
-is the live web decision cockpit — see `deliverables/web_cockpit/` (deploy
-status and URL in `docs/ui_ux_audit.md` and the phase's final report).
+is the live web decision cockpit:
+**https://jpatel-strategy.github.io/cash-flow/**
+(source in `deliverables/web_cockpit/`; deploy status and audit history in
+`docs/ui_ux_audit.md`).
 
 **What this is**: an independent, public-data FP&A / strategic-finance
 case study built entirely from Target Corporation's SEC filings — no
@@ -41,6 +43,7 @@ how this package is deliberately framed around it.
 | 11 | `11_screenshot_plan.md` | Which screenshots to take, from where, for a portfolio site or LinkedIn carousel. |
 | 12 | `12_final_project_inventory.md` | Every deliverable, every file, every commit — the complete manifest. |
 | 13 | `13_reproduction_instructions.md` | Exact commands to rebuild the entire project from source filings, from scratch. |
+| 14 | `14_linkedin_launch_package.md` | Public-release launch package: final LinkedIn post, 6-slide carousel plan, 5-minute recruiter demo order, and three role-targeted resume bullet sets. Prepared, not published. |
 
 ## The one-sentence version
 

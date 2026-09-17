@@ -13,7 +13,7 @@
   const NET_COLOR = "#1F3864";
 
   const REPO_URL = "https://github.com/jpatel-strategy/cash-flow";
-  const REPO_BRANCH = "ui-polish-cockpit";
+  const REPO_BRANCH = "claude/gallant-dijkstra-p9xrvr"; // default/publishing branch as of the public release
   const AUTOMATED_TEST_COUNT = 467; // pytest -q, verified at build time -- see docs/ui_ux_audit.md / final report
   const NAMED_CAPACITY_CHECK_COUNT = 19; // len(CAPACITY_CHECK_METADATA) in src/target_cash/capacity_taxonomy.py
 
