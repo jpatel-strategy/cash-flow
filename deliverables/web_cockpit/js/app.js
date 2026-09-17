@@ -199,6 +199,11 @@
     const revChart = document.getElementById("chart-revenue-fcf");
     lineChart(revChart, {
       formatter: "millions",
+      // The only chart on the page plotting actual and forecast points in
+      // the same series -- the boundary divider belongs here, and nowhere
+      // a chart shows only one period (never invented on a forecast-only
+      // or actuals-only chart).
+      boundaryFy: (Number(DATA.historical_years[DATA.historical_years.length - 1]) + years[0].fiscal_year) / 2,
       series: [
         { label: "Revenue (actual)", points: histSeries, color: "#1F3864" },
         { label: "Revenue (forecast)", points: [histSeries[histSeries.length - 1], ...fcstSeries], color: "#1F3864", dashed: true },
@@ -226,8 +231,29 @@
 
     document.getElementById("scenario-narrative-snapshot").textContent = sc.narrative;
     renderExecutiveCommentary(sc, hz, capTerminal);
+    renderScenarioTakeaway(hz);
 
     renderComparisonTable();
+  }
+
+  // Dynamic, per-scenario "so what" line under the scenario toggle --
+  // every number below is read directly from DATA (never invented), and
+  // the Downside erosion percentage is computed live against Base, not
+  // hardcoded, so it can never drift from what the model actually outputs.
+  function renderScenarioTakeaway(hz) {
+    const baseHz = DATA.scenarios.base.capacity_horizon_summary;
+    const takeawayEl = document.getElementById("scenario-takeaway");
+    if (currentScenario === "base") {
+      takeawayEl.textContent =
+        `Five-year net horizon capacity of ${fmtM(hz.net_horizon_deployable_capacity)} supports ${fmtM(hz.cumulative_discretionary_deployment)} in cumulative discretionary deployment through FY2030, leaving ${fmtM(hz.terminal_remaining_headroom)} of FY2030 headroom.`;
+    } else if (currentScenario === "upside") {
+      takeawayEl.textContent =
+        `Stronger performance funds ${fmtM(hz.cumulative_discretionary_deployment)} in cumulative discretionary deployment and carries a ${fmtM(hz.terminal_forward_debt_repayment_reserve)} forward debt-service reserve, leaving ${fmtM(hz.terminal_remaining_headroom)} of FY2030 headroom -- net horizon capacity of ${fmtM(hz.net_horizon_deployable_capacity)}, below Base once that reserve and deployment are netted out.`;
+    } else {
+      const erosionPct = ((baseHz.net_horizon_deployable_capacity - hz.net_horizon_deployable_capacity) / baseHz.net_horizon_deployable_capacity) * 100;
+      takeawayEl.textContent =
+        `Zero discretionary deployment preserves ${fmtM(hz.terminal_remaining_headroom)} of FY2030 headroom, holding net horizon capacity at ${fmtM(hz.net_horizon_deployable_capacity)} -- a ${erosionPct.toFixed(1)}% decline from Base's ${fmtM(baseHz.net_horizon_deployable_capacity)}, achieved by restraint, not performance.`;
+    }
   }
 
   // The full narrative (sc.narrative) is preserved verbatim inside the
@@ -264,20 +290,63 @@
     const baseCapTerminal = baseSc.capacity_taxonomy_by_year[String(baseTerminal.fiscal_year)];
     const baseHz = baseSc.capacity_horizon_summary;
     const { totalChecks, totalPass } = validationTotals();
+    const hist2025 = DATA.historical["2025"];
 
     const strip = document.getElementById("hero-kpi-strip");
     strip.innerHTML = "";
+    // badge: a short institutional classification tag, distinct from the
+    // taxonomy's STOCK/FLOW/SOURCE/USE/RESERVE badges used in Investment
+    // Capacity -- these four are already-netted headline metrics, not raw
+    // capital-stack components, so a taxonomy badge here would misrepresent
+    // (e.g. FCF is already net of CapEx; labeling it FLOW would invite
+    // double-counting it against CapEx shown again elsewhere).
     const cards = [
-      ["FY25A Free Cash Flow", fmtM(DATA.historical["2025"].free_cash_flow)],
-      ["FY30E Base Remaining Headroom", fmtM(baseCapTerminal.remaining_deployable_headroom)],
-      ["5-Year Base Net Horizon Deployable Capacity", fmtM(baseHz.net_horizon_deployable_capacity)],
-      ["Model Validation", `${totalPass} / ${totalChecks} PASS`],
+      { badge: "AUDITED ACTUAL", label: "FY25A Free Cash Flow", value: fmtM(hist2025.free_cash_flow), subtext: `Net of ${fmtM(hist2025.capital_expenditure)} FY25A CapEx` },
+      { badge: "5-YEAR CAPACITY", label: "5-Year Base Net Horizon Deployable Capacity", value: fmtM(baseHz.net_horizon_deployable_capacity), subtext: "FY26–FY30, net of reserves" },
+      { badge: "RESIDUAL HEADROOM", label: "FY30E Base Remaining Headroom", value: fmtM(baseCapTerminal.remaining_deployable_headroom), subtext: "FY2030, post-deployment & reserves" },
+      { badge: "VALIDATION", label: "Model Validation", value: `${totalPass} / ${totalChecks} PASS`, subtext: `Reconciled across ${DATA.sources.length} SEC filings` },
     ];
-    cards.forEach(([label, value]) => {
+    cards.forEach((c) => {
       strip.appendChild(
         el("div", { class: "hero-kpi-card" }, [
-          el("div", { class: "hero-kpi-label", text: label }),
-          el("div", { class: "hero-kpi-value", text: value }),
+          el("div", { class: "hero-kpi-badge", text: c.badge }),
+          el("div", { class: "hero-kpi-label", text: c.label }),
+          el("div", { class: "hero-kpi-value", text: c.value }),
+          el("div", { class: "hero-kpi-subtext", text: c.subtext }),
+        ])
+      );
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Executive briefing memo -- a fixed, Base-anchored institutional summary
+  // (distinct from the per-scenario "so what" line under the toggle, which
+  // updates live). Every number is read from DATA; the 4 lines are labeled
+  // by category so a reviewer can tell a filed fact from a stated
+  // assumption from a computed outcome from a qualitative synthesis --
+  // never blended into one undifferentiated paragraph.
+  // -----------------------------------------------------------------------
+  function renderExecutiveBriefingMemo() {
+    const baseSc = DATA.scenarios.base;
+    const baseTerminal = baseSc.years[baseSc.years.length - 1];
+    const baseCapTerminal = baseSc.capacity_taxonomy_by_year[String(baseTerminal.fiscal_year)];
+    const baseHz = baseSc.capacity_horizon_summary;
+    const hist2025 = DATA.historical["2025"];
+
+    const lines = [
+      { tag: "HISTORICAL FACT", text: `FY2025 free cash flow (CFO − CapEx) was ${fmtM(hist2025.free_cash_flow)}, audited across ${DATA.sources.length} SEC 10-K/10-Q filings (information cutoff ${DATA.information_cutoff}).` },
+      { tag: "MODEL ASSUMPTION", text: `The Base case assumes ${fmtPct(baseTerminal.revenue_growth_pct)} annual revenue growth, reaching ${fmtPct(baseTerminal.gross_margin_pct)} gross margin by FY2030.` },
+      { tag: "MODELED OUTCOME", text: `Under Base, this computes to ${fmtM(baseHz.net_horizon_deployable_capacity)} in five-year (FY2026–FY2030) net horizon deployable capacity, net of ${fmtM(baseHz.ending_reserve_movement)} in reserve movement, leaving ${fmtM(baseCapTerminal.remaining_deployable_headroom)} of FY2030 remaining headroom.` },
+      { tag: "MANAGEMENT IMPLICATION", text: "Discretionary deployment and reserve requirements -- not revenue growth alone -- are what ultimately determine how much of this capacity remains as flexible headroom; see the scenario takeaway below for how that plays out under Upside and Downside." },
+    ];
+
+    const memo = document.getElementById("executive-briefing-memo");
+    memo.innerHTML = "";
+    lines.forEach((line) => {
+      memo.appendChild(
+        el("p", { class: "executive-briefing-line" }, [
+          el("span", { class: "executive-briefing-tag", text: line.tag }),
+          document.createTextNode(" " + line.text),
         ])
       );
     });
@@ -1136,6 +1205,7 @@
         DATA = data;
         renderHeader();
         renderHeroKpiStrip();
+        renderExecutiveBriefingMemo();
         document.getElementById("header-download-excel").href =
           `${REPO_URL}/raw/${REPO_BRANCH}/deliverables/Target_Cash_Flow_Investment_Capacity_Model.xlsx`;
         document.getElementById("header-download-excel").setAttribute("download", "");

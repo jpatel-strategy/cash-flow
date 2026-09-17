@@ -171,7 +171,7 @@
   // tooltipFields: optional array subset of ["fiscalYear","metric","value","classification"].
   // valueLabel: optional short axis-title text drawn top-left of the plot area.
   // -----------------------------------------------------------------------
-  function lineChart(container, { series, width = 560, height = 260, formatter = "millions", headroom = 0.2, tooltipFields, valueLabel }) {
+  function lineChart(container, { series, width = 560, height = 260, formatter = "millions", headroom = 0.2, tooltipFields, valueLabel, boundaryFy }) {
     clear(container);
     const fmt = resolveFormatter(formatter);
     const fields = tooltipFields || ["fiscalYear", "metric", "value", "classification"];
@@ -214,6 +214,32 @@
       t.textContent = "FY" + fy;
       svg.appendChild(t);
     });
+
+    // Historical-vs-forecast boundary -- only drawn when the caller passes
+    // boundaryFy (a chart genuinely mixing actual and forecast points in
+    // the same series); a subtle dashed rule plus two small watermark
+    // labels, positioned in the guaranteed-empty headroom band above the
+    // tallest point (see calculateDomain/LABEL_TOP_MARGIN) so it never
+    // overlaps real data.
+    if (boundaryFy !== undefined && boundaryFy > xs[0] && boundaryFy < xs[xs.length - 1]) {
+      const bx = xScale(boundaryFy);
+      svg.appendChild(svgEl("line", {
+        x1: bx, x2: bx, y1: margin.top, y2: margin.top + h,
+        stroke: GREY, "stroke-dasharray": "4,3", "stroke-width": 1, opacity: 0.5,
+      }));
+      const leftLabel = svgEl("text", {
+        x: bx - 6, y: margin.top + 10, "font-size": 8.5, fill: GREY, "text-anchor": "end",
+        "font-weight": "600", "letter-spacing": "0.03em", opacity: 0.65, "data-role": "boundary-label",
+      });
+      leftLabel.textContent = "AUDITED ACTUALS";
+      svg.appendChild(leftLabel);
+      const rightLabel = svgEl("text", {
+        x: bx + 6, y: margin.top + 10, "font-size": 8.5, fill: GREY, "text-anchor": "start",
+        "font-weight": "600", "letter-spacing": "0.03em", opacity: 0.65, "data-role": "boundary-label",
+      });
+      rightLabel.textContent = "PROJECTED HORIZON";
+      svg.appendChild(rightLabel);
+    }
 
     const hitTargets = [];
     series.forEach((s, i) => {

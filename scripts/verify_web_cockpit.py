@@ -174,6 +174,92 @@ with sync_playwright() as p:
     page.click('button[data-scenario="base"]')
     page.wait_for_timeout(200)
 
+    # --- Institutional headline ---
+    check(page.locator("h1").inner_text().strip() == "Target Corporation: Capital Allocation Architecture & Headroom Analysis", "H1 shows the institutional headline")
+
+    # --- Hero KPI ribbon: classification badges + subtext, real values only ---
+    hero_cards = hero_strip.locator(".hero-kpi-card")
+    for i, expected_badge in enumerate(["AUDITED ACTUAL", "5-YEAR CAPACITY", "RESIDUAL HEADROOM", "VALIDATION"]):
+        badge_text = hero_cards.nth(i).locator(".hero-kpi-badge").inner_text().strip().upper()
+        check(badge_text == expected_badge, f"Hero KPI card {i} carries the classification badge {expected_badge!r} (found {badge_text!r})")
+    check(f"${round(data['historical']['2025']['capital_expenditure']):,}".replace(",", "") in hero_cards.nth(0).inner_text().replace(",", ""), "Hero KPI subtext: FY25A CapEx figure matches Python exactly (not the fabricated $2.8B)")
+    check(f"{len(data['sources'])}" in hero_cards.nth(3).inner_text(), "Hero KPI subtext: SEC filing count matches Python exactly")
+
+    # --- (New) Executive briefing memo: 4 labeled lines, every number
+    # sourced live from model_data.json -- never the fabricated Upside/
+    # Downside figures from an external, unverified brief.
+    memo_text = page.locator("#executive-briefing-memo").inner_text()
+    for required_tag in ["HISTORICAL FACT", "MODEL ASSUMPTION", "MODELED OUTCOME", "MANAGEMENT IMPLICATION"]:
+        check(required_tag in memo_text, f"Executive briefing memo includes the {required_tag!r} category label")
+    check(f"${round(data['historical']['2025']['free_cash_flow']):,}".replace(",", "") in memo_text.replace(",", ""), "Executive briefing memo: FY25A FCF matches Python exactly")
+    base_terminal_year = data["scenarios"]["base"]["years"][-1]
+    check(f"{base_terminal_year['revenue_growth_pct']:.1f}%" in memo_text, "Executive briefing memo: Base revenue growth assumption matches Python exactly")
+    check(f"{base_terminal_year['gross_margin_pct']:.1f}%" in memo_text, "Executive briefing memo: Base terminal gross margin assumption matches Python exactly")
+    check(f"${round(base_hz['net_horizon_deployable_capacity']):,}".replace(",", "") in memo_text.replace(",", ""), "Executive briefing memo: Base net horizon capacity matches Python exactly")
+    # Explicitly guard against the fabricated figures from the rejected brief ever leaking in.
+    for forbidden in ["14.1B", "14,100", "$1.5B", "54-year", "3.2B", "$3,200"]:
+        check(forbidden not in memo_text, f"Executive briefing memo never contains the fabricated/unverified figure {forbidden!r}")
+
+    # --- (New) Dynamic scenario takeaway: updates per scenario, every
+    # number computed live (including the Downside erosion %, computed
+    # against Base here in Python independently of the JS that renders it).
+    takeaway = page.locator("#scenario-takeaway")
+    base_takeaway_text = takeaway.inner_text()
+    check(f"${round(base_hz['net_horizon_deployable_capacity']):,}".replace(",", "") in base_takeaway_text.replace(",", ""), "Scenario takeaway (Base): net horizon capacity matches Python exactly")
+    check(f"${round(base_hz['cumulative_discretionary_deployment']):,}".replace(",", "") in base_takeaway_text.replace(",", ""), "Scenario takeaway (Base): cumulative discretionary deployment matches Python exactly")
+
+    page.click('button[data-scenario="upside"]')
+    page.wait_for_timeout(250)
+    upside_hz_full = data["scenarios"]["upside"]["capacity_horizon_summary"]
+    upside_takeaway_text = page.locator("#scenario-takeaway").inner_text()
+    check(f"${round(upside_hz_full['cumulative_discretionary_deployment']):,}".replace(",", "") in upside_takeaway_text.replace(",", ""), "Scenario takeaway (Upside): cumulative discretionary deployment matches Python exactly (not the fabricated $14.1B capacity claim)")
+    check(f"${round(upside_hz_full['terminal_forward_debt_repayment_reserve']):,}".replace(",", "") in upside_takeaway_text.replace(",", ""), "Scenario takeaway (Upside): forward debt-service reserve matches Python exactly")
+    check(f"${round(upside_hz_full['net_horizon_deployable_capacity']):,}".replace(",", "") in upside_takeaway_text.replace(",", ""), "Scenario takeaway (Upside): net horizon capacity matches Python exactly (real figure, below Base)")
+
+    page.click('button[data-scenario="downside"]')
+    page.wait_for_timeout(250)
+    downside_hz_full = data["scenarios"]["downside"]["capacity_horizon_summary"]
+    expected_erosion_pct = (base_hz["net_horizon_deployable_capacity"] - downside_hz_full["net_horizon_deployable_capacity"]) / base_hz["net_horizon_deployable_capacity"] * 100
+    downside_takeaway_text = page.locator("#scenario-takeaway").inner_text()
+    check(f"{expected_erosion_pct:.1f}%" in downside_takeaway_text, f"Scenario takeaway (Downside): erosion % computed live matches Python exactly ({expected_erosion_pct:.1f}%, not the fabricated -74%)")
+    check(f"${round(downside_hz_full['net_horizon_deployable_capacity']):,}".replace(",", "") in downside_takeaway_text.replace(",", ""), "Scenario takeaway (Downside): net horizon capacity matches Python exactly")
+    page.click('button[data-scenario="base"]')
+    page.wait_for_timeout(250)
+
+    # --- (New) Historical-vs-forecast chart divider: only on the one chart
+    # genuinely mixing actual and forecast points (chart-revenue-fcf) --
+    # never on an actuals-only or forecast-only chart.
+    def chart_text_labels(chart_id):
+        return set(page.eval_on_selector_all(f"#{chart_id} svg text", "els => els.map(el => el.textContent)"))
+
+    mixed_chart_labels = chart_text_labels("chart-revenue-fcf")
+    check({"AUDITED ACTUALS", "PROJECTED HORIZON"} <= mixed_chart_labels, "chart-revenue-fcf (mixed actual+forecast) carries the historical/forecast boundary watermark")
+    actuals_only_labels = chart_text_labels("chart-historical")
+    check("AUDITED ACTUALS" not in actuals_only_labels and "PROJECTED HORIZON" not in actuals_only_labels, "chart-historical (actuals-only) does NOT carry the boundary watermark")
+    forecast_only_labels = chart_text_labels("chart-forecast-income")
+    check("AUDITED ACTUALS" not in forecast_only_labels and "PROJECTED HORIZON" not in forecast_only_labels, "chart-forecast-income (forecast-only) does NOT carry the boundary watermark")
+
+    # --- (New) Progressive-disclosure accordions: closed by default,
+    # correct summary text, and opening one reveals the real underlying
+    # data (never hidden data that silently diverges from Python).
+    vintage_accordion = page.locator("#table-vintage").locator("xpath=ancestor::details[contains(@class,'audit-accordion')]")
+    check(vintage_accordion.count() == 1, "Filing-vintage table is wrapped in an audit-accordion <details>")
+    check(vintage_accordion.get_attribute("open") is None, "Filing-vintage accordion starts closed")
+    check(page.locator("#table-vintage").is_visible() is False, "Filing-vintage table is not visible before the accordion is opened")
+    vintage_accordion.locator("summary").click()
+    page.wait_for_timeout(150)
+    check(page.locator("#table-vintage").is_visible(), "Filing-vintage table becomes visible after opening the accordion")
+    check(len(page.locator("#table-vintage").inner_text()) > 0, "Filing-vintage table has real content once opened")
+
+    sources_accordion = page.locator("#table-sources").locator("xpath=ancestor::details[contains(@class,'audit-accordion')]")
+    check(sources_accordion.count() == 1, "Source-filings table is wrapped in an audit-accordion <details>")
+    check("Inspect SEC Source Reconciliation" in sources_accordion.locator("summary").inner_text(), "Source-filings accordion carries the required summary text")
+    check(sources_accordion.get_attribute("open") is None, "Source-filings accordion starts closed")
+    sources_accordion.locator("summary").click()
+    page.wait_for_timeout(150)
+    sources_text = page.locator("#table-sources").inner_text()
+    check(str(len(data["sources"])) in sources_text or len(sources_text) > 0, "Source-filings table has real content once opened")
+
     # --- Header metadata + actions ---
     hero_meta_text = page.locator(".hero-meta").inner_text()
     cutoff_date = datetime.strptime(data["information_cutoff"], "%Y-%m-%d")
@@ -256,7 +342,7 @@ with sync_playwright() as p:
     # in each chart's own <svg>, distinct from x-axis fiscal-year labels
     # (text-anchor="middle") and the optional valueLabel axis title.
     def axis_tick_texts(chart_id):
-        return page.eval_on_selector_all(f"#{chart_id} svg text[text-anchor='end']", "els => els.map(el => el.textContent)")
+        return page.eval_on_selector_all(f"#{chart_id} svg text[text-anchor='end']:not([data-role])", "els => els.map(el => el.textContent)")
 
     margin_ticks = axis_tick_texts("chart-forecast-margin-pct")
     check(len(margin_ticks) > 0, "Margins chart renders y-axis tick labels")

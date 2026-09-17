@@ -9,7 +9,7 @@ remain fully recoverable from git history
 
 Verified: 2026-09-17 (UTC).
 Financial baseline commit (last commit to touch `data/model_data.json` -- the numbers shown are unchanged since this commit): `fff9b9c5cedb8ec485d1720b74d896adae65089d`.
-UI build source commit (the presentation-layer code rendered when these screenshots were captured): `859e074fb9a8c002d8f1498a12e4f83cdad8eff2`.
+UI build source commit (the presentation-layer code rendered when these screenshots were captured): `4e383ef8d3c8df03f0d38e86bf712a5a8f320101`.
 
 Note on self-reference: this README ships inside a later commit than the
 one recorded above as the "UI build source" -- a file cannot cite the

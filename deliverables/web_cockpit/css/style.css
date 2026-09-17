@@ -44,7 +44,8 @@ body {
 }
 
 .data-table, .kpi-value, .chart-tooltip, .whatif-value, .hero-kpi-value,
-.chart-target text, .wf-line, .evidence-list dd {
+.chart-target text, .wf-line, .evidence-list dd,
+.hero-kpi-subtext, .executive-briefing-memo, .scenario-takeaway {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
@@ -133,6 +134,38 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: var(--light-blue); margin-bottom: 2px;
 }
 .hero-kpi-value { font-size: 1.15rem; font-weight: 700; color: var(--white); }
+.hero-kpi-badge {
+  display: inline-block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--gold); margin-bottom: 4px;
+}
+.hero-kpi-subtext { font-size: 0.72rem; color: var(--light-blue); margin-top: 2px; opacity: 0.85; }
+
+/* ============= EXECUTIVE BRIEFING MEMO ============= */
+.executive-briefing-memo {
+  background: rgba(255,255,255,0.06);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-4);
+  max-width: 72ch;
+}
+.executive-briefing-line {
+  margin: 0 0 var(--space-2);
+  font-size: 0.88rem;
+  color: var(--light-blue);
+}
+.executive-briefing-line:last-child { margin-bottom: 0; }
+.executive-briefing-tag {
+  display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--gold); margin-right: 6px; white-space: nowrap;
+}
+
+/* ============= SCENARIO TAKEAWAY ============= */
+.scenario-takeaway {
+  font-size: 0.88rem; font-weight: 600; color: var(--white);
+  background: rgba(255,255,255,0.08); border-radius: var(--radius);
+  padding: 8px 14px; margin: 0 0 var(--space-4); max-width: 72ch;
+}
 
 .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
 .btn-header-action {
@@ -484,6 +517,11 @@ main { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-3); }
   cursor: pointer; font-weight: 700; color: var(--navy); padding: 6px 0;
 }
 .evidence-panel[open] summary { margin-bottom: var(--space-2); }
+/* audit-accordion summaries carry their own "▶" glyph in the text itself,
+   so the browser's native disclosure marker is suppressed to avoid a
+   double-arrow. */
+.audit-accordion > summary { list-style: none; }
+.audit-accordion > summary::-webkit-details-marker { display: none; }
 .evidence-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px var(--space-3); margin: 0; }
 .evidence-list dt { font-weight: 600; color: var(--navy-dark); }
 .evidence-list dd { margin: 0; color: var(--muted); }

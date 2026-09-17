@@ -28,9 +28,11 @@
   <div class="hero">
     <div class="hero-inner">
       <p class="hero-kicker">Independent portfolio case study — not affiliated with Target Corporation</p>
-      <h1>Target Cash Flow &amp; Investment Capacity Decision Cockpit</h1>
+      <h1>Target Corporation: Capital Allocation Architecture &amp; Headroom Analysis</h1>
       <p class="hero-subtitle">SEC-filed history → scenario planning → capital allocation → valuation</p>
       <p class="hero-question">The business question: given Target's actual FY2021–FY2025 results, how much cash could it safely deploy through FY2030 under three explicit scenarios — and how much of that is really net of the reserves it must hold back?</p>
+
+      <div class="executive-briefing-memo" id="executive-briefing-memo" aria-label="Executive briefing memo"></div>
 
       <div class="scenario-selector hero-scenario-selector" role="radiogroup" aria-label="Scenario selector">
         <span class="scenario-label">Scenario:</span>
@@ -38,6 +40,7 @@
         <button type="button" class="scenario-btn" data-scenario="upside" role="radio" aria-checked="false">Upside</button>
         <button type="button" class="scenario-btn" data-scenario="downside" role="radio" aria-checked="false">Downside</button>
       </div>
+      <p class="scenario-takeaway" id="scenario-takeaway" role="status"></p>
 
       <div class="hero-ctas">
         <a class="btn btn-primary" href="#tour">View the 30-second summary</a>
@@ -163,9 +166,11 @@
     <p class="panel-sub">These four figures are frequently confused. Each is a distinct, independently sourced measure — never substituted for one another anywhere in this project.</p>
     <div class="definition-grid" id="cash-definitions-grid"></div>
 
-    <h3 class="section-divider">Filing-Vintage Comparison (As-Filed vs. Restated)</h3>
-    <p class="panel-sub">Where a later filing restated an earlier one, both vintages are preserved — never silently overwritten.</p>
-    <div class="table-wrap"><table id="table-vintage" class="data-table"></table></div>
+    <details class="evidence-panel audit-accordion">
+      <summary>▶ Inspect Filing-Vintage Reconciliation (As-Filed vs. Restated)</summary>
+      <p class="panel-sub">Where a later filing restated an earlier one, both vintages are preserved — never silently overwritten.</p>
+      <div class="table-wrap"><table id="table-vintage" class="data-table"></table></div>
+    </details>
 
     <h3 class="section-divider">Quarterly Cash Seasonality (Independent of the Forecast Model)</h3>
     <div class="chart-card full">
@@ -345,8 +350,10 @@
   <section id="audit" class="panel" aria-labelledby="audit-h">
     <h2 id="audit-h">Audit &amp; Methodology</h2>
 
-    <h3>Source Filings</h3>
-    <div class="table-wrap"><table id="table-sources" class="data-table"></table></div>
+    <details class="evidence-panel audit-accordion">
+      <summary>▶ Inspect SEC Source Reconciliation &amp; Footnote Provenance (8 Filings)</summary>
+      <div class="table-wrap"><table id="table-sources" class="data-table"></table></div>
+    </details>
 
     <h3 class="section-divider">Validation &amp; Methodology-Correction Timeline</h3>
     <div class="table-wrap"><table id="table-audit-checks" class="data-table"></table></div>
