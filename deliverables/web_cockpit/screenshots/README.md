@@ -7,7 +7,15 @@ stale screenshot never lingers alongside a fresh one. Prior versions
 remain fully recoverable from git history
 (`git log -- deliverables/web_cockpit/screenshots/`).
 
-Verified: 2026-09-17 (UTC), against commit `27bab65c098418eb5e9772fd26e8f86a1b1033e9`.
+Verified: 2026-09-17 (UTC).
+Financial baseline commit (last commit to touch `data/model_data.json` -- the numbers shown are unchanged since this commit): `fff9b9c5cedb8ec485d1720b74d896adae65089d`.
+UI build source commit (the presentation-layer code rendered when these screenshots were captured): `1ce4a53fe65c7d3f2e45af4087a286f62548cd1d`.
+
+Note on self-reference: this README ships inside a later commit than the
+one recorded above as the "UI build source" -- a file cannot cite the
+hash of the commit that first contains it, since that hash does not
+exist yet at generation time. Run `git log -1 --format=%H -- deliverables/web_cockpit/screenshots/README.md` for the exact commit
+this file itself ships in.
 
 | # | Filename | Viewport | Scenario | Purpose |
 |---|---|---|---|---|
@@ -20,6 +28,6 @@ Verified: 2026-09-17 (UTC), against commit `27bab65c098418eb5e9772fd26e8f86a1b10
 | 7 | `07_whatif_lab.png` | 1440x1000 desktop | Base | Illustrative What-If Lab: dashed-border treatment, baseline-vs-output side by side, changed-input indicator. |
 | 8 | `08_audit_evidence_panel.png` | 1440x1000 desktop | Base | Audit & Methodology section with the validation/correction-timeline table and an expanded evidence panel. |
 | 9 | `09_mobile_executive_view.png` | 390x844 mobile | Base | Mobile hero and top of the Overview section -- zero horizontal overflow. |
-| 10 | `10_mobile_capacity_view.png` | 390x844 mobile | Base | Mobile Investment Capacity section: horizon reconciliation table remains fully readable, values never clipped. |
+| 10 | `10_mobile_capacity_view.png` | 390x844 mobile | Base | Mobile Investment Capacity section: horizon reconciliation table stacks label-then-value per row below 480px, so both the label and its dollar value are simultaneously visible with zero horizontal scrolling. |
 
-Any screenshot dated or hashed earlier than the commit above (including any prior version of this package) is stale and must not be treated as representative of the current build -- see `docs/ui_ux_audit.md` §1 for a documented example of exactly this failure mode.
+Any prior version of this package (including any screenshot dated or hashed earlier than the UI build source commit above) is stale and must not be treated as representative of the current build -- see `docs/ui_ux_audit.md` §1 for a documented example of exactly this failure mode.

@@ -68,6 +68,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
 
 def serve():
     handler = lambda *a, **kw: QuietHandler(*a, directory=str(COCKPIT_DIR), **kw)
+    socketserver.TCPServer.allow_reuse_address = True
     httpd = socketserver.TCPServer(("127.0.0.1", PORT), handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
@@ -330,6 +331,48 @@ with sync_playwright() as p:
         page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="networkidle")
         body_width = page.evaluate("document.body.scrollWidth")
         check(body_width <= w + 1, f"No horizontal overflow at {name} (body scrollWidth={body_width}, viewport={w})")
+        page.close()
+    browser.close()
+
+    # --- Mobile: every #table-capacity-horizon VALUE cell is actually on
+    # screen (inside the visible table wrapper), not just "body doesn't
+    # overflow" -- a table can be scroll-contained and still hide its value
+    # column off to the right within that container, which is exactly the
+    # bug a prior release shipped (see docs/ui_ux_audit.md). This checks
+    # each cell's own bounding box against the viewport, so a value sitting
+    # outside the visible area is caught even when nothing overflows the
+    # page as a whole.
+    browser = p.chromium.launch(executable_path=CHROMIUM_PATH)
+    for name, w, h in [("390x844 mobile", 390, 844), ("360x800 mobile", 360, 800)]:
+        page = browser.new_page(viewport={"width": w, "height": h})
+        page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="networkidle")
+        page.evaluate("document.documentElement.style.scrollBehavior='auto'; document.getElementById('table-capacity-horizon').scrollIntoView();")
+        page.wait_for_timeout(200)
+
+        wrapper_box = page.eval_on_selector("#table-capacity-horizon", "el => { const r = el.closest('.table-wrap').getBoundingClientRect(); return {left:r.left, right:r.right, top:r.top, bottom:r.bottom}; }")
+        cell_boxes = page.eval_on_selector_all(
+            "#table-capacity-horizon tbody td",
+            "els => els.map(el => { const r = el.getBoundingClientRect(); return {text: el.textContent.trim(), left:r.left, right:r.right, width:r.width, height:r.height}; })",
+        )
+        check(len(cell_boxes) > 0, f"{name}: horizon table has value cells to check")
+        offscreen = [
+            c for c in cell_boxes
+            if c["width"] <= 0 or c["height"] <= 0 or c["left"] < -1 or c["right"] > w + 1
+        ]
+        check(
+            len(offscreen) == 0,
+            f"{name}: every horizon-table cell (label AND value) is fully within the {w}px viewport, none clipped or off-screen "
+            f"(found {len(offscreen)} problem cells: {[c['text'][:40] for c in offscreen]})",
+        )
+        # Specifically confirm the gross and net VALUE cells (not just labels) are visible, on screen, and match Python.
+        value_cells = [c for c in cell_boxes if c["text"].startswith("$")]
+        check(len(value_cells) >= 9, f"{name}: at least 9 dollar-value cells are visible in the horizon table (found {len(value_cells)})")
+        base_hz = data["scenarios"]["base"]["capacity_horizon_summary"]
+        gross_text = f"${round(base_hz['gross_horizon_funding_before_reserve_adjustments']):,}M"
+        net_text = f"${round(base_hz['net_horizon_deployable_capacity']):,}M"
+        value_texts = [c["text"] for c in value_cells]
+        check(gross_text in value_texts, f"{name}: gross value ({gross_text}) is on screen as its own visible cell, matching Python")
+        check(net_text in value_texts, f"{name}: net value ({net_text}) is on screen as its own visible cell, matching Python")
         page.close()
     browser.close()
 

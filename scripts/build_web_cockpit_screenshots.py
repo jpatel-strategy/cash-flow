@@ -55,6 +55,19 @@ def git_commit_hash() -> str:
         return "unknown"
 
 
+def git_last_commit_touching(path: str) -> str:
+    """The commit that last changed `path` in the current history -- used
+    to identify the financial-baseline commit (the last one to touch
+    model_data.json), independent of how many purely presentational
+    commits have landed since."""
+    try:
+        return subprocess.check_output(
+            ["git", "log", "-1", "--format=%H", "--", path], cwd=REPO_ROOT, text=True
+        ).strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
 def goto(page, port):
     page.goto(f"http://127.0.0.1:{port}/index.html", wait_until="networkidle")
     page.evaluate("document.documentElement.style.scrollBehavior='auto';")
@@ -171,14 +184,15 @@ def build():
         scroll_to(page, "#table-capacity-horizon")
         path = SCREENSHOTS_DIR / "10_mobile_capacity_view.png"
         page.screenshot(path=str(path))
-        manifest.append((path.name, "390x844 mobile", "Base", "Mobile Investment Capacity section: horizon reconciliation table remains fully readable, values never clipped."))
+        manifest.append((path.name, "390x844 mobile", "Base", "Mobile Investment Capacity section: horizon reconciliation table stacks label-then-value per row below 480px, so both the label and its dollar value are simultaneously visible with zero horizontal scrolling."))
         page.close()
 
         browser.close()
 
     httpd.shutdown()
 
-    commit = git_commit_hash()
+    ui_source_commit = git_commit_hash()
+    financial_baseline_commit = git_last_commit_touching("deliverables/web_cockpit/data/model_data.json")
     verified_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     readme_lines = [
         "# Web Cockpit Screenshot Package",
@@ -190,7 +204,16 @@ def build():
         "remain fully recoverable from git history",
         "(`git log -- deliverables/web_cockpit/screenshots/`).",
         "",
-        f"Verified: {verified_date} (UTC), against commit `{commit}`.",
+        f"Verified: {verified_date} (UTC).",
+        f"Financial baseline commit (last commit to touch `data/model_data.json` -- the numbers shown are unchanged since this commit): `{financial_baseline_commit}`.",
+        f"UI build source commit (the presentation-layer code rendered when these screenshots were captured): `{ui_source_commit}`.",
+        "",
+        "Note on self-reference: this README ships inside a later commit than the",
+        "one recorded above as the \"UI build source\" -- a file cannot cite the",
+        "hash of the commit that first contains it, since that hash does not",
+        "exist yet at generation time. Run `git log -1 --format=%H -- "
+        "deliverables/web_cockpit/screenshots/README.md` for the exact commit",
+        "this file itself ships in.",
         "",
         "| # | Filename | Viewport | Scenario | Purpose |",
         "|---|---|---|---|---|",
@@ -199,10 +222,11 @@ def build():
         readme_lines.append(f"| {i} | `{fname}` | {viewport} | {scenario} | {purpose} |")
     readme_lines.append("")
     readme_lines.append(
-        "Any screenshot dated or hashed earlier than the commit above (including "
-        "any prior version of this package) is stale and must not be treated as "
-        "representative of the current build -- see `docs/ui_ux_audit.md` §1 for "
-        "a documented example of exactly this failure mode."
+        "Any prior version of this package (including any screenshot dated or "
+        "hashed earlier than the UI build source commit above) is stale and "
+        "must not be treated as representative of the current build -- see "
+        "`docs/ui_ux_audit.md` §1 for a documented example of exactly this "
+        "failure mode."
     )
     (SCREENSHOTS_DIR / "README.md").write_text("\n".join(readme_lines) + "\n")
     print(f"Wrote {len(manifest)} screenshots + README.md to {SCREENSHOTS_DIR}")

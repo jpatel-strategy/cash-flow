@@ -350,6 +350,34 @@ main { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-3); }
 }
 .data-table:not(.reconciliation-table) th, .data-table:not(.reconciliation-table) td { white-space: nowrap; }
 
+/* Below ~480px the two-column layout above no longer fits label + value
+   side by side without horizontal scroll, and a scrolled-away value column
+   is exactly the failure this table exists to prevent (docs/ui_ux_audit.md
+   §2). Below that width, drop the min-width/table-layout entirely and
+   stack each row into a label-then-value card instead -- both are then
+   always on screen simultaneously, with zero horizontal scrolling. */
+@media (max-width: 480px) {
+  .reconciliation-table { table-layout: auto; min-width: 0; width: 100%; }
+  .reconciliation-table thead { display: none; }
+  .reconciliation-table tbody, .reconciliation-table tr, .reconciliation-table td {
+    display: block; width: 100%;
+  }
+  .reconciliation-table tr {
+    border: 1px solid #e0e0e0; border-radius: var(--radius);
+    padding: 8px 12px; margin-bottom: var(--space-2); background: var(--white);
+  }
+  .reconciliation-table td {
+    border: none; padding: 2px 0; text-align: left; white-space: normal;
+  }
+  .reconciliation-table td:first-child { font-size: 0.8rem; color: #555; }
+  .reconciliation-table td:last-child {
+    width: 100%; font-size: 1.05rem; font-weight: 700; color: var(--navy);
+  }
+  .reconciliation-table td.reclassified, .reconciliation-table td.reclassified-net {
+    display: block; width: 100%;
+  }
+}
+
 /* ============= PROOF BANNER ============= */
 .proof-banner {
   margin-top: var(--space-3);
