@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="1280" height="720" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1280" height="56" fill="#1F3864"/>
+<text x="20" y="26" font-family="Segoe UI, Arial" font-size="18" fill="#FFFFFF" font-weight="bold">Page 7: Capital Allocation Waterfall</text>
+<text x="20" y="46" font-family="Segoe UI, Arial" font-size="11" fill="#D9E2F3">Where every dollar of cash generated actually went -- with a live no-double-counting proof</text>
+<rect x="0" y="56" width="1280" height="34" fill="#D9E2F3"/>
+<text x="20" y="77" font-family="Segoe UI, Arial" font-size="11" fill="#1F3864">Filters/Slicers: Scenario selector, Fiscal Year</text>
+<rect x="20" y="100" width="900" height="320" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="470.0" y="254.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Waterfall Chart</text>
+<text x="470.0" y="272.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">8-step waterfall: Beginning Cash + CFO + CFI + Debt Proceeds - Debt Repay - Dividends - Buybacks - Mgmt-Selected Deployment = Ending Cash</text>
+<rect x="940" y="100" width="320" height="320" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="1100.0" y="254.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="1100.0" y="272.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">No-Double-Counting Proof: OK / MISMATCH</text>
+<rect x="20" y="440" width="1240" height="250" fill="#F2F2F2" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="640.0" y="559.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Table</text>
+<text x="640.0" y="577.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Waterfall steps vs Cash-Flow Bridge ending cash, all scenarios/years, side by side</text>
+<text x="1260" y="708" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="end">WIREFRAME MOCKUP -- schematic layout only, not an actual Power BI screenshot (Power BI Desktop unavailable in this build environment)</text>
+</svg>

@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const { lineChart, barChart, groupedBarChart, waterfallChart, fmtM } = window.TargetCashCharts;
+  const { lineChart, barChart, groupedBarChart, waterfallChart, fmtM, Formatters } = window.TargetCashCharts;
   const { runFromMetrics, computeCapacityTaxonomyForYears } = window.TargetCashFormulas;
 
   // Fixed categorical order for scenario identity -- never red/green, which
@@ -116,16 +116,20 @@
     const dcf = DATA.valuation.results[currentScenario];
     const hz = sc.capacity_horizon_summary;
     const capTerminal = sc.capacity_taxonomy_by_year[String(terminal.fiscal_year)];
-    const { totalChecks, totalPass } = validationTotals();
 
+    // Only the 3 metrics that actually change with the scenario selector
+    // live here -- the 4 fixed, audited baseline metrics (FY25A FCF,
+    // FY30E Base Remaining Headroom, 5-Year Base Net Horizon Deployable
+    // Capacity, Model Validation) live once, in the hero KPI strip, so no
+    // metric appears twice in the initial decision hierarchy. Net Horizon
+    // Deployable Capacity and Remaining Deployable Headroom for Upside/
+    // Downside remain fully visible via "Compare all 3 scenarios" below
+    // and in the Investment Capacity section's full detail.
     const grid = document.getElementById("kpi-grid");
     grid.innerHTML = "";
     grid.appendChild(kpiCard("FY2030 Revenue", fmtM(terminal.revenue), `${SCENARIO_LABELS[currentScenario]} scenario`));
     grid.appendChild(kpiCard("FY2030 Free Cash Flow", fmtM(terminal.free_cash_flow), "CFO − CapEx"));
-    grid.appendChild(kpiCard("5-Year Net Horizon Deployable Capacity", fmtM(hz.net_horizon_deployable_capacity), "FY2026–FY2030, net of reserves", "kpi-decision"));
-    grid.appendChild(kpiCard("FY2030 Remaining Deployable Headroom", fmtM(capTerminal.remaining_deployable_headroom), "a stock, not cumulative"));
     grid.appendChild(kpiCard("Implied DCF Value/Share", "$" + fmtNum(dcf.implied_value_per_share), "scenario-based, not a price target"));
-    grid.appendChild(kpiCard("Validation Status", `${totalPass}/${totalChecks} PASS`, "all checks, this version"));
 
     document.getElementById("headroom-note").textContent =
       "Remaining headroom is a liquidity and allocation outcome — not a performance score. A scenario can have stronger operating performance but lower remaining headroom because more capital was deployed or reserved.";
@@ -137,6 +141,7 @@
 
     const revChart = document.getElementById("chart-revenue-fcf");
     lineChart(revChart, {
+      formatter: "millions",
       series: [
         { label: "Revenue (actual)", points: histSeries, color: "#1F3864" },
         { label: "Revenue (forecast)", points: [histSeries[histSeries.length - 1], ...fcstSeries], color: "#1F3864", dashed: true },
@@ -155,7 +160,7 @@
       color: SCENARIO_COLORS[s],
     }));
     const capChart = document.getElementById("chart-capacity-by-scenario");
-    barChart(capChart, { bars: capBars });
+    barChart(capChart, { bars: capBars, formatter: "millions" });
     capChart.setAttribute("aria-label",
       `Bar chart: five-year net horizon deployable capacity by scenario — ` +
       capBars.map((b) => `${b.label} ${fmtM(b.value)}`).join(", ") + ".");
@@ -163,8 +168,62 @@
       "Net of reserves — see Investment Capacity below for the full gross-vs-net reconciliation. A higher-revenue scenario can show lower net capacity if it deploys or reserves more.";
 
     document.getElementById("scenario-narrative-snapshot").textContent = sc.narrative;
+    renderExecutiveCommentary(sc, hz, capTerminal);
 
     renderComparisonTable();
+  }
+
+  // The full narrative (sc.narrative) is preserved verbatim inside the
+  // "Full scenario logic and assumptions" <details> panel -- this only
+  // changes ITS PRESENTATION HIERARCHY, surfacing a short thesis (the
+  // narrative's own opening sentences, not a rewrite) and three already-
+  // computed, already-audited numbers as "implications" above the fold.
+  // Nothing here is invented commentary.
+  function renderExecutiveCommentary(sc, hz, capTerminal) {
+    const sentences = sc.narrative.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const thesis = sentences.slice(0, 2).join(" ");
+    document.getElementById("scenario-thesis").textContent = thesis;
+
+    const list = document.getElementById("scenario-implications");
+    list.innerHTML = "";
+    const implications = [
+      `Five-year net horizon deployable capacity: ${fmtM(hz.net_horizon_deployable_capacity)} (net of reserves).`,
+      `FY2030 remaining deployable headroom: ${fmtM(capTerminal.remaining_deployable_headroom)} (a stock, not a performance score).`,
+      `FY2030 discretionary deployment already committed: ${fmtM(capTerminal.total_discretionary_deployment)}.`,
+    ];
+    implications.forEach((text) => list.appendChild(el("li", { text })));
+  }
+
+  // -----------------------------------------------------------------------
+  // Hero KPI strip -- 4 fixed, audited Base-scenario metrics. Read directly
+  // from DATA (never a second hardcoded source of truth), always pinned to
+  // Base regardless of the scenario selector, since these are the audited
+  // reference values, not an exploratory view.
+  // -----------------------------------------------------------------------
+  function renderHeroKpiStrip() {
+    const baseSc = DATA.scenarios.base;
+    const baseYears = baseSc.years;
+    const baseTerminal = baseYears[baseYears.length - 1];
+    const baseCapTerminal = baseSc.capacity_taxonomy_by_year[String(baseTerminal.fiscal_year)];
+    const baseHz = baseSc.capacity_horizon_summary;
+    const { totalChecks, totalPass } = validationTotals();
+
+    const strip = document.getElementById("hero-kpi-strip");
+    strip.innerHTML = "";
+    const cards = [
+      ["FY25A Free Cash Flow", fmtM(DATA.historical["2025"].free_cash_flow)],
+      ["FY30E Base Remaining Headroom", fmtM(baseCapTerminal.remaining_deployable_headroom)],
+      ["5-Year Base Net Horizon Deployable Capacity", fmtM(baseHz.net_horizon_deployable_capacity)],
+      ["Model Validation", `${totalPass} / ${totalChecks} PASS`],
+    ];
+    cards.forEach(([label, value]) => {
+      strip.appendChild(
+        el("div", { class: "hero-kpi-card" }, [
+          el("div", { class: "hero-kpi-label", text: label }),
+          el("div", { class: "hero-kpi-value", text: value }),
+        ])
+      );
+    });
   }
 
   function renderComparisonTable() {
@@ -191,6 +250,7 @@
   function renderHistorical() {
     const years = DATA.historical_years;
     lineChart(document.getElementById("chart-historical"), {
+      formatter: "millions",
       series: [
         { label: "Revenue", points: years.map((fy) => ({ fy: Number(fy), value: DATA.historical[fy].revenue })), color: "#1F3864" },
         { label: "Gross Profit", points: years.map((fy) => ({ fy: Number(fy), value: DATA.historical[fy].gross_profit })), color: "#C9A227" },
@@ -234,7 +294,7 @@
     );
 
     const qChart = document.getElementById("chart-quarterly-cash");
-    barChart(qChart, { bars: DATA.quarterly_cash.map((q) => ({ label: q.as_of_date, value: q.value, color: "#1F3864" })) });
+    barChart(qChart, { bars: DATA.quarterly_cash.map((q) => ({ label: q.as_of_date, value: q.value, color: "#1F3864" })), formatter: "millions" });
     qChart.setAttribute("aria-label", "Bar chart of quarter-end cash balances, sourced from 10-Qs, independent of the forecast model.");
   }
 
@@ -266,6 +326,7 @@
     const years = DATA.scenarios[currentScenario].years;
 
     lineChart(document.getElementById("chart-forecast-income"), {
+      formatter: "millions",
       series: [
         { label: "Revenue", points: years.map((y) => ({ fy: y.fiscal_year, value: y.revenue })), color: "#1F3864", dashed: true },
         { label: "Gross Profit", points: years.map((y) => ({ fy: y.fiscal_year, value: y.gross_profit })), color: "#C9A227", dashed: true },
@@ -278,17 +339,21 @@
     // pattern that made both series unreadable in the prior build; see
     // docs/ui_ux_audit.md §3).
     lineChart(document.getElementById("chart-forecast-margin-pct"), {
+      formatter: "percent",
       series: [
         { label: "Gross Margin %", points: years.map((y) => ({ fy: y.fiscal_year, value: y.gross_margin_pct })), color: "#C9A227", dashed: true },
         { label: "Operating Margin %", points: years.map((y) => ({ fy: y.fiscal_year, value: y.operating_margin_pct })), color: "#2E7D74", dashed: true },
       ],
     });
     lineChart(document.getElementById("chart-forecast-eps"), {
+      formatter: "perShare",
+      valueLabel: "Diluted EPS ($/share)",
       series: [
-        { label: "Diluted EPS ($)", points: years.map((y) => ({ fy: y.fiscal_year, value: y.diluted_eps })), color: "#1F3864", dashed: true },
+        { label: "Diluted EPS", points: years.map((y) => ({ fy: y.fiscal_year, value: y.diluted_eps })), color: "#1F3864", dashed: true },
       ],
     });
     lineChart(document.getElementById("chart-forecast-cfo-fcf"), {
+      formatter: "millions",
       series: [
         { label: "CFO", points: years.map((y) => ({ fy: y.fiscal_year, value: y.operating_cash_flow })), color: "#1F3864", dashed: true },
         { label: "Free Cash Flow", points: years.map((y) => ({ fy: y.fiscal_year, value: y.free_cash_flow })), color: "#C9A227", dashed: true },
@@ -327,6 +392,7 @@
     const hz = sc.capacity_horizon_summary;
 
     waterfallChart(document.getElementById("chart-capacity-taxonomy"), {
+      formatter: "millions",
       steps: [
         { label: "Opening Excess Liquidity (STOCK)", amount: capTerminal.opening_excess_liquidity, isTotal: true },
         { label: "+ Self-Funded Capacity Generated", amount: capTerminal.self_funded_capacity_generated },
@@ -339,6 +405,7 @@
     });
 
     lineChart(document.getElementById("chart-capacity-series"), {
+      formatter: "millions",
       series: [
         { label: "Remaining Deployable Headroom", points: capYears.map((cy) => ({ fy: cy.fiscal_year, value: cy.remaining_deployable_headroom })), color: "#1F3864" },
         { label: "Discretionary Deployment (same year)", points: capYears.map((cy) => ({ fy: cy.fiscal_year, value: cy.total_discretionary_deployment })), color: "#C9A227" },
@@ -356,7 +423,7 @@
       };
     });
     const gvnChart = document.getElementById("chart-gross-vs-net");
-    groupedBarChart(gvnChart, { groups: grossNetGroups });
+    groupedBarChart(gvnChart, { groups: grossNetGroups, formatter: "millions" });
     gvnChart.setAttribute("aria-label",
       "Grouped bar chart, gross vs net five-year horizon capacity by scenario: " +
       grossNetGroups.map((g) => `${g.label} gross ${fmtM(g.bars[0].value)}, net ${fmtM(g.bars[1].value)}`).join("; ") + ".");
@@ -417,6 +484,7 @@
 
     // Legacy waterfall -- deprecated, kept only for backward compatibility.
     waterfallChart(document.getElementById("chart-bridge"), {
+      formatter: "millions",
       steps: [
         { label: "CFO", amount: terminal.operating_cash_flow },
         { label: "− CapEx", amount: -terminal.capital_expenditure },
@@ -469,6 +537,7 @@
     const sc = DATA.scenarios[currentScenario];
     const steps = sc.waterfall_by_year[String(currentWaterfallYear)];
     waterfallChart(document.getElementById("chart-waterfall"), {
+      formatter: "millions",
       steps: steps.map((s) => ({
         label: String(s.label).split("(")[0].trim(),
         amount: s.amount,
@@ -512,6 +581,7 @@
     );
 
     waterfallChart(document.getElementById("chart-valuation-bridge"), {
+      formatter: "millions",
       steps: result.bridge
         .filter((s) => s.step <= 5)
         .map((s) => ({
@@ -533,7 +603,7 @@
       color: SCENARIO_COLORS[s],
     }));
     const vpsChart = document.getElementById("chart-value-per-share-scenario");
-    barChart(vpsChart, { bars: vpsBars });
+    barChart(vpsChart, { bars: vpsBars, formatter: "perShare" });
     vpsChart.setAttribute("aria-label", "Bar chart, implied DCF value per share by scenario: " + vpsBars.map((b) => `${b.label} $${fmtNum(b.value)}`).join(", ") + ". Scenario analysis, not a price target.");
 
     const waccGrid = DATA.valuation.wacc_terminal_growth_sensitivity.grid;
@@ -774,6 +844,182 @@
   }
 
   // ---------------------------------------------------------------------
+  // Power BI Implementation Preview -- static wireframes of the real
+  // Power BI report pages this handoff package is built to produce.
+  // Explicitly NOT a live embedded .pbix report (Power BI Desktop was
+  // unavailable in the build environment); the wireframes and the CSV/
+  // DAX/page-spec zip above are the implementation-ready artifact.
+  // ---------------------------------------------------------------------
+  const POWERBI_TABS = [
+    {
+      id: "executive-overview",
+      label: "Executive Overview",
+      file: "powerbi_wireframes/page_01_executive_overview.svg",
+      alt: "Wireframe of the Power BI Executive Overview page: headline KPI cards, revenue and FCF trend, and scenario selector slicer.",
+    },
+    {
+      id: "scenario-explorer",
+      label: "Scenario Explorer",
+      file: "powerbi_wireframes/page_05_scenario_forecast_explorer.svg",
+      alt: "Wireframe of the Power BI Scenario Explorer page: Base/Upside/Downside forecast comparison charts and assumption detail table.",
+    },
+    {
+      id: "capacity-waterfall",
+      label: "Capacity Waterfall",
+      file: "powerbi_wireframes/page_07_capital_allocation_waterfall.svg",
+      alt: "Wireframe of the Power BI Capacity Waterfall page: capital allocation source/use waterfall chart and no-double-counting proof.",
+    },
+    {
+      id: "dcf-sensitivity",
+      label: "DCF Sensitivity",
+      file: "powerbi_wireframes/page_08_dcf_valuation_and_sensitivities.svg",
+      alt: "Wireframe of the Power BI DCF Sensitivity page: valuation bridge and WACC/terminal-growth sensitivity heatmap.",
+    },
+  ];
+
+  function wirePowerBiPreview() {
+    const tablist = document.getElementById("powerbi-tablist");
+    const panelWrap = document.getElementById("powerbi-tabpanel-wrap");
+    tablist.innerHTML = "";
+    panelWrap.innerHTML = "";
+
+    const tabs = POWERBI_TABS.map((t, i) => {
+      const tab = el("button", {
+        type: "button", role: "tab", id: `powerbi-tab-${t.id}`,
+        "aria-selected": String(i === 0), "aria-controls": `powerbi-panel-${t.id}`,
+        tabindex: i === 0 ? "0" : "-1", class: "powerbi-tab",
+        text: t.label,
+      });
+      tablist.appendChild(tab);
+      return tab;
+    });
+
+    const panels = POWERBI_TABS.map((t, i) => {
+      const panel = el("div", {
+        role: "tabpanel", id: `powerbi-panel-${t.id}`, "aria-labelledby": `powerbi-tab-${t.id}`,
+        class: "powerbi-tabpanel",
+      });
+      if (i !== 0) panel.hidden = true;
+      const img = el("img", { src: t.file, alt: t.alt, class: "powerbi-wireframe-img" });
+      panel.appendChild(img);
+      panelWrap.appendChild(panel);
+      return panel;
+    });
+
+    function selectTab(index) {
+      tabs.forEach((tab, i) => {
+        tab.setAttribute("aria-selected", String(i === index));
+        tab.setAttribute("tabindex", i === index ? "0" : "-1");
+        panels[i].hidden = i !== index;
+      });
+      tabs[index].focus();
+    }
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => selectTab(i));
+      tab.addEventListener("keydown", (evt) => {
+        if (evt.key === "ArrowRight") { evt.preventDefault(); selectTab((i + 1) % tabs.length); }
+        else if (evt.key === "ArrowLeft") { evt.preventDefault(); selectTab((i - 1 + tabs.length) % tabs.length); }
+        else if (evt.key === "Home") { evt.preventDefault(); selectTab(0); }
+        else if (evt.key === "End") { evt.preventDefault(); selectTab(tabs.length - 1); }
+      });
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Illustrative What-If presets -- adjust only sliders that already exist
+  // in the What-If Lab, within their existing min/max bounds. Never touch
+  // the official Base/Upside/Downside scenario objects; never persisted.
+  // ---------------------------------------------------------------------
+  const WHAT_IF_PRESETS = [
+    {
+      id: "cash-preservation",
+      label: "Cash Preservation",
+      description: "Lower buyback payout and a higher minimum cash buffer -- less discretionary deployment, more liquidity held back.",
+      deltas: { buyback_payout_pct_of_post_dividend_fcf: -20, min_cash_buffer_pct_of_revenue: 0.5 },
+    },
+    {
+      id: "automation-reinvestment",
+      label: "Automation Reinvestment",
+      description: "Higher CapEx as a % of revenue, funded by a lower buyback payout. This raises spend and lowers discretionary deployment only -- it does not assume any margin or productivity benefit, since no supported driver for one exists in this model.",
+      deltas: { capex_pct_of_revenue: 0.5, buyback_payout_pct_of_post_dividend_fcf: -15 },
+    },
+    {
+      id: "downside-liquidity-stress",
+      label: "Downside Liquidity Stress",
+      description: "Lower revenue growth and gross margin, combined with a higher minimum cash buffer -- an illustrative stress on liquidity, not an official Downside scenario variant.",
+      deltas: { revenue_growth_pct: -1.5, gross_margin_pct: -0.75, min_cash_buffer_pct_of_revenue: 0.5 },
+    },
+  ];
+
+  function clampToSliderRange(key, value) {
+    const slider = SLIDERS.find((s) => s.key === key);
+    if (!slider) return 0;
+    return Math.max(slider.range[0], Math.min(slider.range[1], value));
+  }
+
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function applyWhatIfPreset(preset) {
+    const startDeltas = { ...sliderDeltas };
+    const targetDeltas = {};
+    SLIDERS.forEach((s) => (targetDeltas[s.key] = 0));
+    for (const key in preset.deltas) {
+      targetDeltas[key] = clampToSliderRange(key, preset.deltas[key]);
+    }
+
+    if (prefersReducedMotion()) {
+      sliderDeltas = targetDeltas;
+      renderWhatIfControls();
+      recomputeWhatIf();
+      return;
+    }
+
+    const durationMs = 220;
+    const startTime = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - startTime) / durationMs);
+      SLIDERS.forEach((s) => {
+        sliderDeltas[s.key] = startDeltas[s.key] + (targetDeltas[s.key] - startDeltas[s.key]) * t;
+      });
+      const inputs = document.querySelectorAll("#whatif-controls input[type=range]");
+      inputs.forEach((input, i) => {
+        input.value = sliderDeltas[SLIDERS[i].key];
+      });
+      document.querySelectorAll("#whatif-controls .whatif-value").forEach((span, i) => {
+        const key = SLIDERS[i].key;
+        const v = sliderDeltas[key];
+        span.textContent = (v >= 0 ? "+" : "") + v.toFixed(2);
+      });
+      recomputeWhatIf();
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        sliderDeltas = targetDeltas;
+        renderWhatIfControls();
+        recomputeWhatIf();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function wireWhatIfPresets() {
+    const container = document.getElementById("whatif-presets");
+    container.innerHTML = "";
+    WHAT_IF_PRESETS.forEach((preset) => {
+      const btn = el("button", { type: "button", class: "whatif-preset-btn", "aria-describedby": `whatif-preset-desc-${preset.id}` }, [
+        document.createTextNode(preset.label),
+      ]);
+      const desc = el("p", { class: "whatif-preset-desc", id: `whatif-preset-desc-${preset.id}`, text: preset.description });
+      btn.addEventListener("click", () => applyWhatIfPreset(preset));
+      const wrap = el("div", { class: "whatif-preset" }, [btn, desc]);
+      container.appendChild(wrap);
+    });
+  }
+
+  // ---------------------------------------------------------------------
   // Scenario selector + comparison toggle + scrollspy
   // ---------------------------------------------------------------------
   function wireScenarioSelector() {
@@ -836,9 +1082,15 @@
       .then((data) => {
         DATA = data;
         renderHeader();
+        renderHeroKpiStrip();
+        document.getElementById("header-download-excel").href =
+          `${REPO_URL}/raw/${REPO_BRANCH}/deliverables/Target_Cash_Flow_Investment_Capacity_Model.xlsx`;
+        document.getElementById("header-download-excel").setAttribute("download", "");
         wireScenarioSelector();
         wireComparisonToggle();
         wireScrollSpy();
+        wirePowerBiPreview();
+        wireWhatIfPresets();
         renderWaterfallYearSelector();
         renderHistorical();
         renderAudit();

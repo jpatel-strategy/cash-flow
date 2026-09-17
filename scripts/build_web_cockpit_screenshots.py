@@ -34,6 +34,7 @@ PORT = 8810
 
 DESKTOP = {"width": 1440, "height": 1000}
 MOBILE = {"width": 390, "height": 844}
+MOBILE_360 = {"width": 360, "height": 800}
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -123,6 +124,15 @@ def build():
         manifest.append((path.name, "1440x1000 desktop", "Base", "Historical Evidence section: actuals-only chart, cash-flow definitions, and filing-vintage comparison."))
         page.close()
 
+        # 3b. Scenario forecast (margins %, EPS $/share -- the corrected axis formatters)
+        page = browser.new_page(viewport=DESKTOP)
+        goto(page, PORT)
+        scroll_to(page, "#forecast")
+        path = SCREENSHOTS_DIR / "03b_scenario_forecast.png"
+        page.screenshot(path=str(path))
+        manifest.append((path.name, "1440x1000 desktop", "Base", "Scenario Forecast section: margins on a percent axis and diluted EPS on a $/share axis -- the corrected chart-unit formatters, no longer mislabeled in millions."))
+        page.close()
+
         # 4. Corrected capacity waterfall
         page = browser.new_page(viewport=DESKTOP)
         goto(page, PORT)
@@ -159,6 +169,15 @@ def build():
         manifest.append((path.name, "1440x1000 desktop", "Base", "Illustrative What-If Lab: dashed-border treatment, baseline-vs-output side by side, changed-input indicator."))
         page.close()
 
+        # 7b. What-if illustrative presets
+        page = browser.new_page(viewport=DESKTOP)
+        goto(page, PORT)
+        scroll_to(page, "#whatif-presets")
+        path = SCREENSHOTS_DIR / "07b_whatif_presets.png"
+        page.screenshot(path=str(path))
+        manifest.append((path.name, "1440x1000 desktop", "Base", "Illustrative What-If presets (Cash Preservation, Automation Reinvestment, Downside Liquidity Stress) with the sandbox-only badge and per-preset delta explanations."))
+        page.close()
+
         # 8. Audit / evidence panel
         page = browser.new_page(viewport=DESKTOP)
         goto(page, PORT)
@@ -168,6 +187,17 @@ def build():
         path = SCREENSHOTS_DIR / "08_audit_evidence_panel.png"
         page.screenshot(path=str(path))
         manifest.append((path.name, "1440x1000 desktop", "Base", "Audit & Methodology section with the validation/correction-timeline table and an expanded evidence panel."))
+        page.close()
+
+        # 8b. Power BI implementation preview
+        page = browser.new_page(viewport=DESKTOP)
+        goto(page, PORT)
+        scroll_to(page, ".powerbi-preview")
+        page.click('#powerbi-tablist [role="tab"]:nth-child(3)')
+        page.wait_for_timeout(150)
+        path = SCREENSHOTS_DIR / "08b_powerbi_implementation_preview.png"
+        page.screenshot(path=str(path))
+        manifest.append((path.name, "1440x1000 desktop", "Base", "Power BI Implementation Preview: accessible tab list over the offline wireframes, explicitly labeled as not a live embedded .pbix report."))
         page.close()
 
         # 9. Mobile executive view
@@ -185,6 +215,15 @@ def build():
         path = SCREENSHOTS_DIR / "10_mobile_capacity_view.png"
         page.screenshot(path=str(path))
         manifest.append((path.name, "390x844 mobile", "Base", "Mobile Investment Capacity section: horizon reconciliation table stacks label-then-value per row below 480px, so both the label and its dollar value are simultaneously visible with zero horizontal scrolling."))
+        page.close()
+
+        # 11. 360px mobile capacity reconciliation (narrowest required viewport)
+        page = browser.new_page(viewport=MOBILE_360)
+        goto(page, PORT)
+        scroll_to(page, "#table-capacity-horizon")
+        path = SCREENSHOTS_DIR / "11_mobile_360_capacity_reconciliation.png"
+        page.screenshot(path=str(path))
+        manifest.append((path.name, "360x800 mobile", "Base", "360px-wide Investment Capacity reconciliation: the narrowest required viewport, confirming both the gross ($9,304M) and net ($9,175M) value cells stay visible with zero horizontal overflow."))
         page.close()
 
         browser.close()

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<rect width="1280" height="720" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1280" height="56" fill="#1F3864"/>
+<text x="20" y="26" font-family="Segoe UI, Arial" font-size="18" fill="#FFFFFF" font-weight="bold">Page 1: Executive Overview</text>
+<text x="20" y="46" font-family="Segoe UI, Arial" font-size="11" fill="#D9E2F3">What happened, what's expected, how much can be deployed -- answered in one screen</text>
+<rect x="0" y="56" width="1280" height="34" fill="#D9E2F3"/>
+<text x="20" y="77" font-family="Segoe UI, Arial" font-size="11" fill="#1F3864">Filters/Slicers: Scenario selector (Base/Upside/Downside), Fiscal Year</text>
+<rect x="20" y="100" width="190" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="115.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="115.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Revenue FY2030</text>
+<rect x="220" y="100" width="190" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="315.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="315.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">FCF FY2030</text>
+<rect x="420" y="100" width="190" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="515.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="515.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Implied DCF Value/Share</text>
+<rect x="620" y="100" width="190" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="715.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="715.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Validation Status</text>
+<rect x="820" y="100" width="190" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="915.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="915.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Net Debt (Valuation Date)</text>
+<rect x="1020" y="100" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="1140.0" y="134.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="1140.0" y="152.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Funding Warning?</text>
+<rect x="20" y="190" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="140.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="140.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Opening Excess Liquidity (stock)</text>
+<rect x="270" y="190" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="390.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="390.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Self-Funded Capacity Generated</text>
+<rect x="520" y="190" width="240" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="640.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="640.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Debt-Funded Capacity (net of repayment)</text>
+<rect x="770" y="190" width="220" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="880.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="880.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Discretionary Deployment</text>
+<rect x="1000" y="190" width="260" height="80" fill="#D9E2F3" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="1130.0" y="224.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">KPI Card</text>
+<text x="1130.0" y="242.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Remaining Deployable Headroom (corrected KPI)</text>
+<rect x="20" y="290" width="610" height="200" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="325.0" y="384.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Line Chart</text>
+<text x="325.0" y="402.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Revenue &amp; FCF: Actual (solid) vs Forecast (dashed), FY21-FY30</text>
+<rect x="650" y="290" width="610" height="200" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="955.0" y="384.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Clustered Column</text>
+<text x="955.0" y="402.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Remaining Deployable Headroom by Scenario, FY2030 (with Discretionary Deployment shown alongside)</text>
+<rect x="20" y="510" width="610" height="180" fill="#FFFFFF" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="325.0" y="594.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Waterfall Chart</text>
+<text x="325.0" y="612.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Capital Allocation Waterfall (selected scenario)</text>
+<rect x="650" y="510" width="610" height="180" fill="#F2F2F2" stroke="#1F3864" stroke-width="1.5" rx="4"/>
+<text x="955.0" y="594.0" font-family="Segoe UI, Arial" font-size="13" fill="#1F3864" text-anchor="middle" dominant-baseline="middle">Table</text>
+<text x="955.0" y="612.0" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="middle" dominant-baseline="middle">Key Evidence Citations (filing, accession #, cutoff date)</text>
+<text x="1260" y="708" font-family="Segoe UI, Arial" font-size="10" fill="#7F7F7F" text-anchor="end">WIREFRAME MOCKUP -- schematic layout only, not an actual Power BI screenshot (Power BI Desktop unavailable in this build environment)</text>
+</svg>
