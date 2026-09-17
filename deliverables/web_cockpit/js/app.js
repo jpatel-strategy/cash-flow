@@ -30,6 +30,59 @@
     return v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
 
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // Animates a KPI value's own displayed number from its last rendered
+  // value to the new one on scenario switch, instead of an instant text
+  // swap -- the formatter (fmtM, "$"+fmtNum, ...) is applied every frame so
+  // the tween never displays a raw, unformatted number mid-flight.
+  function tweenNumber(el, fromValue, toValue, formatFn, durationMs = 220) {
+    if (!Number.isFinite(fromValue) || !Number.isFinite(toValue) || fromValue === toValue || prefersReducedMotion()) {
+      el.textContent = formatFn(toValue);
+      return;
+    }
+    const startTime = performance.now();
+    (function frame(now) {
+      const t = Math.min(1, (now - startTime) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 2); // ease-out quad
+      el.textContent = formatFn(fromValue + (toValue - fromValue) * eased);
+      if (t < 1) requestAnimationFrame(frame);
+    })(startTime);
+  }
+
+  // Last-rendered raw numeric value per Overview KPI card, keyed by
+  // data-kpi-key -- the "from" side of the next tween. Reset only on a
+  // fresh page load (module state, not persisted).
+  let kpiPrevValues = {};
+
+  // Renders a set of {key, label, value, format, context} specs into an
+  // executive KPI grid. On first paint it builds the cards fresh; on every
+  // later call (a scenario switch) it keeps the same DOM nodes and tweens
+  // each value from its previous number to the new one, so the executive
+  // reading the page sees a value move, not an unexplained instant swap.
+  function renderKpiGridWithTween(grid, specs) {
+    if (grid.children.length === 0) {
+      grid.innerHTML = "";
+      specs.forEach((spec) => {
+        const card = kpiCard(spec.label, spec.format(spec.value), spec.context);
+        card.dataset.kpiKey = spec.key;
+        grid.appendChild(card);
+        kpiPrevValues[spec.key] = spec.value;
+      });
+      return;
+    }
+    specs.forEach((spec) => {
+      const card = grid.querySelector(`[data-kpi-key="${spec.key}"]`);
+      if (!card) return;
+      const contextEl = card.querySelector(".kpi-context");
+      if (contextEl) contextEl.textContent = spec.context;
+      tweenNumber(card.querySelector(".kpi-value"), kpiPrevValues[spec.key], spec.value, spec.format);
+      kpiPrevValues[spec.key] = spec.value;
+    });
+  }
+
   function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
     for (const k in attrs) {
@@ -125,11 +178,15 @@
     // Deployable Capacity and Remaining Deployable Headroom for Upside/
     // Downside remain fully visible via "Compare all 3 scenarios" below
     // and in the Investment Capacity section's full detail.
-    const grid = document.getElementById("kpi-grid");
-    grid.innerHTML = "";
-    grid.appendChild(kpiCard("FY2030 Revenue", fmtM(terminal.revenue), `${SCENARIO_LABELS[currentScenario]} scenario`));
-    grid.appendChild(kpiCard("FY2030 Free Cash Flow", fmtM(terminal.free_cash_flow), "CFO − CapEx"));
-    grid.appendChild(kpiCard("Implied DCF Value/Share", "$" + fmtNum(dcf.implied_value_per_share), "scenario-based, not a price target"));
+    // Values are tweened from their prior number on a scenario switch
+    // (see renderKpiGridWithTween) rather than instantly swapped, so the
+    // change in each metric is visible, not just its new endpoint --
+    // skipped automatically under prefers-reduced-motion.
+    renderKpiGridWithTween(document.getElementById("kpi-grid"), [
+      { key: "fy2030-revenue", label: "FY2030 Revenue", value: terminal.revenue, format: fmtM, context: `${SCENARIO_LABELS[currentScenario]} scenario` },
+      { key: "fy2030-fcf", label: "FY2030 Free Cash Flow", value: terminal.free_cash_flow, format: fmtM, context: "CFO − CapEx" },
+      { key: "dcf-value-per-share", label: "Implied DCF Value/Share", value: dcf.implied_value_per_share, format: (v) => "$" + fmtNum(v), context: "scenario-based, not a price target" },
+    ]);
 
     document.getElementById("headroom-note").textContent =
       "Remaining headroom is a liquidity and allocation outcome — not a performance score. A scenario can have stronger operating performance but lower remaining headroom because more capital was deployed or reserved.";
@@ -956,10 +1013,6 @@
     const slider = SLIDERS.find((s) => s.key === key);
     if (!slider) return 0;
     return Math.max(slider.range[0], Math.min(slider.range[1], value));
-  }
-
-  function prefersReducedMotion() {
-    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
   function applyWhatIfPreset(preset) {
