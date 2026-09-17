@@ -57,6 +57,12 @@ under real scrutiny.
 Happy to walk through it with anyone hiring for FP&A, strategic finance,
 or finance-transformation roles.
 
+Interactive decision cockpit:
+https://jpatel-strategy.github.io/cash-flow/
+
+Evidence and source code:
+https://github.com/jpatel-strategy/cash-flow
+
 #FPandA #StrategicFinance #FinancialModeling #CorporateFinance
 
 ---

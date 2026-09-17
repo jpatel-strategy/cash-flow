@@ -1,5 +1,18 @@
 # Final Project Evidence
 
+> **⚠️ Superseded record — read this banner before relying on any figure below.**
+> This document is the original Milestone 8 closeout record. Its capacity
+> results, test totals, web-verification totals, and deployment status were
+> **superseded** by later semantic-audit and UI-release work:
+> - Current investment-capacity evidence: [`docs/investment_capacity_correction_evidence.md`](investment_capacity_correction_evidence.md)
+> - Current UI/release evidence: [`docs/ui_ux_audit.md`](ui_ux_audit.md)
+> - Current public entry point: the root [`README.md`](../README.md)
+>
+> This file is kept as a historical record and is **not rewritten** to match
+> current figures — its numbers reflect the state of the project on
+> 2026-09-16, before the capacity-taxonomy corrections and the recruiter-facing
+> UI rebuild.
+
 Produced 2026-09-16, at the close of Milestone 8, as the required final
 system audit before the consolidated final report. Every figure in this
 document was re-verified against the live repository, database, and

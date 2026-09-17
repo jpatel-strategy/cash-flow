@@ -65,33 +65,36 @@ python3 -m http.server 8080
 ```
 
 This starts a local server, loads the page in headless Chromium
-(Playwright), and checks: zero console/page errors; the Snapshot's KPIs
-match the Python model exactly for all 3 scenarios; the CFO/CapEx/CFI/FCF
-reference values render correctly and distinctly; the What-If sandbox
-reproduces exact scenario defaults at zero delta and updates when a
-slider moves, and its Reset button restores the exact original values;
-the capital-allocation no-double-counting proof reads "OK"; 10 nav links
-are present; and the page has no horizontal overflow at a 390px mobile
-width. All 20 checks pass — see `docs/decisions.md`'s Milestone 7 entry
-for the full run, including one real responsive-layout bug this check
-found and fixed (a CSS grid-item min-width issue causing horizontal
-overflow at mobile width, fixed by adding `min-width: 0` to `.chart-card`).
+(Playwright), and checks: zero console/page errors; Python-to-UI value
+reconciliation for the Snapshot KPIs and the gross/net horizon
+reconciliation across all 3 scenarios; scenario-selector synchronization
+(every rendered section stays in sync, never mixing scenarios); What-If
+Lab behavior (exact zero-delta parity with the published baseline, live
+recompute on input change, and exact restoration via "Reset to scenario
+defaults"); the capital-allocation no-double-counting proof; download-link
+integrity (every referenced file actually exists on disk); accessibility
+basics (skip link, landmark roles, heading structure, chart aria-labels,
+focus states); and zero horizontal overflow across 6 required viewports
+from 1440×1000 down to 360×800, including a per-cell check that every
+label and value in the mobile horizon-reconciliation table is fully
+visible (not clipped) at 390px and 360px. **114 / 114 checks pass** as of
+the public release (this count supersedes the earlier "104 checks"
+figure recorded before the final mobile-visibility patch; see
+`docs/decisions.md` for the full run history, including the original
+CSS grid-item `min-width: 0` fix from Milestone 7).
 
-## Deployment (not done — requires explicit authorization)
+## Deployment
 
-This is a static site and can be deployed to any static host (GitHub
-Pages, Netlify, Vercel, S3+CloudFront) with no server-side component:
+**Live at [jpatel-strategy.github.io/cash-flow](https://jpatel-strategy.github.io/cash-flow/)**,
+deployed via `.github/workflows/deploy-pages.yml` (GitHub Actions →
+GitHub Pages) from this repository's default branch. No build step, no
+environment variables, and no secrets are required — the workflow
+publishes this folder's static files (`index.html`, `css/`, `js/`,
+`data/`) directly.
 
-1. Copy the contents of this folder (`index.html`, `css/`, `js/`,
-   `data/`) to the host's publish directory.
-2. No build step, no environment variables, no secrets are required.
-3. To refresh the data after a new filing is ingested, re-run
-   `scripts/build_web_cockpit_data.py` and redeploy the updated
-   `data/model_data.json`.
-
-**This project has not been deployed publicly.** Per the project's
-governing rules, it will not be published externally without the
-project owner's explicit authorization.
+To refresh the data after a new filing is ingested, re-run
+`scripts/build_web_cockpit_data.py`, commit the updated
+`data/model_data.json`, and push — the workflow redeploys automatically.
 
 ## What this is not
 
