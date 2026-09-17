@@ -57,7 +57,7 @@ the whole thing: a 15-sheet Excel model with a live scenario selector, a
 Power BI-ready data package, a web dashboard with an interactive what-if
 sandbox, and a written case study.
 
-"The whole thing is backed by 453 automated tests and a clean-room
+"The whole thing is backed by 467 automated tests and a clean-room
 rebuild script that reproduces the entire database from scratch, from
 just the source filings — so every number in it is provably
 reproducible, not just displayed. And I kept a full decision log the

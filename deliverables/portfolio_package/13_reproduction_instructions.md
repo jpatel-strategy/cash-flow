@@ -24,7 +24,7 @@ python3 -m venv .venv
 
 ```bash
 .venv/bin/python -m pytest -q
-# Expect: 453 passed
+# Expect: 467 passed
 ```
 
 ## 3. Rebuild the database from scratch (clean-room proof)
@@ -48,15 +48,15 @@ keys already prove reproducibility independent of when the rebuild ran).
 ```bash
 # Excel workbook (Milestone 5)
 .venv/bin/python scripts/build_excel_model.py
-.venv/bin/python scripts/verify_excel_model.py     # 34 checks
+.venv/bin/python scripts/verify_excel_model.py     # 41 checks
 
 # Power BI handoff package (Milestone 6)
 .venv/bin/python scripts/build_powerbi_handoff.py
-.venv/bin/python scripts/verify_powerbi_handoff.py  # 159 checks
+.venv/bin/python scripts/verify_powerbi_handoff.py  # 168 checks
 
 # Web decision cockpit (Milestone 7)
 .venv/bin/python scripts/build_web_cockpit_data.py
-.venv/bin/python scripts/verify_web_cockpit.py      # 30 checks, needs Playwright + Chromium
+.venv/bin/python scripts/verify_web_cockpit.py      # 104 checks, needs Playwright + Chromium
 ```
 
 `verify_web_cockpit.py` needs `playwright` (`pip install playwright`,
