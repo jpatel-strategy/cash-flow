@@ -7,9 +7,9 @@ stale screenshot never lingers alongside a fresh one. Prior versions
 remain fully recoverable from git history
 (`git log -- deliverables/web_cockpit/screenshots/`).
 
-Verified: 2026-09-17 (UTC).
+Verified: 2026-09-18 (UTC).
 Financial baseline commit (last commit to touch `data/model_data.json` -- the numbers shown are unchanged since this commit): `fff9b9c5cedb8ec485d1720b74d896adae65089d`.
-UI build source commit (the presentation-layer code rendered when these screenshots were captured): `4e383ef8d3c8df03f0d38e86bf712a5a8f320101`.
+UI build source commit (the presentation-layer code rendered when these screenshots were captured): `d4b19023f5819ae11779d990e398a80ba0690f3b`.
 
 Note on self-reference: this README ships inside a later commit than the
 one recorded above as the "UI build source" -- a file cannot cite the

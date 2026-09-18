@@ -27,31 +27,38 @@
 <header class="site-header">
   <div class="hero">
     <div class="hero-inner">
-      <p class="hero-kicker">Independent portfolio case study — not affiliated with Target Corporation</p>
-      <h1>Target Corporation: Capital Allocation Architecture &amp; Headroom Analysis</h1>
-      <p class="hero-subtitle">SEC-filed history → scenario planning → capital allocation → valuation</p>
-      <p class="hero-question">The business question: given Target's actual FY2021–FY2025 results, how much cash could it safely deploy through FY2030 under three explicit scenarios — and how much of that is really net of the reserves it must hold back?</p>
+      <div class="hero-layout">
+        <div class="hero-primary">
+          <p class="hero-kicker">Independent portfolio case study — not affiliated with Target Corporation</p>
+          <h1>Target Corporation: Capital Allocation Architecture &amp; Headroom Analysis</h1>
+          <p class="hero-subtitle">SEC-filed history → scenario planning → capital allocation → valuation</p>
+          <p class="hero-question">The business question: given Target's actual FY2021–FY2025 results, how much cash could it safely deploy through FY2030 under three explicit scenarios — and how much of that is really net of the reserves it must hold back?</p>
+          <div class="executive-briefing-memo" id="executive-briefing-memo" aria-label="Executive briefing memo"></div>
+        </div>
 
-      <div class="executive-briefing-memo" id="executive-briefing-memo" aria-label="Executive briefing memo"></div>
+        <div class="hero-decision-panel">
+          <div class="scenario-selector hero-scenario-selector" role="radiogroup" aria-label="Scenario selector">
+            <span class="scenario-label">Scenario:</span>
+            <button type="button" class="scenario-btn" data-scenario="base" role="radio" aria-checked="true">Base</button>
+            <button type="button" class="scenario-btn" data-scenario="upside" role="radio" aria-checked="false">Upside</button>
+            <button type="button" class="scenario-btn" data-scenario="downside" role="radio" aria-checked="false">Downside</button>
+          </div>
+          <p class="scenario-takeaway" id="scenario-takeaway" role="status"></p>
 
-      <div class="scenario-selector hero-scenario-selector" role="radiogroup" aria-label="Scenario selector">
-        <span class="scenario-label">Scenario:</span>
-        <button type="button" class="scenario-btn" data-scenario="base" role="radio" aria-checked="true">Base</button>
-        <button type="button" class="scenario-btn" data-scenario="upside" role="radio" aria-checked="false">Upside</button>
-        <button type="button" class="scenario-btn" data-scenario="downside" role="radio" aria-checked="false">Downside</button>
+          <div class="hero-kpi-strip hero-kpi-grid" id="hero-kpi-strip" aria-label="Audited baseline metrics (Base scenario)"></div>
+
+          <div class="hero-actions">
+            <a class="btn btn-header-action" id="header-download-excel" href="#downloads">Download Excel Model</a>
+            <a class="btn btn-header-action" id="header-view-repo" href="https://github.com/jpatel-strategy/cash-flow" target="_blank" rel="noopener">View GitHub Repository</a>
+          </div>
+
+          <p class="hero-meta">NYSE: TGT · Information cutoff: Mar 11, 2026</p>
+        </div>
       </div>
-      <p class="scenario-takeaway" id="scenario-takeaway" role="status"></p>
 
       <div class="hero-ctas">
         <a class="btn btn-primary" href="#tour">View the 30-second summary</a>
         <a class="btn btn-secondary" href="#audit">Inspect methodology</a>
-      </div>
-
-      <p class="hero-meta">NYSE: TGT · Information cutoff: Mar 11, 2026</p>
-      <div class="hero-kpi-strip" id="hero-kpi-strip" aria-label="Audited baseline metrics (Base scenario)"></div>
-      <div class="hero-actions">
-        <a class="btn btn-header-action" id="header-download-excel" href="#downloads">Download Excel Model</a>
-        <a class="btn btn-header-action" id="header-view-repo" href="https://github.com/jpatel-strategy/cash-flow" target="_blank" rel="noopener">View GitHub Repository</a>
       </div>
 
       <div class="header-badges" id="header-badges" aria-label="Evidence badges">

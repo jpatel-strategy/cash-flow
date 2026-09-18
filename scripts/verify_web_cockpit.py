@@ -641,6 +641,51 @@ with sync_playwright() as p:
         page.close()
     browser.close()
 
+    # --- Hero layout: balanced 55/45 two-column at >=1024px, headline in
+    # 2-3 lines, the full decision layer fits inside 1440x900, and it
+    # falls back to the original single-column stacked order below 1024px.
+    browser = p.chromium.launch(executable_path=CHROMIUM_PATH)
+    page = browser.new_page(viewport={"width": 1440, "height": 900})
+    page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="networkidle")
+    page.wait_for_timeout(300)
+    hero_box = page.eval_on_selector(".hero", "el => el.getBoundingClientRect()")
+    check(hero_box["height"] <= 900, f"Hero fits within a 1440x900 viewport (height={hero_box['height']:.0f}px)")
+    h1_lines = page.eval_on_selector("h1", "el => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight))")
+    check(1 <= h1_lines <= 3, f"Headline wraps to 2-3 lines at desktop width (found {h1_lines} lines)")
+    layout_columns = page.eval_on_selector(".hero-layout", "el => getComputedStyle(el).gridTemplateColumns.split(' ').length")
+    check(layout_columns == 2, f"Hero splits into exactly 2 columns at >=1024px (found {layout_columns})")
+    primary_x = page.eval_on_selector(".hero-primary", "el => el.getBoundingClientRect().x")
+    panel_x = page.eval_on_selector(".hero-decision-panel", "el => el.getBoundingClientRect().x")
+    check(panel_x > primary_x, "Decision panel (scenario/KPIs/actions) sits to the right of the primary column")
+    primary_top = page.eval_on_selector(".hero-primary", "el => el.getBoundingClientRect().top")
+    panel_top = page.eval_on_selector(".hero-decision-panel", "el => el.getBoundingClientRect().top")
+    check(abs(primary_top - panel_top) < 1, f"Both hero columns are top-aligned (primary top={primary_top:.1f}, panel top={panel_top:.1f})")
+    kpi_grid_columns = page.eval_on_selector("#hero-kpi-strip", "el => getComputedStyle(el).gridTemplateColumns.split(' ').length")
+    check(kpi_grid_columns == 2, f"Hero KPI cards render as a 2-column grid at desktop (found {kpi_grid_columns} columns)")
+    decision_panel_order = page.eval_on_selector_all(
+        ".hero-decision-panel > *", "els => els.map(el => el.id || el.className)"
+    )
+    check(
+        decision_panel_order == ["scenario-selector hero-scenario-selector", "scenario-takeaway", "hero-kpi-strip", "hero-actions", "hero-meta"],
+        f"Right column order is scenario selector -> takeaway -> KPI grid -> actions -> cutoff metadata (found {decision_panel_order})",
+    )
+    page.close()
+
+    # Just below the breakpoint: falls back to the single-column stacked
+    # order (no grid), identical to the pre-existing mobile/tablet layout.
+    page = browser.new_page(viewport={"width": 1023, "height": 900})
+    page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="networkidle")
+    page.wait_for_timeout(300)
+    layout_display = page.eval_on_selector(".hero-layout", "el => getComputedStyle(el).display")
+    check(layout_display != "grid", f"Below 1024px the hero falls back to a single stacked column (display={layout_display!r})")
+    primary_top_mobile = page.eval_on_selector(".hero-primary", "el => el.getBoundingClientRect().top")
+    panel_top_mobile = page.eval_on_selector(".hero-decision-panel", "el => el.getBoundingClientRect().top")
+    check(panel_top_mobile > primary_top_mobile, "Below 1024px the decision panel stacks below the primary column, not beside it")
+    body_width_1023 = page.evaluate("document.body.scrollWidth")
+    check(body_width_1023 <= 1023 + 1, f"No horizontal overflow at 1023px, just below the hero-layout breakpoint (body scrollWidth={body_width_1023})")
+    page.close()
+    browser.close()
+
     # --- Mobile: every #table-capacity-horizon VALUE cell is actually on
     # screen (inside the visible table wrapper), not just "body doesn't
     # overflow" -- a table can be scroll-contained and still hide its value

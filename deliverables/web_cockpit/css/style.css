@@ -83,6 +83,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .hero-subtitle { font-size: 1rem; color: var(--light-blue); margin: 0 0 var(--space-2); font-weight: 600; }
 .hero-question { max-width: 68ch; color: var(--light-blue); font-size: 0.92rem; margin: 0 0 var(--space-4); }
 
+/* Balanced 55/45 two-column hero, desktop only -- left column carries the
+   headline/thesis, right column is the "decision layer" (scenario toggle,
+   live takeaway, audited KPIs, actions, cutoff), top-aligned so neither
+   column floats independently of where it starts reading. Below 1024px
+   this simply isn't applied, so the hero falls back to its original
+   single-column stacked order. */
+@media (min-width: 1024px) {
+  .hero { padding: var(--space-4) 0 var(--space-3); }
+  .hero-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: start;
+  }
+  .hero-primary, .hero-decision-panel { min-width: 0; }
+  .hero h1 { max-width: none; font-size: 1.6rem; margin-bottom: var(--space-2); }
+  .hero-question { margin-bottom: var(--space-3); }
+  .executive-briefing-memo { margin-bottom: 0; }
+  .hero-scenario-selector { margin-bottom: var(--space-2); }
+  .scenario-takeaway { margin-bottom: var(--space-3); }
+  .hero-kpi-strip { margin-bottom: var(--space-3); }
+}
+
 .hero-scenario-selector { margin: 0 0 var(--space-4); }
 .hero-scenario-selector .scenario-label { color: var(--white); }
 .hero-scenario-selector .scenario-btn { background: rgba(255,255,255,0.06); color: var(--white); border-color: rgba(255,255,255,0.55); }
@@ -122,6 +145,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   gap: var(--space-2);
   margin-bottom: var(--space-3);
   max-width: 900px;
+}
+/* Fixed compact 2x2 inside the narrower desktop decision panel -- auto-fit
+   alone could pack 3 narrow columns at some column widths, which is not
+   the requested "2x2." Mobile/tablet keep the auto-fit behavior above,
+   unchanged. */
+@media (min-width: 1024px) {
+  .hero-decision-panel .hero-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
 }
 .hero-kpi-card {
   background: rgba(255,255,255,0.08);
